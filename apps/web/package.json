@@ -1,0 +1,11 @@
+{
+  "name": "genie-web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "PLACEHOLDER (chua scaffold). Next.js/React PWA + Capacitor iOS host. Xem FR-LUNAR-010 (shell), 006/007/012/014/015 (UI), 005/013 (ios/App).",
+  "dependencies": {
+    "@cyberskill/amlich-core": "workspace:*",
+    "@cyberskill/genie-content": "workspace:*",
+    "@cyberskill/genie-ui": "workspace:*"
+  }
+}

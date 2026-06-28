@@ -1,0 +1,19 @@
+{
+  "name": "genie-amlich",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Genie Am Lich (CyberSkill) - ung dung nhac am lich Viet Nam. Monorepo, lunar math on-device theo thuat toan Ho Ngoc Duc.",
+  "packageManager": "pnpm@9.0.0",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "test:core": "pnpm --filter @cyberskill/amlich-core test",
+    "gate:p0": "pnpm --filter @cyberskill/amlich-core test"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

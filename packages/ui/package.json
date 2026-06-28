@@ -1,0 +1,8 @@
+{
+  "name": "@cyberskill/genie-ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PLACEHOLDER (chua scaffold). Purple style pack + Be Vietnam Pro + cong APCA Lc>=75. Xem FR-LUNAR-009.",
+  "main": "./src/index.ts"
+}

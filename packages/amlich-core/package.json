@@ -1,0 +1,24 @@
+{
+  "name": "@cyberskill/amlich-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Lunar calendar core (Ho Ngoc Duc) - solar<->lunar, can-chi, tiet khi, recurrence. Zero-dependency, offline, VN time (UTC+7, 105E). FR-LUNAR-001/002/003/004.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0",
+    "astronomy-engine": "^2.1.19"
+  }
+}

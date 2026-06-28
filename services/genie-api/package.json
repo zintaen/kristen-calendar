@@ -1,0 +1,8 @@
+{
+  "name": "@cyberskill/genie-api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PLACEHOLDER (chua scaffold). Serverless backend: Claude proxy (FR-LUNAR-015), ZNS (017), sync (018), PDPL (019), billing (020). Migration Supabase: 0016-0017 (018), 0018 (017), 0019 (019), 0020 (020).",
+  "dependencies": { "@cyberskill/amlich-core": "workspace:*" }
+}

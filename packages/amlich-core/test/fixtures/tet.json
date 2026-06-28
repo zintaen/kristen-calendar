@@ -1,0 +1,8 @@
+[
+  { "solar": [29, 1, 2025], "lunar": [1, 1, 2025, 0], "yearCanChi": "Ất Tỵ", "zodiac": "Rắn", "note": "Tết 2025" },
+  { "solar": [17, 2, 2026], "lunar": [1, 1, 2026, 0], "yearCanChi": "Bính Ngọ", "zodiac": "Ngựa", "note": "Tết 2026" },
+  { "solar": [10, 2, 2024], "lunar": [1, 1, 2024, 0], "yearCanChi": "Giáp Thìn", "zodiac": "Rồng", "note": "Tết 2024" },
+  { "solar": [22, 1, 2023], "lunar": [1, 1, 2023, 0], "yearCanChi": "Quý Mão", "zodiac": "Mèo", "note": "Tết 2023 - nam Meo, khong phai Tho" },
+  { "solar": [2, 2, 1984], "lunar": [1, 1, 1984, 0], "yearCanChi": "Giáp Tý", "zodiac": "Chuột", "note": "Moc lich su Ho Ngoc Duc cong bo" },
+  { "solar": [21, 1, 1985], "lunar": [1, 1, 1985, 0], "yearCanChi": "Ất Sửu", "zodiac": "Trâu", "note": "Tet VN som hon Trung Quoc 1 thang; nam 1985 co thang 2 nhuan" }
+]

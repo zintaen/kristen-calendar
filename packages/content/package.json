@@ -1,0 +1,9 @@
+{
+  "name": "@cyberskill/genie-content",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PLACEHOLDER (chua scaffold). FestivalContent tinh - 13 dip am lich. Xem FR-LUNAR-008.",
+  "main": "./src/index.ts",
+  "dependencies": { "@cyberskill/amlich-core": "workspace:*" }
+}
