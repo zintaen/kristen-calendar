@@ -1,3 +1,4 @@
+// @ts-ignore
 import { APCAcontrast, sRGBtoY } from "apca-w3";
 
 /**
