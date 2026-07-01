@@ -53,9 +53,24 @@ describe("ReminderStore", () => {
     
     await store.toggleMonthly("MUNG_MOT", false);
     
-    expect(storage.updateReminder).toHaveBeenCalledWith(expect.objectContaining({
+    expect(storage.saveReminder).toHaveBeenCalledWith(expect.objectContaining({
       type: "MUNG_MOT",
       enabled: false,
     }));
+  });
+
+  it("should validate fields on upsert and reject invalid data", async () => {
+    const invalidReminder: any = {
+      id: "test",
+      title: "",
+      lunarDay: 32,
+      lunarMonth: 13,
+      isLeapMonth: false,
+    };
+
+    const result = await store.upsert(invalidReminder);
+    
+    expect(result.errors).toHaveLength(3);
+    expect(storage.saveReminder).not.toHaveBeenCalled();
   });
 });

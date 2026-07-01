@@ -42,8 +42,31 @@ export function CalendarGrid({
     else onMonthChange(year, month + 1);
   };
 
+  const [touchStart, setTouchStart] = React.useState<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStart === null) return;
+    const touchEnd = e.changedTouches[0].clientX;
+    const diff = touchStart - touchEnd;
+    
+    // Swipe left (next month)
+    if (diff > 50) handleNext();
+    // Swipe right (prev month)
+    if (diff < -50) handlePrev();
+    
+    setTouchStart(null);
+  };
+
   return (
-    <div className="w-full max-w-md mx-auto bg-white shadow-sm rounded-xl overflow-hidden">
+    <div 
+      className="w-full max-w-md mx-auto bg-white shadow-sm rounded-xl overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <div className="flex items-center justify-between p-4 bg-primary text-white">
         <button onClick={handlePrev} className="p-2 -ml-2 text-white/80 hover:text-white">&lt;</button>
         <div className="text-center">

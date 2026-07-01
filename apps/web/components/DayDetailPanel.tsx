@@ -6,12 +6,15 @@ import { ShareCardSheet } from "./ShareCardSheet";
 import { getDayQuality } from "@cyberskill/amlich-core";
 import type { CardData } from "../lib/card-renderer";
 
+import type { Reminder } from "../lib/storage";
+
 interface DayDetailPanelProps {
   data: DayCellData | null;
+  reminders: Reminder[];
   onClose: () => void;
 }
 
-export function DayDetailPanel({ data, onClose }: DayDetailPanelProps) {
+export function DayDetailPanel({ data, reminders, onClose }: DayDetailPanelProps) {
   const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
@@ -36,6 +39,12 @@ export function DayDetailPanel({ data, onClose }: DayDetailPanelProps) {
     eventType: "custom",
     watermark: "Genie Âm Lịch · CyberSkill",
   };
+
+  const dayReminders = reminders.filter(r => 
+    r.enabled && 
+    r.lunarDay === data.lunarDate.day && 
+    (r.lunarMonth === null || r.lunarMonth === data.lunarDate.month)
+  );
 
   const content = (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
@@ -69,6 +78,23 @@ export function DayDetailPanel({ data, onClose }: DayDetailPanelProps) {
             Trực: {dq.truc.name} • Sao: {dq.sao28.name}
           </div>
         </div>
+
+        {dayReminders.length > 0 && (
+          <div className="mb-6">
+            <h3 className="font-semibold text-purple-900 mb-3 text-sm">Sự kiện trong ngày</h3>
+            <div className="space-y-2">
+              {dayReminders.map(r => (
+                <div key={r.id} className="p-3 bg-purple-50 rounded-lg border border-purple-100 flex items-center gap-3">
+                  <div className="text-2xl">{r.notificationStyle?.emoji || "🔔"}</div>
+                  <div>
+                    <div className="font-medium text-purple-900">{r.title}</div>
+                    <div className="text-xs text-purple-700">{r.type === "GIO" ? "Đám Giỗ" : r.type === "RAM" ? "Ngày Rằm" : r.type === "MUNG_MOT" ? "Mùng 1" : "Sự kiện"}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         
         <div className="flex gap-3 mt-6">
           <ShareCardSheet data={cardData} />

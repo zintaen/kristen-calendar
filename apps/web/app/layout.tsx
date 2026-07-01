@@ -7,6 +7,9 @@ export const metadata: Metadata = {
   title: "Genie Am Lich",
   description: "Tro ly am lich Viet Nam cua CyberSkill",
   manifest: "/manifest.json",
+};
+
+export const viewport = {
   themeColor: "#3D1266",
 };
 

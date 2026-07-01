@@ -103,6 +103,7 @@ Quy ước viết tài liệu: prose tiếng Việt có dấu đầy đủ; thu�
 - `docs/feature-requests/BACKLOG.md` - phasing, headline metrics, founder decisions.
 - `docs/AGENT-GUIDE.md` - invariant core, kỷ luật build, quy ước viết.
 - `docs/BUILD-RUNBOOK.md` - thứ tự build từng slice cộng lệnh gate.
+- `docs/DEPLOY.md` - Hướng dẫn deployment, các yêu cầu tài khoản bên ngoài (Claude, Zalo) và cấu hình môi trường.
 - `AGENTS.md` (gốc repo, do Stephen đặt) - CyberOS BRAIN/memory protocol.
 
 ## Thuật ngữ (cho người mới)

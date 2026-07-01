@@ -38,7 +38,7 @@ export default function CalendarPage() {
         onDayTap={setSelectedDay}
       />
       
-      <DayDetailPanel data={selectedDay} onClose={() => setSelectedDay(null)} />
+      <DayDetailPanel data={selectedDay} reminders={reminders} onClose={() => setSelectedDay(null)} />
     </div>
   );
 }
