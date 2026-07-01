@@ -1,0 +1,21 @@
+{
+  "app": {
+    "title": "Genie Âm Lịch",
+    "icon": "assets/icon.png",
+    "statusBarColor": "#6B21A8",
+    "textColor": "white",
+    "permissions": [
+      { "type": "scope.userInfo", "description": "Hiển thị tên bạn trên ứng dụng" },
+      { "type": "scope.phone", "description": "Gửi nhắc qua Zalo (ZNS) theo số điện thoại bạn" }
+    ]
+  },
+  "pages": [
+    { "path": "/", "name": "home" },
+    { "path": "/calendar", "name": "calendar" },
+    { "path": "/reminders", "name": "reminder-list" },
+    { "path": "/reminder/new", "name": "reminder-form" },
+    { "path": "/reminder/:id", "name": "reminder-form" },
+    { "path": "/festival/:id", "name": "festival-detail" },
+    { "path": "/settings", "name": "settings" }
+  ]
+}

@@ -18,3 +18,5 @@ export * from "./canchi.js";
 export * from "./tietkhi.js";
 export * from "./recurrence.js";
 export * from "./reminder.js";
+export * from "./dayquality.js";
+export * from "./dayquality-tables.js";

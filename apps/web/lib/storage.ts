@@ -1,5 +1,34 @@
 import type { Reminder } from "@cyberskill/amlich-core";
+import { SyncClient } from "./sync-client";
+import type { RemindersUpsertRow } from "./conflict-resolver";
 export type { Reminder };
+
+let syncClient: SyncClient | null = null;
+export function initSyncClient(jwt: string, deviceId: string) {
+  syncClient = new SyncClient({ userJwt: jwt, deviceId });
+}
+
+function mapToUpsertRow(r: Reminder): RemindersUpsertRow {
+  // Temporary mapping until full auth is wired up
+  return {
+    id: r.id,
+    userId: "local-user",
+    type: r.type,
+    title: r.title,
+    lunarDay: r.lunarDay,
+    lunarMonth: r.lunarMonth,
+    lunarYear: r.lunarYear || null,
+    isLeapMonth: r.isLeapMonth,
+    recurrence: r.recurrence,
+    leadTimes: r.leadTimes ? [...r.leadTimes] : [0],
+    notifyTime: r.notifyTime || "07:00",
+    channels: r.channels ? [...r.channels] : ["LOCAL"],
+    linkedContentId: r.linkedContentId || null,
+    sharedWith: r.sharedWith ? [...r.sharedWith] : [],
+    enabled: r.enabled !== false,
+    updatedAt: (r as any).updatedAt || new Date().toISOString()
+  };
+}
 
 export interface UserSettings {
   locale: "vi-VN";
@@ -48,6 +77,9 @@ export async function saveReminder(r: Reminder): Promise<void> {
   const existing = await getReminders();
   const updated = [...existing.filter(e => e.id !== r.id), r];
   await storageSet(REMINDERS_KEY, JSON.stringify(updated));
+  if (syncClient) {
+    syncClient.push([mapToUpsertRow(r)]).catch(console.error);
+  }
 }
 
 export async function updateReminder(r: Reminder): Promise<void> {
@@ -56,8 +88,15 @@ export async function updateReminder(r: Reminder): Promise<void> {
 
 export async function deleteReminder(id: string): Promise<void> {
   const existing = await getReminders();
+  const target = existing.find(e => e.id === id);
   const updated = existing.filter(e => e.id !== id);
   await storageSet(REMINDERS_KEY, JSON.stringify(updated));
+
+  if (syncClient && target) {
+    // Soft delete for cloud sync
+    const softDeleted = { ...target, enabled: false };
+    syncClient.push([mapToUpsertRow(softDeleted)]).catch(console.error);
+  }
 }
 
 export async function getSettings(): Promise<UserSettings> {

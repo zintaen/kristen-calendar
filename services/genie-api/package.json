@@ -3,6 +3,29 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "PLACEHOLDER (chua scaffold). Serverless backend: Claude proxy (FR-LUNAR-015), ZNS (017), sync (018), PDPL (019), billing (020). Migration Supabase: 0016-0017 (018), 0018 (017), 0019 (019), 0020 (020).",
-  "dependencies": { "@cyberskill/amlich-core": "workspace:*" }
+  "description": "Serverless backend: Claude proxy (FR-LUNAR-015)",
+  "scripts": {
+    "dev": "tsx watch index.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.1",
+    "@cyberskill/amlich-core": "workspace:*",
+    "@hono/node-server": "^1.11.1",
+    "@sentry/node": "^10.62.0",
+    "@sentry/profiling-node": "^10.62.0",
+    "@supabase/supabase-js": "^2.110.0",
+    "hono": "^4.3.7",
+    "ioredis": "^5.11.1",
+    "jsonwebtoken": "^9.0.3",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.12.12",
+    "@types/uuid": "^9.0.8",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
 }

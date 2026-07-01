@@ -1,0 +1,17 @@
+node_modules
+apps/*/node_modules
+packages/*/node_modules
+services/*/node_modules
+zalo/node_modules
+
+.next
+apps/web/.next
+apps/web/out
+
+.git
+.env*
+!*.example
+.DS_Store
+
+dist
+build

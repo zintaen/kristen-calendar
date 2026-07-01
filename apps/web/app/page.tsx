@@ -45,6 +45,16 @@ export default function HomePage() {
           Chưa có lời nhắc nào (FR-006 chưa implement)
         </div>
       </div>
+      
+      {/* Good Day Picker Link */}
+      <div className="w-full max-w-sm mt-6">
+        <a 
+          href="/good-day-picker" 
+          className="block w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md text-center transition-colors"
+        >
+          ✨ Chọn Ngày Tốt
+        </a>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,149 @@
+[
+  {
+    "solarDate": "2025-01-29",
+    "expectedThanTrucNhat": "Nguyen Vu",
+    "expectedIsHoangDao": false,
+    "expectedTruc": "Thanh",
+    "expectedSao28": "Vo"
+  },
+  {
+    "solarDate": "2022-12-01",
+    "expectedThanTrucNhat": "Ngoc Duong",
+    "expectedIsHoangDao": true,
+    "expectedTruc": "Thanh",
+    "expectedSao28": "Giac"
+  },
+  {
+    "solarDate": "2022-12-02",
+    "expectedThanTrucNhat": "Tu Menh",
+    "expectedIsHoangDao": true,
+    "expectedTruc": "Thu",
+    "expectedSao28": "Cang"
+  },
+  {
+    "solarDate": "2022-12-03",
+    "expectedThanTrucNhat": "Bach Ho",
+    "expectedIsHoangDao": false,
+    "expectedTruc": "Khai",
+    "expectedSao28": "De"
+  },
+  {
+    "solarDate": "2022-12-04",
+    "expectedThanTrucNhat": "Thien Hinh",
+    "expectedIsHoangDao": false,
+    "expectedTruc": "Be",
+    "expectedSao28": "Phong"
+  },
+  {
+    "solarDate": "2022-12-05",
+    "expectedThanTrucNhat": "Chu Tuoc",
+    "expectedIsHoangDao": false,
+    "expectedTruc": "Kien",
+    "expectedSao28": "Tam"
+  },
+  {
+    "solarDate": "2022-12-06",
+    "expectedThanTrucNhat": "Thien Lao",
+    "expectedIsHoangDao": false,
+    "expectedTruc": "Tru",
+    "expectedSao28": "Tinh"
+  },
+  {
+    "solarDate": "2022-12-07",
+    "expectedThanTrucNhat": "Nguyen Vu",
+    "expectedIsHoangDao": false,
+    "expectedTruc": "Man",
+    "expectedSao28": "Vo"
+  },
+  {
+    "solarDate": "2022-12-08",
+    "expectedThanTrucNhat": "Cau Tran",
+    "expectedIsHoangDao": false,
+    "expectedTruc": "Kien",
+    "expectedSao28": "Quy"
+  },
+  {
+    "solarDate": "2022-12-09",
+    "expectedThanTrucNhat": "Thanh Long",
+    "expectedIsHoangDao": true,
+    "expectedTruc": "Tru",
+    "expectedSao28": "Liu"
+  },
+  {
+    "solarDate": "2022-12-10",
+    "expectedThanTrucNhat": "Minh Duong",
+    "expectedIsHoangDao": true,
+    "expectedTruc": "Man",
+    "expectedSao28": "Tinh28"
+  },
+  {
+    "solarDate": "2022-12-11",
+    "expectedThanTrucNhat": "Kim Quy",
+    "expectedIsHoangDao": true,
+    "expectedTruc": "Binh",
+    "expectedSao28": "Chang"
+  },
+  {
+    "solarDate": "2022-12-12",
+    "expectedThanTrucNhat": "Bao Quang",
+    "expectedIsHoangDao": true,
+    "expectedTruc": "Dinh",
+    "expectedSao28": "I"
+  },
+  {
+    "solarDate": "2022-12-13",
+    "expectedThanTrucNhat": "Ngoc Duong",
+    "expectedIsHoangDao": true,
+    "expectedTruc": "Chap",
+    "expectedSao28": "Chan"
+  },
+  {
+    "solarDate": "2022-12-14",
+    "expectedThanTrucNhat": "Tu Menh",
+    "expectedIsHoangDao": true,
+    "expectedTruc": "Pha",
+    "expectedSao28": "Goc"
+  },
+  {
+    "solarDate": "2022-12-15",
+    "expectedThanTrucNhat": "Bach Ho",
+    "expectedIsHoangDao": false,
+    "expectedTruc": "Nguy",
+    "expectedSao28": "Lau"
+  },
+  {
+    "solarDate": "2022-12-16",
+    "expectedThanTrucNhat": "Thien Hinh",
+    "expectedIsHoangDao": false,
+    "expectedTruc": "Thanh",
+    "expectedSao28": "Vi28"
+  },
+  {
+    "solarDate": "2022-12-17",
+    "expectedThanTrucNhat": "Chu Tuoc",
+    "expectedIsHoangDao": false,
+    "expectedTruc": "Thu",
+    "expectedSao28": "Mao28"
+  },
+  {
+    "solarDate": "2022-12-18",
+    "expectedThanTrucNhat": "Thien Lao",
+    "expectedIsHoangDao": false,
+    "expectedTruc": "Khai",
+    "expectedSao28": "Tat"
+  },
+  {
+    "solarDate": "2022-12-19",
+    "expectedThanTrucNhat": "Nguyen Vu",
+    "expectedIsHoangDao": false,
+    "expectedTruc": "Be",
+    "expectedSao28": "Truy"
+  },
+  {
+    "solarDate": "2022-12-20",
+    "expectedThanTrucNhat": "Cau Tran",
+    "expectedIsHoangDao": false,
+    "expectedTruc": "Kien",
+    "expectedSao28": "Cam"
+  }
+]

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { BottomNav } from "../components/BottomNav";
+import { GlobalGenie } from "../components/GlobalGenie";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -8,6 +9,9 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   themeColor: "#3D1266",
 };
+
+import { WidgetCacheProvider } from "../components/WidgetCacheProvider";
+import { ConsentGate } from "../components/ConsentGate";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -18,7 +22,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="bg-gray-50 font-sans text-gray-900 antialiased overflow-x-hidden">
         {children}
+        <GlobalGenie />
         <BottomNav />
+        <WidgetCacheProvider />
+        <ConsentGate />
       </body>
     </html>
   );

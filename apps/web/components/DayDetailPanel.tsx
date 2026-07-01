@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { DayCellData } from "../lib/calendarData";
 import { Typography, Button } from "@cyberskill/genie-ui";
+import { ShareCardSheet } from "./ShareCardSheet";
+import { getDayQuality } from "@cyberskill/amlich-core";
+import type { CardData } from "../lib/card-renderer";
 
 interface DayDetailPanelProps {
   data: DayCellData | null;
@@ -22,6 +25,17 @@ export function DayDetailPanel({ data, onClose }: DayDetailPanelProps) {
   }, [data]);
 
   if (!mounted || !data) return null;
+
+  const date = new Date(data.solarYear, data.solarMonth - 1, data.solarDay);
+  const dq = getDayQuality(date);
+
+  const cardData: CardData = {
+    lunarLabel: `Mùng ${data.lunarDate.day} tháng ${data.lunarDate.month}`,
+    solarLabel: `${String(data.solarDay).padStart(2, '0')}/${String(data.solarMonth).padStart(2, '0')}/${data.solarYear}`,
+    canChiLabel: `${dq.canChiNgay} - ${dq.label}`,
+    eventType: "custom",
+    watermark: "Genie Âm Lịch · CyberSkill",
+  };
 
   const content = (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
@@ -49,16 +63,19 @@ export function DayDetailPanel({ data, onClose }: DayDetailPanelProps) {
           </div>
         </div>
         
-        {/* Placeholder for FR-LUNAR-011 */}
         <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-          <div className="text-sm text-gray-500 italic text-center">
-            (Thông tin Hoàng đạo / Trực / 28 sao sẽ hiển thị ở đây trong Phase 2)
+          <div className="text-sm font-semibold text-center mb-2">{dq.label}</div>
+          <div className="text-sm text-gray-600 text-center">
+            Trực: {dq.truc.name} • Sao: {dq.sao28.name}
           </div>
         </div>
         
-        <Button onClick={onClose} variant="primary" className="w-full">
-          Đóng
-        </Button>
+        <div className="flex gap-3 mt-6">
+          <ShareCardSheet data={cardData} />
+          <Button onClick={onClose} variant="primary" className="flex-1">
+            Đóng
+          </Button>
+        </div>
       </div>
     </div>
   );
