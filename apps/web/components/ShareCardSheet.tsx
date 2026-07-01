@@ -18,6 +18,8 @@ export function ShareCardSheet({ data, trigger }: ShareCardSheetProps) {
   const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
   const [open, setOpen] = useState(false);
 
+  const handleCanvasReady = useCallback((c: HTMLCanvasElement) => setCanvas(c), []);
+
   const theme = CARD_THEMES[themeId];
 
   const handleAction = async () => {
@@ -60,7 +62,7 @@ export function ShareCardSheet({ data, trigger }: ShareCardSheetProps) {
           <ShareCard
             data={data}
             theme={theme}
-            onCanvasReady={useCallback((c: HTMLCanvasElement) => setCanvas(c), [])}
+            onCanvasReady={handleCanvasReady}
           />
           
           <div className="flex gap-3">

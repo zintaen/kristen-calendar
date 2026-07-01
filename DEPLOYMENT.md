@@ -1,93 +1,124 @@
 # Hướng dẫn Triển khai (Deployment Guide)
 
-Dự án **Genie Âm Lịch** được thiết kế để dễ dàng đóng gói và triển khai qua **Docker** và **Nginx**. Dưới đây là hướng dẫn từng bước để triển khai trên môi trường Production (VPS, AWS EC2, DigitalOcean, v.v.).
+Dự án **Genie Âm Lịch** được thiết kế để triển khai dễ dàng qua **Docker** và **Nginx** cho hệ thống web/API tự host, đồng thời hỗ trợ native deploy cho Zalo Mini App, Vercel và iOS App.
 
-## Yêu cầu môi trường Production
-- **Docker** và **Docker Compose**
-- Môi trường Linux (Ubuntu 22.04+ được khuyên dùng)
-- Đã thiết lập sẵn **Supabase** (SaaS hoặc Self-hosted)
-- Domain đã trỏ về IP của Server (A record)
+Tùy vào nhu cầu, bạn có thể chọn Phương án 1 (Self-hosted Docker) hoặc Phương án 2 (Serverless/Managed Services).
 
-## Bước 1: Chuẩn bị biến môi trường
-Tạo file `.env` tại thư mục gốc của dự án (trên server):
+---
 
+## 1. Yêu cầu Tiên quyết & Tài khoản Bên ngoài
+
+Trước khi triển khai, bạn cần thiết lập và lấy các API key sau:
+
+1. **Anthropic / Claude API (Cho AI Genie)**
+   - Đăng ký tại [Anthropic Console](https://console.anthropic.com/).
+2. **Zalo Official Account (ZOA) & Zalo for Developers**
+   - Đăng ký [Zalo Official Account](https://oa.zalo.me/).
+   - Đăng ký Zalo App trên [Zalo for Developers](https://developers.zalo.me/) và liên kết với OA.
+   - Lấy `ZALO_APP_ID`, `ZALO_APP_SECRET`, và `ZALO_OA_ACCESS_TOKEN`.
+3. **Supabase (Cho Family Sharing & Cloud Sync)**
+   - Lấy `NEXT_PUBLIC_SUPABASE_URL` và `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+4. **Apple Developer Account (Tùy chọn)**
+   - Cần thiết nếu bạn muốn triển khai ứng dụng iOS và Native Widget ($99/năm).
+
+---
+
+## 2. Phương án 1: Triển khai Self-hosted (Docker & Nginx)
+
+Được khuyến nghị cho production nếu bạn có VPS (Ubuntu, AWS EC2, DigitalOcean).
+
+### Bước 1: Biến môi trường
+Tạo file `.env` tại thư mục gốc:
 ```env
 # Backend API Keys
 SUPABASE_URL=https://<your-project-ref>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
 ANTHROPIC_API_KEY=<your-claude-api-key>
 
-# Infrastructure / Observability
+# Infrastructure / Frontend
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 REDIS_URL=redis://redis:6379
-NEXT_PUBLIC_SENTRY_DSN=<your-sentry-dsn>
-SENTRY_DSN=<your-sentry-dsn>
-
-# Zalo Pay / Webhooks (Optional for Phase 3)
-ZALO_PAY_KEY2=<your-zalo-mac-key>
 ```
 
-## Bước 2: Khởi động với Docker Compose
-Dự án đã cấu hình sẵn `docker-compose.yml` tối ưu hóa bảo mật (Non-root user) và Healthchecks.
-
-Tại thư mục gốc của dự án:
+### Bước 2: Khởi động Docker Compose
+Dự án được cấu hình Non-root user và Healthchecks:
 ```bash
-docker compose up --build -d
+docker compose --env-file .env up --build -d
 ```
-Lệnh này sẽ build và chạy 3 container:
-1. `api`: Hono API server, chạy ở port `3000`.
-2. `genie-web`: Next.js web app (Standalone server), expose port `8080`.
-3. `redis`: Caching và Rate Limiting.
+Container `api` sẽ chạy ở port `3000`, `genie-web` ở `8080`, và `redis`.
 
-Kiểm tra trạng thái container:
-```bash
-docker compose ps
-```
-Đảm bảo cả 2 container đều có trạng thái `(healthy)`.
-
-## Bước 3: Cấu hình Nginx (Reverse Proxy)
-Cài đặt Nginx trên server để làm Reverse Proxy và cấu hình SSL/HTTPS.
-
-Tạo file cấu hình Nginx (ví dụ `/etc/nginx/sites-available/genie-amlich`):
-
+### Bước 3: Cấu hình Nginx
+Tạo file `/etc/nginx/sites-available/genie-amlich`:
 ```nginx
 server {
     listen 80;
     server_name your-domain.com;
 
-    # Frontend Next.js Web
     location / {
         proxy_pass http://localhost:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # API Backend
     location /api/ {
         proxy_pass http://localhost:3000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 ```
+Kích hoạt: `sudo ln -s /etc/nginx/sites-available/genie-amlich /etc/nginx/sites-enabled/ && sudo systemctl restart nginx`
 
-Bật file cấu hình và khởi động lại Nginx:
-```bash
-sudo ln -s /etc/nginx/sites-available/genie-amlich /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
-```
-
-## Bước 4: Cài đặt SSL với Certbot (Khuyên dùng)
+### Bước 4: SSL (Certbot)
 ```bash
 sudo apt install certbot python3-certbot-nginx
 sudo certbot --nginx -d your-domain.com
 ```
 
-## Lưu ý về Bảo mật
-- Tất cả các container trong dự án đều chạy dưới quyền `non-root` user (`node`).
-- Chỉ có cổng 80/443 của Nginx được expose ra public internet, các cổng 8080 và 3000 của Docker chỉ listen trên `localhost` (hoặc thông qua Docker network).
-- File `.env` chứa các API Key quan trọng, KHÔNG ĐƯỢC push lên public repository.
+---
+
+## 3. Phương án 2: Triển khai Serverless (Vercel)
+
+Nếu bạn không muốn tự quản lý VPS, có thể host Web và API trên Vercel.
+
+### 3.1 Backend API (`services/genie-api`)
+1. Kết nối repo với Vercel, chọn thư mục gốc là `services/genie-api`.
+2. Khai báo các biến môi trường: `ANTHROPIC_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ZALO_APP_ID`, v.v.
+3. Chạy lệnh Build mặc định `pnpm build`.
+4. Ghi lại `API_BASE_URL` sau khi deploy thành công.
+
+### 3.2 Frontend Web (`apps/web`)
+1. Tạo một project Vercel thứ hai trỏ tới `apps/web`.
+2. Khai báo biến: `NEXT_PUBLIC_API_URL` (từ bước 3.1), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+3. Build & Deploy. Hệ thống xuất ra trang tĩnh SSG hoàn chỉnh để phục vụ như một PWA.
+
+---
+
+## 4. Triển khai Zalo Mini App (`zalo`)
+
+1. Cài đặt Zalo Mini App CLI: `npm install -g zmp-cli`.
+2. Mở terminal tại `zalo/`.
+3. Chạy `zmp login` và scan QR code.
+4. Build và upload:
+   ```bash
+   pnpm build
+   zmp deploy
+   ```
+5. Vào Zalo Mini App Console, quét mã QR và "Gửi duyệt".
+
+---
+
+## 5. Triển khai iOS App & Widget (`apps/web/ios`)
+
+1. Cập nhật App Group & Bundle ID trong `apps/web/ios/App/App.xcworkspace`. Group bắt buộc là `group.world.cyberskill.genie`.
+2. Mỗi lần đổi web code, đồng bộ sang iOS:
+   ```bash
+   cd apps/web
+   pnpm build
+   pnpm exec cap sync ios
+   ```
+3. Mở Xcode, chọn "Any iOS Device (arm64)", chọn `Product > Archive`.
+4. Upload lên App Store Connect và Submit.

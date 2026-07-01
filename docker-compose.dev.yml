@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  api:
+    image: node:20-alpine
+    working_dir: /app/services/genie-api
+    command: sh -c "pnpm install && pnpm dev"
+    volumes:
+      - .:/app
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - SUPABASE_URL=${SUPABASE_URL:-http://host.docker.internal:54321}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - NODE_ENV=development
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - redis
+
+  genie-web:
+    image: node:20-alpine
+    working_dir: /app/apps/web
+    command: sh -c "corepack enable && pnpm install && pnpm dev"
+    volumes:
+      - .:/app
+    ports:
+      - "8080:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3000/api}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-http://localhost:54321}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - NODE_ENV=development
+    depends_on:
+      - api
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"

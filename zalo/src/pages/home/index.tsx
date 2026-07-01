@@ -5,17 +5,12 @@ import { jdFromDate } from "@cyberskill/amlich-core";
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const [lunarDate, setLunarDate] = useState<any>(null);
-  const [canChi, setCanChi] = useState<any>(null);
-
-  useEffect(() => {
-    const lunar = todayLunar();
+  const [lunarDate, setLunarDate] = useState<any>(() => todayLunar());
+  const [canChi, setCanChi] = useState<any>(() => {
     const solar = todaySolar();
     const jdn = jdFromDate(solar[0], solar[1], solar[2]);
-    const cc = canChiForJdn(jdn);
-    setLunarDate(lunar);
-    setCanChi(cc);
-  }, []);
+    return canChiForJdn(jdn);
+  });
 
   return (
     <Page className="bg-primary">

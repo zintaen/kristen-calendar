@@ -48,7 +48,7 @@ export async function handleConsentGet(request: Request): Promise<Response> {
     }));
 
     // Reconstruct flags from history
-    let flags: ConsentFlags = { ...DEFAULT_CONSENT_FLAGS };
+    const flags: ConsentFlags = { ...DEFAULT_CONSENT_FLAGS };
     for (const log of history) {
       if (log.action === "grant") {
         flags[log.type] = true;

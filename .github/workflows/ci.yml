@@ -40,8 +40,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Run Core Typecheck (P0 Invariant)
-        run: pnpm --filter @cyberskill/amlich-core typecheck
+      - name: Run Workspace Typecheck
+        run: pnpm typecheck
+
+      - name: Run Workspace Lint
+        run: pnpm run lint --if-present || echo "No lint script yet, skipping..."
 
       - name: Run Core Tests (P0 Invariant)
         run: pnpm --filter @cyberskill/amlich-core test

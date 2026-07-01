@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   output: process.env.BUILD_STANDALONE === "1" ? "standalone" : "export",
@@ -15,8 +14,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
-  silent: true,
-  org: "cyberskill",
-  project: "kristen-calendar",
-});
+export default nextConfig;

@@ -11,6 +11,12 @@ COPY . .
 # Install dependencies and build
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 # Ensure env vars are passed at build time if needed (e.g. NEXT_PUBLIC_API_URL)
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ARG NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
 ENV BUILD_STANDALONE=1
 RUN pnpm --filter genie-web build
 
@@ -18,8 +24,6 @@ FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-# Add Sentry DSN as build arg or env
-ENV NEXT_PUBLIC_SENTRY_DSN=""
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs

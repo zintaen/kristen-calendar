@@ -9,7 +9,7 @@ export function NewMoon(k: number): number {
   const M = 359.2242 + 29.10535608 * k - 0.0000333 * T2 - 0.00000347 * T3;
   const Mpr = 306.0253 + 385.81691806 * k + 0.0107306 * T2 + 0.00001236 * T3;
   const F = 21.2964 + 390.67050646 * k - 0.0016528 * T2 - 0.00000239 * T3;
-  let C1 =
+  const C1 =
     (0.1734 - 0.000393 * T) * Math.sin(M * DR) +
     0.0021 * Math.sin(2 * DR * M) -
     0.4068 * Math.sin(Mpr * DR) +
@@ -37,7 +37,7 @@ export function SunLongitude(jdn: number): number {
   const T2 = T * T;
   const M = 357.5291 + 35999.0503 * T - 0.0001559 * T2 - 0.00000048 * T * T2;
   const L0 = 280.46645 + 36000.76983 * T + 0.0003032 * T2;
-  let DL =
+  const DL =
     (1.9146 - 0.004817 * T - 0.000014 * T2) * Math.sin(DR * M) +
     (0.019993 - 0.000101 * T) * Math.sin(DR * 2 * M) +
     0.00029 * Math.sin(DR * 3 * M);

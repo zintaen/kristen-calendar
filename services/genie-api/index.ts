@@ -1,8 +1,8 @@
-import "./lib/sentry";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import * as Sentry from "@sentry/node";
 import { cors } from "hono/cors";
+import { zValidator } from "@hono/zod-validator";
+import { z } from "zod";
 import { POST as geniePost } from "./api/genie";
 import { POST as znsPost } from "./api/zns";
 import { 
@@ -25,14 +25,18 @@ const app = new Hono();
 
 app.use("*", cors());
 
-// Sentry Error Handler
+// Global Error Handler
 app.onError((err, c) => {
-  Sentry.captureException(err);
+  console.error(err);
   return c.text("Internal Server Error", 500);
 });
 
 // Map the API route to the edge-compatible POST handler
-app.post("/api/genie", async (c) => {
+app.post("/api/genie", zValidator("json", z.object({
+  question: z.string().min(1).max(500),
+  context: z.any(),
+  ttsRequested: z.boolean().optional()
+})), async (c) => {
   const response = await geniePost(c.req.raw);
   return response;
 });

@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { entitlementClient, EntitlementResponse } from "../lib/entitlement-client";
 import { Preferences } from '@capacitor/preferences';
+import { IAPService } from "../lib/monetization/IAPService";
+import { PurchasesOfferings, PurchasesPackage } from '@revenuecat/purchases-capacitor';
 
 interface UpgradePromptProps {
   featureName: string;
@@ -19,6 +21,11 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [offerings, setOfferings] = useState<PurchasesOfferings | null>(null);
+  
+  React.useEffect(() => {
+    IAPService.getOfferings().then(offs => setOfferings(offs));
+  }, []);
 
   const handleStartTrial = async () => {
     setLoading(true);
@@ -81,15 +88,57 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
               {loading ? "Đang xử lý..." : "Dùng thử 7 ngày miễn phí"}
             </button>
           ) : (
-            <button 
-              className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition"
-              onClick={() => {
-                // TODO: Redirect to payment flow in Phase 4
-                alert("Payment flow will be integrated here");
-              }}
-            >
-              Nâng cấp Premium
-            </button>
+            <div className="space-y-3 w-full">
+              {offerings?.current?.availablePackages.map((pkg: PurchasesPackage) => (
+                <button 
+                  key={pkg.identifier}
+                  disabled={loading}
+                  className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+                  onClick={async () => {
+                    setLoading(true);
+                    setError("");
+                    const res = await IAPService.purchasePackage(pkg);
+                    if (res.success) {
+                      entitlementClient.invalidateCache();
+                      if (onUpgradeSuccess) onUpgradeSuccess();
+                      onClose();
+                    } else {
+                      setError("Lỗi thanh toán: " + res.error);
+                    }
+                    setLoading(false);
+                  }}
+                >
+                  Nâng cấp Premium ({pkg.product.priceString})
+                </button>
+              )) || (
+                <button 
+                  disabled
+                  className="w-full bg-gray-300 text-gray-500 font-semibold py-3 rounded-lg transition"
+                >
+                  Đang tải gói cước...
+                </button>
+              )}
+              
+              <button 
+                onClick={async () => {
+                  setLoading(true);
+                  setError("");
+                  const res = await IAPService.restorePurchases();
+                  if (res.success) {
+                    entitlementClient.invalidateCache();
+                    if (onUpgradeSuccess) onUpgradeSuccess();
+                    onClose();
+                  } else {
+                    setError("Lỗi khôi phục: " + res.error);
+                  }
+                  setLoading(false);
+                }}
+                disabled={loading}
+                className="w-full text-blue-600 hover:text-blue-800 font-medium py-2 mt-2"
+              >
+                Khôi phục giao dịch
+              </button>
+            </div>
           )}
           
           <button 

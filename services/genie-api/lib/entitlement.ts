@@ -49,7 +49,7 @@ export async function getEntitlement(userId: string, dbClient?: any): Promise<En
 
   if (row) {
     let currentTier = row.tier as Tier;
-    let validUntil = row.valid_until;
+    const validUntil = row.valid_until;
     
     // Graceful downgrade 
     if (validUntil && new Date(validUntil).getTime() < Date.now()) {

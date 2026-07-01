@@ -125,7 +125,7 @@ export class ReminderStore implements ReminderStoreContract {
 
   upcoming(nowUtcMs: number, limit: number = 10): UpcomingItem[] {
     const now = new Date(nowUtcMs);
-    let occs: UpcomingItem[] = [];
+    const occs: UpcomingItem[] = [];
     
     for (const r of this.reminders) {
       if (!r.enabled) continue;

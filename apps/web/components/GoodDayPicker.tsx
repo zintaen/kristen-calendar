@@ -8,6 +8,7 @@ import { entitlementClient, EntitlementResponse } from "../lib/entitlement-clien
 import { UpgradePrompt } from "./UpgradePrompt";
 import { supabase } from "../lib/supabase-client";
 import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
 
 interface GoodDayPickerProps {
   defaultStartDate?: Date;
@@ -33,7 +34,6 @@ export function GoodDayPicker({ defaultStartDate, defaultEndDate }: GoodDayPicke
   const [hasAccess, setHasAccess] = useState<boolean>(false);
   const [showUpgrade, setShowUpgrade] = useState<boolean>(false);
   const [entitlement, setEntitlement] = useState<EntitlementResponse | null>(null);
-  const [isCreatingPoll, setIsCreatingPoll] = useState<boolean>(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -96,13 +96,8 @@ export function GoodDayPicker({ defaultStartDate, defaultEndDate }: GoodDayPicke
     }
   }, [computedState?.startDate, computedState?.endDate, calendarConnected]);
 
-  const handleCreatePoll = async () => {
-    if (!enrichedResults || enrichedResults.length === 0) {
-      alert("Không có ngày nào để tạo bình chọn.");
-      return;
-    }
-    setIsCreatingPoll(true);
-    try {
+  const { mutate: createPoll, isPending: isCreatingPoll } = useMutation({
+    mutationFn: async () => {
       // 1. Create Board
       const { data: boardData, error: boardError } = await supabase
         .from('decision_boards')
@@ -126,13 +121,23 @@ export function GoodDayPicker({ defaultStartDate, defaultEndDate }: GoodDayPicke
       
       if (optionsError) throw optionsError;
 
-      // 3. Redirect
-      router.push(`/polls?id=${boardData.id}`);
-    } catch (e: any) {
-      console.error("Error creating poll:", e);
-      alert("Lỗi khi tạo bình chọn: " + e.message);
-      setIsCreatingPoll(false);
+      return boardData.id;
+    },
+    onSuccess: (boardId) => {
+      router.push(`/polls?id=${boardId}`);
+    },
+    onError: (error: any) => {
+      console.error("Error creating poll:", error);
+      alert("Lỗi khi tạo bình chọn: " + error.message);
     }
+  });
+
+  const handleCreatePoll = () => {
+    if (!enrichedResults || enrichedResults.length === 0) {
+      alert("Không có ngày nào để tạo bình chọn.");
+      return;
+    }
+    createPoll();
   };
 
   return (

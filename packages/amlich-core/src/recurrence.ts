@@ -52,8 +52,8 @@ export function nextOccurrences(reminder: Reminder, opt: RecurrenceOptions): rea
   let loopCount = reminder.recurrence === "ONCE" ? 1 : years;
   if (reminder.recurrence === "MONTHLY") loopCount = years * 12;
 
-  let currentYear = opt.fromYear;
-  let currentMonth = reminder.lunarMonth;
+  const currentYear = opt.fromYear;
+  const currentMonth = reminder.lunarMonth;
 
   for (let i = 0; i < loopCount; i++) {
     let year = currentYear;

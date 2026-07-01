@@ -1,0 +1,29 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Increment build number and push to TestFlight / App Store Connect"
+  lane :release do
+    # Tự động tăng build number
+    increment_build_number(
+      xcodeproj: "App.xcodeproj"
+    )
+
+    # Build app
+    build_app(
+      workspace: "App.xcworkspace",
+      scheme: "App"
+    )
+
+    # Upload to App Store Connect (TestFlight)
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "Chỉ tăng build number cục bộ (Local)"
+  lane :bump do
+    increment_build_number(
+      xcodeproj: "App.xcodeproj"
+    )
+  end
+end

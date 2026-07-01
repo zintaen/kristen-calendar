@@ -1,7 +1,7 @@
 import React from "react";
 import { COMPONENT } from "../theme/tokens";
 
-interface CardProps extends React.HTMLAttributes<HTMLDivElement> {}
+export type CardProps = React.HTMLAttributes<HTMLDivElement>;
 
 export function Card({ children, style, ...props }: CardProps) {
   return (

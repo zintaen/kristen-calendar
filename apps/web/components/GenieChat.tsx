@@ -5,7 +5,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { fetchGenie, GenieContext } from "../lib/genie-client";
 import { UpgradePrompt } from "./UpgradePrompt";
+import { convertSolar2Lunar } from "@cyberskill/amlich-core";
 import { entitlementClient, EntitlementResponse } from "../lib/entitlement-client";
+import { useMutation } from "@tanstack/react-query";
 
 interface Message {
   id: string;
@@ -23,7 +25,6 @@ export function GenieChat() {
     }
   ]);
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [ttsSupported, setTtsSupported] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [entitlement, setEntitlement] = useState<EntitlementResponse | null>(null);
@@ -40,34 +41,28 @@ export function GenieChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userText = input.trim();
-    setInput("");
-    
-    const userMsgId = Date.now().toString();
-    setMessages(prev => [...prev, { id: userMsgId, role: "user", text: userText }]);
-    setIsLoading(true);
-
-    try {
+  const { mutate: sendMessage, isPending: isLoading } = useMutation({
+    mutationFn: async ({ text, userMsgId }: { text: string; userMsgId: string }) => {
       const now = new Date();
+      const lunar = convertSolar2Lunar(now.getDate(), now.getMonth() + 1, now.getFullYear(), 7);
       const context: GenieContext = {
-        lunarDate: now.toISOString().split("T")[0], // TODO: Integrate real lunar date converter here if needed, or pass ISO to backend
+        lunarDate: `${lunar[0]}/${lunar[1]}/${lunar[2]}`,
         questionType: "phong_tuc_hoi_dap"
       };
 
-      const response = await fetchGenie({
-        question: userText,
+      return await fetchGenie({
+        question: text,
         context,
         ttsRequested: false // client will do TTS locally
       });
-
+    },
+    onSuccess: (response) => {
       setMessages(prev => [
         ...prev,
         { id: response.requestId, role: "genie", text: response.answer }
       ]);
-    } catch (error: any) {
+    },
+    onError: async (error: any) => {
       if (error.code === "FEATURE_NOT_ALLOWED" || error.code === "QUOTA_EXCEEDED") {
         const ent = await entitlementClient.get();
         setEntitlement(ent);
@@ -78,9 +73,19 @@ export function GenieChat() {
           { id: Date.now().toString(), role: "genie", text: error.message || "Lỗi không xác định.", isError: true }
         ]);
       }
-    } finally {
-      setIsLoading(false);
     }
+  });
+
+  const handleSend = () => {
+    if (!input.trim() || isLoading) return;
+
+    const userText = input.trim();
+    setInput("");
+    
+    const userMsgId = Date.now().toString();
+    setMessages(prev => [...prev, { id: userMsgId, role: "user", text: userText }]);
+
+    sendMessage({ text: userText, userMsgId });
   };
 
   const handleTTS = (text: string) => {

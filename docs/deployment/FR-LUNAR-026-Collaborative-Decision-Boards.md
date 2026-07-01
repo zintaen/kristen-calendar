@@ -24,20 +24,19 @@ supabase db push
 ```
 
 ### Step 2.2: Environment Variables
-Inside `apps/web/.env.local`, ensure you have your Supabase URL and Anon Key set up. If you are using local Supabase, it usually looks like this:
+Inside `.env.docker`, ensure you have your Supabase URL and Anon Key set up (as well as other required variables). If you are using local Supabase, it usually looks like this:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 *(If testing against a staging Supabase instance, use your staging credentials).*
 
-### Step 2.3: Running the Application
-Start the Next.js development server:
+### Step 2.3: Running the Application (Development)
+Start the entire stack (API, Web, Redis) using the provided development Docker Compose file:
 ```bash
-cd apps/web
-pnpm dev
+docker-compose -f docker-compose.dev.yml --env-file .env.docker up --build
 ```
-Navigate to `http://localhost:3000/good-day-picker`. Select a task and click **"Chia sẻ Bình chọn (Top 5)"**. You will be redirected to the poll page where you can input your name and vote. Open the link in an incognito window to see the realtime updates in action.
+Navigate to `http://localhost:8080/good-day-picker`. Select a task and click **"Chia sẻ Bình chọn (Top 5)"**. You will be redirected to the poll page where you can input your name and vote. Open the link in an incognito window to see the realtime updates in action.
 
 ## 3. Deployment Guidelines
 
@@ -55,11 +54,11 @@ The migration includes RLS policies that allow public `INSERT` and `SELECT` for 
 
 ### Step 3.3: Build & Deploy Frontend
 The Next.js application has been updated to use query parameters (`/polls?id=xyz`) instead of dynamic path segments (`/polls/[id]`) so that it is fully compatible with Next.js static exports (`output: export`).
-Deploy the `apps/web` bundle as usual via Vercel or your Docker container infrastructure:
+Deploy the full stack using Docker:
 ```bash
-cd apps/web
-pnpm build
+docker-compose --env-file .env.docker up --build -d
 ```
+*Note: Make sure your `.env.docker` has production values for deployment.*
 
 ## 4. Manual Verification Checklist
 - [ ] Database migration `0024_collaborative_boards.sql` applied successfully.

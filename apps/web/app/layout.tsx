@@ -16,6 +16,7 @@ export const viewport = {
 import { WidgetCacheProvider } from "../components/WidgetCacheProvider";
 import { ConsentGate } from "../components/ConsentGate";
 import { RevenueCatInit } from "../components/RevenueCatInit";
+import { Providers } from "../components/Providers";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -25,12 +26,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="bg-gray-50 font-sans text-gray-900 antialiased overflow-x-hidden">
-        {children}
-        <GlobalGenie />
-        <BottomNav />
-        <WidgetCacheProvider />
-        <ConsentGate />
-        <RevenueCatInit />
+        <Providers>
+          {children}
+          <GlobalGenie />
+          <BottomNav />
+          <WidgetCacheProvider />
+          <ConsentGate />
+          <RevenueCatInit />
+        </Providers>
       </body>
     </html>
   );

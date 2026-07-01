@@ -1,4 +1,4 @@
-// @ts-ignore
+// @ts-expect-error No type definitions for apca-w3
 import { APCAcontrast, sRGBtoY } from "apca-w3";
 
 /**

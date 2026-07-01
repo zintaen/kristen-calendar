@@ -101,7 +101,10 @@ b2bApp.get("/lunar/events", async (c) => {
     let eventName = null;
     let isMajor = false;
 
-    if (lDay === 1) {
+    if (lDay === 1 && lMonth === 1 && lLeap === 0) {
+      eventName = "Tết Nguyên Đán";
+      isMajor = true;
+    } else if (lDay === 1) {
       eventName = "Mùng 1";
       isMajor = true;
     } else if (lDay === 15) {
@@ -114,9 +117,6 @@ b2bApp.get("/lunar/events", async (c) => {
       } else {
         eventName = "Rằm";
       }
-      isMajor = true;
-    } else if (lDay === 1 && lMonth === 1 && lLeap === 0) {
-      eventName = "Tết Nguyên Đán";
       isMajor = true;
     }
 
