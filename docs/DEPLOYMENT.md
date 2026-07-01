@@ -122,3 +122,24 @@ Nếu bạn không muốn tự quản lý VPS, có thể host Web và API trên 
    ```
 3. Mở Xcode, chọn "Any iOS Device (arm64)", chọn `Product > Archive`.
 4. Upload lên App Store Connect và Submit.
+
+---
+
+## 6. Triển khai In-App Purchase (RevenueCat)
+
+Để tính năng thanh toán hoạt động thật trên production:
+
+1. **Tạo tài khoản & Project trên RevenueCat**:
+   - Truy cập [RevenueCat](https://www.revenuecat.com/) và đăng ký tài khoản. Tạo 2 App (App Store và Play Store).
+   - Lấy Public app-specific API keys (`appl_...` và `goog_...`).
+
+2. **Cấu hình trên Store**:
+   - Tạo Auto-Renewable Subscription trên App Store Connect / Google Play Console.
+   - Cấp quyền truy cập cho RevenueCat thông qua App-Specific Shared Secret.
+
+3. **Tạo Offerings trong RevenueCat**:
+   - **Entitlements**: Tạo entitlement `premium`.
+   - **Products & Offerings**: Tạo offering `default` và đính kèm các Product IDs.
+
+4. **Thay mã Key vào Code**:
+   - Mở file `apps/web/lib/monetization/IAPService.ts` và thay bằng Key thật của bạn trong hàm `Purchases.configure`.
