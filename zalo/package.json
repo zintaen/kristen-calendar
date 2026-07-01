@@ -1,10 +1,28 @@
 {
-  "name": "genie-zalo",
+  "name": "@cyberskill/genie-zalo",
   "version": "0.0.0",
   "private": true,
-  "description": "PLACEHOLDER (chua scaffold). Zalo Mini App (React + zmp-ui + zmp-sdk). Xem FR-LUNAR-016.",
+  "type": "module",
+  "description": "Genie Âm Lịch - Zalo Mini App client (FR-LUNAR-016)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run"
+  },
   "dependencies": {
     "@cyberskill/amlich-core": "workspace:*",
-    "@cyberskill/genie-content": "workspace:*"
+    "@cyberskill/genie-content": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.0.0",
+    "zmp-sdk": "^2.30.0",
+    "zmp-ui": "^1.11.14"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.4.5",
+    "vite": "^5.4.0",
+    "vitest": "^1.6.0"
   }
 }

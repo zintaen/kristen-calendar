@@ -11,8 +11,8 @@
 
 | Metric | Value |
 |---|---:|
-| FR đã soạn | 20 |
-| FR ở 10/10 audit score | 20 (100%) |
+| FR đã soạn | 25 |
+| FR ở 10/10 audit score | 25 (100%) |
 | FR thiếu file audit | 0 |
 | Dependency cycles | 0 |
 | Reciprocity errors | 0 |
@@ -23,7 +23,7 @@
 
 | Module | FRs | Hours | Phạm vi |
 |---|---:|---:|---|
-| [LUNAR](lunar/README.md) | 20 | ~209.5h | Toàn bộ sản phẩm Genie Âm Lịch: core engine âm lịch + can-chi + validation; reminder model + recurrence + local notification rolling-64; reminder management; lịch tháng; nội dung dịp; design-system tím + APCA; app shell PWA/Capacitor; day-quality (Hoàng đạo/Trực/28 sao); good-day picker; iOS widget + watch; shareable cards; AI Genie proxy; Zalo Mini App; ZNS; family sharing + sync; PDPL; freemium. |
+| [LUNAR](lunar/README.md) | 25 | ~284.5h | Toàn bộ sản phẩm Genie Âm Lịch: core engine âm lịch + can-chi + validation; reminder model + recurrence + local notification rolling-64; reminder management; lịch tháng; nội dung dịp; design-system tím + APCA; app shell PWA/Capacitor; day-quality (Hoàng đạo/Trực/28 sao); good-day picker; iOS widget + watch; shareable cards; AI Genie proxy; Zalo Mini App; ZNS; family sharing + sync; PDPL; freemium; proactive AI; O2O commerce; Apple ecosystem; Android expansion; decision boards. |
 
 ## Phasing (theo roadmap PRD §14)
 
@@ -31,6 +31,7 @@
 - **P1 - MVP cá nhân (cho vợ):** FR-LUNAR-004..010. Web/PWA + Capacitor iOS, theme tím, Be Vietnam Pro, lịch tháng, nhắc Rằm/Mùng Một/đám giỗ/custom + local notifications (rolling 64), nội dung dịp tĩnh. Lưu on-device, không backend, không AI, không ZNS. Tiêu chí "vợ thấy hữu ích": dùng đều >= 1 chu kỳ Rằm/Mùng Một, không bỏ lỡ nhắc nào.
 - **P2 - Trải nghiệm nâng cao (cá nhân):** FR-LUNAR-011..015. Day-quality + giờ Hoàng đạo, good-day picker, iOS widget + watch, shareable cards, AI Genie (Claude proxy).
 - **P3 - Thương mại hóa:** FR-LUNAR-016..020. Zalo Mini App, OA + ZNS, family sharing + cloud sync (Supabase), tuân thủ PDPL, freemium monetization.
+- **P4 - Hệ sinh thái & Trí tuệ chủ động (Next-gen):** FR-LUNAR-021..025. Proactive AI (Genie 2.0), O2O Commerce (Ritual Marketplace), Apple Ecosystem Deep Integration (Siri, Live Activities), Android Expansion, Collaborative Decision Boards (Chọn Ngày).
 
 ## Status flow
 

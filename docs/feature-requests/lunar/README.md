@@ -28,6 +28,11 @@ Module `LUNAR` là sản phẩm kristen-calendar, tên thương mại "Genie Âm
 | [FR-LUNAR-018](FR-LUNAR-018-family-sharing-cloud-sync.md) | SHOULD | ready_to_implement | P3·7 | 12 | Family sharing + cloud sync - Supabase/Postgres với RLS, sharedWith, đồng bộ đa thiết bị |
 | [FR-LUNAR-019](FR-LUNAR-019-pdpl-compliance-consent.md) | MUST | ready_to_implement | P3·7 | 9 | PDPL compliance - privacy policy tiếng Việt, consent granular, mặc định on-device, không chuyển xuyên biên giới khi chưa DPIA |
 | [FR-LUNAR-020](FR-LUNAR-020-freemium-monetization.md) | SHOULD | ready_to_implement | P3·7 | 7 | Freemium monetization - nhắc cơ bản free, premium cho AI Genie / good-day / family, entitlement gating server-side |
+| [FR-LUNAR-021](FR-LUNAR-021-proactive-ai-genie-2.md) | MUST | ready_to_implement | P4·8 | 15 | Proactive AI (Genie 2.0) - tự động cron check và push ZNS thông minh cho dịp lớn |
+| [FR-LUNAR-022](FR-LUNAR-022-o2o-commerce-marketplace.md) | SHOULD | ready_to_implement | P4·8 | 10 | O2O Commerce - affiliate links và UI gợi ý đồ cúng/dịch vụ qua Zalo |
+| [FR-LUNAR-023](FR-LUNAR-023-apple-ecosystem-integration.md) | MUST | ready_to_implement | P4·9 | 15 | Apple Ecosystem - Siri App Intents, Live Activities / Dynamic Island countdown |
+| [FR-LUNAR-024](FR-LUNAR-024-android-expansion-glance.md) | MUST | ready_to_implement | P4·8 | 20 | Android Expansion - Capacitor Android platform, Kotlin Glance Widget |
+| [FR-LUNAR-025](FR-LUNAR-025-collaborative-decision-boards.md) | SHOULD | ready_to_implement | P4·9 | 15 | Collaborative Decision Boards - vote ngày tốt qua link Zalo/Supabase Realtime |
 
 ## Build order (topological)
 
@@ -37,7 +42,8 @@ Suy ra từ `depends_on`. Mỗi FR buildable khi các FR thượng nguồn đã 
 2. **Layer 1:** FR-LUNAR-002 (->001), FR-LUNAR-004 (->001), FR-LUNAR-008 (->001), FR-LUNAR-010 (->001,009)
 3. **Layer 2:** FR-LUNAR-003 (->001,002), FR-LUNAR-007 (->001,002,010), FR-LUNAR-011 (->002), FR-LUNAR-005 (->004,010), FR-LUNAR-016 (->004,008,009), FR-LUNAR-018 (->004)
 4. **Layer 3:** FR-LUNAR-006 (->004,005,010), FR-LUNAR-012 (->010,011), FR-LUNAR-013 (->001,002,011), FR-LUNAR-014 (->007,009), FR-LUNAR-015 (->008,010), FR-LUNAR-017 (->004,016), FR-LUNAR-019 (->016,018)
-5. **Layer 4:** FR-LUNAR-020 (->015,018)
+5. **Layer 4:** FR-LUNAR-020 (->015,018), FR-LUNAR-021 (->015,017), FR-LUNAR-022 (->010,016), FR-LUNAR-024 (->010)
+6. **Layer 5:** FR-LUNAR-023 (->013), FR-LUNAR-025 (->012,018)
 
 Rủi ro kỹ thuật cao nhất nằm ở Layer 0-1 (core engine + can-chi + recurrence). PRD yêu cầu làm và test FR-001..003 trước tiên: nếu lệch bất kỳ năm nào trong 1900-2199 hoặc các năm edge 1985/2007/2030/2053 thì dừng, debug, chưa xây UI.
 
