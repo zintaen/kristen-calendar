@@ -10,3 +10,6 @@ coverage/
 .scaffold-write-test
 ios/App/Pods/
 *.log
+
+# CyberOS
+.cyberos-memory/
