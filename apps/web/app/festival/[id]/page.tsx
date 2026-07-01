@@ -1,6 +1,7 @@
 import React from "react";
 import { Typography } from "@cyberskill/genie-ui";
 import { getFestivalById, type FestivalContent } from "@cyberskill/genie-content";
+import { AffiliateWidget } from "../../../components/commerce/AffiliateWidget";
 
 // Static param generation for static export
 export function generateStaticParams() {
@@ -43,6 +44,8 @@ export default async function FestivalPage({ params }: { params: Promise<{ id: s
           ))}
         </div>
       </div>
+      
+      <AffiliateWidget eventId={resolvedParams.id} />
     </div>
   );
 }

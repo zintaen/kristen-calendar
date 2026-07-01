@@ -43,6 +43,18 @@ app.post("/api/zns", async (c) => {
   return response;
 });
 
+// Proactive ZNS cron endpoint (FR-LUNAR-021)
+app.post("/api/proactive-zns", async (c) => {
+  const { POST: proactiveZnsPost } = await import("./api/proactive-zns");
+  return proactiveZnsPost(c.req.raw);
+});
+
+// Affiliate Click Log endpoint (FR-LUNAR-022)
+app.post("/api/commerce/click", async (c) => {
+  const { POST: clickPost } = await import("./api/commerce/click");
+  return clickPost(c.req.raw);
+});
+
 // Cloud Sync endpoints (FR-LUNAR-018)
 app.post("/api/sync/push", async (c) => handlePush(c.req.raw));
 app.get("/api/sync/pull", async (c) => handlePull(c.req.raw));
@@ -61,6 +73,16 @@ app.get("/api/entitlement", async (c) => handleGetEntitlement(c.req.raw));
 app.post("/api/entitlement/trial", async (c) => handleStartTrial(c.req.raw));
 app.post("/api/webhook/payment/appstore", async (c) => handleAppStoreWebhook(c.req.raw));
 app.post("/api/webhook/payment/zalopay", async (c) => handleZaloPayWebhook(c.req.raw));
+
+// RevenueCat Webhook (FR-LUNAR-024)
+app.post("/api/webhook/revenuecat", async (c) => {
+  const { POST: revenueCatWebhook } = await import("./api/monetization/revenuecat");
+  return revenueCatWebhook(c.req.raw);
+});
+
+// B2B API (FR-LUNAR-025)
+import { b2bApp } from "./api/b2b/index.js";
+app.route("/v1/b2b", b2bApp);
 
 app.get("/health", (c) => c.text("OK"));
 

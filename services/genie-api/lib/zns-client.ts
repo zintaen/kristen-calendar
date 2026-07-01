@@ -6,7 +6,9 @@ export interface ZNSPayload {
     ngay_duong: string;      // tham số {ngày dương}, ví dụ "08/08/2025"
     dip: string;             // tham số {dịp}, ví dụ "Giỗ Bà Nội"
     ngay_am: string;         // tham số {ngày âm}, ví dụ "15/7 Ất Tỵ"
-    [key: string]: string;   // các tham số phụ thêm nếu template mở rộng
+    ai_message?: string;     // tham số {lời chúc}
+    action_link?: string;    // tham số {link}
+    [key: string]: string | undefined;   // các tham số phụ thêm nếu template mở rộng
   };
   trackingId?: string;       // để đối chiếu với zns_send_log.reminderId
 }

@@ -6,6 +6,8 @@ import { getCalendarEvents, requestCalendarPermission } from "./EventKitBridge";
 import { GoodDayList } from "./GoodDayList";
 import { entitlementClient, EntitlementResponse } from "../lib/entitlement-client";
 import { UpgradePrompt } from "./UpgradePrompt";
+import { supabase } from "../lib/supabase-client";
+import { useRouter } from "next/navigation";
 
 interface GoodDayPickerProps {
   defaultStartDate?: Date;
@@ -31,6 +33,8 @@ export function GoodDayPicker({ defaultStartDate, defaultEndDate }: GoodDayPicke
   const [hasAccess, setHasAccess] = useState<boolean>(false);
   const [showUpgrade, setShowUpgrade] = useState<boolean>(false);
   const [entitlement, setEntitlement] = useState<EntitlementResponse | null>(null);
+  const [isCreatingPoll, setIsCreatingPoll] = useState<boolean>(false);
+  const router = useRouter();
 
   useEffect(() => {
     entitlementClient.get().then(ent => {
@@ -92,6 +96,45 @@ export function GoodDayPicker({ defaultStartDate, defaultEndDate }: GoodDayPicke
     }
   }, [computedState?.startDate, computedState?.endDate, calendarConnected]);
 
+  const handleCreatePoll = async () => {
+    if (!enrichedResults || enrichedResults.length === 0) {
+      alert("Không có ngày nào để tạo bình chọn.");
+      return;
+    }
+    setIsCreatingPoll(true);
+    try {
+      // 1. Create Board
+      const { data: boardData, error: boardError } = await supabase
+        .from('decision_boards')
+        .insert([{ title: `Chọn ngày: ${WORK_TYPE_OPTIONS.find(o => o.value === workType)?.label}` }])
+        .select()
+        .single();
+      
+      if (boardError || !boardData) throw boardError;
+
+      // 2. Insert top 5 options
+      const optionsToInsert = enrichedResults.slice(0, 5).map(r => ({
+        board_id: boardData.id,
+        date: r.date,
+        label: `${r.date} - ${r.canChiNgay} - Trực ${r.truc.name}`,
+        metadata: r
+      }));
+
+      const { error: optionsError } = await supabase
+        .from('decision_options')
+        .insert(optionsToInsert);
+      
+      if (optionsError) throw optionsError;
+
+      // 3. Redirect
+      router.push(`/polls?id=${boardData.id}`);
+    } catch (e: any) {
+      console.error("Error creating poll:", e);
+      alert("Lỗi khi tạo bình chọn: " + e.message);
+      setIsCreatingPoll(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-2xl mx-auto p-4 md:p-6 bg-gray-50 rounded-2xl shadow-sm border border-gray-100">
       <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Tìm Ngày Tốt</h2>
@@ -150,10 +193,21 @@ export function GoodDayPicker({ defaultStartDate, defaultEndDate }: GoodDayPicke
       )}
 
       {computedState ? (
-        <GoodDayList 
-          results={enrichedResults} 
-          totalGoodDays={computedState.totalGoodDays} 
-        />
+        <>
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={handleCreatePoll}
+              disabled={isCreatingPoll || computedState.results.length === 0}
+              className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-colors"
+            >
+              {isCreatingPoll ? "Đang tạo..." : "Chia sẻ Bình chọn (Top 5)"}
+            </button>
+          </div>
+          <GoodDayList 
+            results={enrichedResults} 
+            totalGoodDays={computedState.totalGoodDays} 
+          />
+        </>
       ) : (
         <div className="mt-4 p-4 text-center text-red-500 bg-red-50 rounded-lg">
           Vui lòng chọn khoảng ngày hợp lệ (Từ ngày phải nhỏ hơn hoặc bằng Đến ngày).

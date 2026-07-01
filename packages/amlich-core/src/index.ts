@@ -18,5 +18,6 @@ export * from "./canchi.js";
 export * from "./tietkhi.js";
 export * from "./recurrence.js";
 export * from "./reminder.js";
+export * from "./commerce/affiliate-resolver.js";
 export * from "./dayquality.js";
 export * from "./dayquality-tables.js";

@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
-  output: "export",
+  output: process.env.BUILD_STANDALONE === "1" ? "standalone" : "export",
   trailingSlash: true,
   images: { unoptimized: true },
   transpilePackages: ["@cyberskill/amlich-core", "@cyberskill/genie-ui", "@cyberskill/genie-content"],

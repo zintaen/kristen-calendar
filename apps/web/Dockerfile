@@ -11,6 +11,7 @@ COPY . .
 # Install dependencies and build
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 # Ensure env vars are passed at build time if needed (e.g. NEXT_PUBLIC_API_URL)
+ENV BUILD_STANDALONE=1
 RUN pnpm --filter genie-web build
 
 FROM base AS runner

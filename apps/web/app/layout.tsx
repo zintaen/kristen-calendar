@@ -15,6 +15,7 @@ export const viewport = {
 
 import { WidgetCacheProvider } from "../components/WidgetCacheProvider";
 import { ConsentGate } from "../components/ConsentGate";
+import { RevenueCatInit } from "../components/RevenueCatInit";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <BottomNav />
         <WidgetCacheProvider />
         <ConsentGate />
+        <RevenueCatInit />
       </body>
     </html>
   );
