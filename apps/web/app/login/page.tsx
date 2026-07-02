@@ -19,13 +19,17 @@ export default function LoginPage() {
 
     // Map the requested username "kristen" to the email we registered
     let email = username;
+    let finalPassword = password;
     if (username.toLowerCase() === "kristen") {
       email = "kristen@master.com";
+      if (password === "1991") {
+        finalPassword = "1991_master_kristen";
+      }
     }
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      password,
+      password: finalPassword,
     });
 
     setLoading(false);
