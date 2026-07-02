@@ -1,12 +1,12 @@
 # Kristen Calendar / Genie Âm Lịch - Deployment Guide
 
-This guide outlines the steps required to deploy the Genie Âm Lịch web application, API backend, and Supabase database to a production environment.
+This guide outlines the steps required to deploy the Genie Âm Lịch web application, API backend, Supabase database, and Edge Functions to a production environment.
 
 ## 🏗 Infrastructure Overview
 
 The production deployment consists of three main components:
-1.  **Supabase (Database & Auth)**: Hosted on Supabase Cloud.
-2.  **API Backend (Node.js)**: Hosted on a platform like Vercel, Render, or a VPS (Docker).
+1.  **Supabase (Database, Auth, Edge Functions)**: Hosted on Supabase Cloud.
+2.  **API Backend (Node.js)**: Hosted on a platform like Vercel, Render, or a VPS (Docker) proxying AI requests.
 3.  **Web Frontend (Next.js)**: Hosted on Vercel.
 
 ---
@@ -30,14 +30,34 @@ We will link your local Supabase project to a production Supabase Cloud project 
     ```bash
     npx supabase db push
     ```
-    This command will apply all schema migrations (tables, RLS policies, etc.) to your production database.
-5.  **Configure Auth Providers**: In the Supabase Dashboard, go to **Authentication > Providers**. Enable any required providers (e.g., Email, Google). Ensure the redirect URLs are correctly configured for your production domain.
+    This command will apply all schema migrations (tables, RLS policies, functions) to your production database.
+5.  **Configure Auth Providers**: In the Supabase Dashboard, go to **Authentication > Providers**. 
+    *   Enable **Apple** and **Google**.
+    *   Configure the OAuth Client IDs and Secrets.
+    *   Ensure the redirect URLs (e.g., `https://your-vercel-domain.com/auth/callback`) are correctly configured.
 
 ---
 
-## Step 2: Deploy the API Backend
+## Step 2: Deploy Supabase Edge Functions (Push Notifications)
 
-The API handles the LLM proxying (Anthropic) and any heavy background tasks.
+The `send-notification` Edge Function handles sending FCM/APNs push notifications when triggered.
+
+1.  **Set Edge Function Secrets**:
+    You need to provide your Firebase Service Account JSON and Apple APNs configuration to the Supabase project securely.
+    ```bash
+    cd services/genie-api
+    npx supabase secrets set FIREBASE_SERVICE_ACCOUNT_KEY='{...your json...}'
+    ```
+2.  **Deploy the Function**:
+    ```bash
+    npx supabase functions deploy send-notification --project-ref <your-production-project-ref>
+    ```
+
+---
+
+## Step 3: Deploy the API Backend
+
+The API handles the LLM proxying (Anthropic, LM Studio) and complex background tasks.
 
 ### Option A: Deploying via Docker (VPS / Railway / Render)
 
@@ -61,7 +81,7 @@ If the Express app is wrapped for Serverless, you can deploy the `services/genie
 
 ---
 
-## Step 3: Deploy the Web Frontend
+## Step 4: Deploy the Web Frontend
 
 The Next.js frontend is best deployed on Vercel.
 
@@ -73,11 +93,12 @@ The Next.js frontend is best deployed on Vercel.
     *   `NEXT_PUBLIC_SUPABASE_URL`: Your production Supabase URL.
     *   `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your production Supabase Anon Key.
     *   `NEXT_PUBLIC_GOOGLE_CLIENT_ID`: Your Google OAuth Client ID (for Calendar sync).
+    *   `NEXT_PUBLIC_APPLE_CLIENT_ID`: Your Apple Service ID (for Web Login).
 6.  **Deploy**: Click Deploy. Vercel will automatically run `pnpm install` and `pnpm build`.
 
 ---
 
-## Step 4: Final Configuration & Post-Deployment
+## Step 5: Final Configuration & Post-Deployment
 
 ### 1. Seed Production Data
 
@@ -89,22 +110,32 @@ cd services/genie-api
 node --env-file=../../.env.prod --import tsx scripts/seed-master.ts
 ```
 
-### 2. Configure Google Identity Services (OAuth)
+### 2. Configure Google Identity Services & Apple Developer Portal
 
-If you are using Google Calendar Sync on the Web:
+> [!CAUTION]  
+> If you skip this, social login and Calendar Sync will fail in production!
+
+**Google:**
 1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
 2. Navigate to **APIs & Services > Credentials**.
 3. Edit your Web Application OAuth Client ID.
-4. Add your production Vercel domain to **Authorized JavaScript origins**.
+4. Add your production Vercel domain to **Authorized JavaScript origins** and **Authorized redirect URIs**.
+
+**Apple:**
+1. Go to the [Apple Developer Portal](https://developer.apple.com/).
+2. Navigate to **Certificates, Identifiers & Profiles > Identifiers**.
+3. Create a **Service ID** for your web domain.
+4. Configure "Sign In with Apple" for this Service ID, providing your Vercel domain and return URL.
 
 ### 3. Native App Deployment (App Store / Google Play)
 
-1.  Update the `capacitor.config.ts` if needed (e.g., changing the app name or package ID).
-2.  Build the production web assets:
+1.  Update `apps/web/capacitor.config.ts` if needed (e.g., changing the app name or package ID).
+2.  Ensure your `google-services.json` (Android) and `GoogleService-Info.plist` (iOS) are placed correctly in the native IDEs for Push Notifications.
+3.  Build the production web assets:
     ```bash
     cd apps/web
     pnpm run build
     npx cap sync
     ```
-3.  Open the IDEs (`npx cap open ios` / `npx cap open android`).
-4.  Follow the standard Apple and Google guidelines for signing, generating bundles/APKs, and submitting to the respective stores.
+4.  Open the IDEs (`npx cap open ios` / `npx cap open android`).
+5.  Follow the standard Apple and Google guidelines for signing, generating bundles/APKs, configuring Push Notification Entitlements (iOS), and submitting to the respective stores.

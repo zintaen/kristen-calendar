@@ -17,6 +17,7 @@ import { WidgetCacheProvider } from "../components/WidgetCacheProvider";
 import { ConsentGate } from "../components/ConsentGate";
 import { RevenueCatInit } from "../components/RevenueCatInit";
 import { Providers } from "../components/Providers";
+import { PushNotificationsInit } from "../components/PushNotificationsInit";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <WidgetCacheProvider />
           <ConsentGate />
           <RevenueCatInit />
+          <PushNotificationsInit />
         </Providers>
       </body>
     </html>

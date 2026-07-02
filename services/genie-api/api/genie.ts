@@ -180,17 +180,68 @@ export async function POST(
       // Gọi qua Anthropic API
       const anthropic = deps?.anthropic || new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
       
+      const tools: Anthropic.Tool[] = [
+        {
+          name: "create_poll",
+          description: "Tạo một cuộc bình chọn (poll) cho nhóm dựa trên các ý tưởng hoặc lựa chọn được đề xuất.",
+          input_schema: {
+            type: "object",
+            properties: {
+              title: { type: "string", description: "Tiêu đề cuộc bình chọn" },
+              options: {
+                type: "array",
+                items: { type: "string" },
+                description: "Danh sách các lựa chọn"
+              }
+            },
+            required: ["title", "options"]
+          }
+        },
+        {
+          name: "create_calendar_event",
+          description: "Tạo một sự kiện lịch âm hoặc dương mới.",
+          input_schema: {
+            type: "object",
+            properties: {
+              title: { type: "string", description: "Tiêu đề sự kiện" },
+              date: { type: "string", description: "Ngày diễn ra sự kiện (YYYY-MM-DD)" },
+              isLunar: { type: "boolean", description: "Sự kiện lịch âm hay lịch dương?" }
+            },
+            required: ["title", "date"]
+          }
+        }
+      ];
+
       // Note: in testing, this might throw if mock is configured to throw
       const completion = await anthropic.messages.create({
         model: "claude-3-5-haiku-latest",
         max_tokens: 1024,
         system: system, // System prompt block has ephemeral cache_control
         messages: messages as Anthropic.MessageParam[],
+        tools: tools,
       });
 
       latencyMs = Date.now() - startTime;
       
-      answer = completion.content[0].type === "text" ? completion.content[0].text : "";
+      let toolCall = null;
+      let textResponse = "";
+
+      for (const block of completion.content) {
+        if (block.type === "text") {
+          textResponse += block.text;
+        } else if (block.type === "tool_use") {
+          toolCall = {
+            name: block.name,
+            input: block.input
+          };
+        }
+      }
+      
+      answer = textResponse;
+      if (toolCall) {
+        // If there's a tool call, we serialize it into the response so the frontend can execute it
+        answer = JSON.stringify({ type: "tool_call", toolCall, text: textResponse });
+      }
       
       usage = {
         inputTokens: completion.usage.input_tokens,
@@ -200,11 +251,14 @@ export async function POST(
       };
     }
 
-    // Add fail-safe footer if missing
+    // Add fail-safe footer if missing, unless it's a tool call JSON
     const footer = "Tham khao theo phong tuc dan gian";
-    const finalAnswer = answer.includes("Tham khao") || answer.includes(footer) 
-      ? answer 
-      : `${answer}\n\n(*) ${footer} - co the khac nhau tuy vung mien.`;
+    let finalAnswer = answer;
+    if (!answer.startsWith('{"type":"tool_call"')) {
+      finalAnswer = answer.includes("Tham khao") || answer.includes(footer) 
+        ? answer 
+        : `${answer}\n\n(*) ${footer} - co the khac nhau tuy vung mien.`;
+    }
 
     // Logging only safe fields
     console.log(JSON.stringify({
