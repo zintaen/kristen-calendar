@@ -1,6 +1,6 @@
 ---
 id: FR-LUNAR-004
-title: "Reminder data model + recurrence engine - luu ngay am, tu sinh ngay duong moi nam, fallback thang nhuan, khoa timezone Asia/Ho_Chi_Minh"
+title: "Reminder data model + recurrence engine - store the lunar date, auto-generate the solar date each year, leap-month fallback, timezone lock Asia/Ho_Chi_Minh"
 module: LUNAR
 priority: MUST
 status: ready_to_implement
@@ -20,12 +20,12 @@ source_pages:
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#10 (Data Model, recurrence rule)"
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#11 (Notification Architecture)"
 source_decisions:
-  - DEC-LUNAR-040 (lưu Reminder bằng lunarDay/lunarMonth + isLeapMonth, KHÔNG lưu ngày dương; ngày dương là giá trị tính ra (derived), không phải giá trị nguồn)
-  - DEC-LUNAR-041 (recurrence engine sinh occurrence bằng cách gọi convertLunar2Solar cho từng targetLunarYear, không nội suy từ lần trước)
-  - DEC-LUNAR-042 (fallback tháng nhuận: giỗ rơi tháng nhuận mà năm đích không có tháng nhuận đó -> cúng vào tháng thường tương ứng, mặc định FALLBACK_REGULAR nhưng cho user chọn)
-  - DEC-LUNAR-043 (mọi phép tính khóa về Asia/Ho_Chi_Minh / tz=7.0; KHÔNG dùng Date local của thiết bị để derive ngày âm)
-  - DEC-LUNAR-044 (OccurrenceCache là cache thuần túy, có thể xóa và tính lại bất kỳ lúc nào; computedAt + engineVersion để invalidate khi core đổi)
-  - DEC-LUNAR-045 (recurrence MONTHLY sinh 12 occurrence/năm từ lunarDay; ANNUAL sinh 1/năm; ONCE chốt đúng lunarYear đã nhập)
+  - DEC-LUNAR-040 (store the Reminder by lunarDay/lunarMonth + isLeapMonth, NOT the solar date; the solar date is a derived value, not the source value)
+  - DEC-LUNAR-041 (the recurrence engine generates occurrences by calling convertLunar2Solar for each targetLunarYear, not by interpolating from the previous one)
+  - DEC-LUNAR-042 (leap-month fallback: a death anniversary in a leap month whose target year has no such leap month -> observe it in the corresponding regular month, FALLBACK_REGULAR by default but the user may choose)
+  - DEC-LUNAR-043 (all calculations locked to Asia/Ho_Chi_Minh / tz=7.0; do NOT use the device's local Date to derive the lunar date)
+  - DEC-LUNAR-044 (OccurrenceCache is a pure cache, can be cleared and recomputed at any time; computedAt + engineVersion to invalidate when the core changes)
+  - DEC-LUNAR-045 (MONTHLY recurrence generates 12 occurrences/year from lunarDay; ANNUAL generates 1/year; ONCE fixes exactly the lunarYear entered)
 language: typescript 5.x
 service: packages/amlich-core/
 new_files:
@@ -41,62 +41,62 @@ allowed_tools:
   - file_write: packages/amlich-core/{src,test}/**
   - bash: cd packages/amlich-core && pnpm test recurrence
 disallowed_tools:
-  - gọi network để tính ngày (vi phạm DEC-LUNAR-043 / NFR-Offline)
-  - dùng `new Date()` local-time của thiết bị để derive lunar/solar occurrence (vi phạm DEC-LUNAR-043 - phải khóa Asia/Ho_Chi_Minh)
-  - lưu ngày dương đã tính làm giá trị nguồn của Reminder (vi phạm DEC-LUNAR-040 - chỉ lưu ngày âm)
+  - network calls to compute dates (violates DEC-LUNAR-043 / NFR-Offline)
+  - using the device's local-time `new Date()` to derive lunar/solar occurrences (violates DEC-LUNAR-043 - must lock Asia/Ho_Chi_Minh)
+  - storing the computed solar date as the Reminder's source value (violates DEC-LUNAR-040 - store only the lunar date)
 effort_hours: 12
 sub_tasks:
-  - "1.0h: tz.ts - chuẩn hóa mốc thời gian về Asia/Ho_Chi_Minh, helper todayInHCM(now?: Date): SolarDate trả tuple [day, month, year] on-device không lệ thuộc TZ máy (CONTRACT signature)"
-  - "2.0h: reminder.ts - type Reminder đầy đủ (type/recurrence ENUM, leadTimes, channels, isLeapMonth, sharedWith...), validate() + normalize()"
-  - "2.5h: recurrence.ts - nextOccurrences(reminder, opt: RecurrenceOptions {fromYear, count, engineVersion}) gọi convertLunar2Solar mỗi targetLunarYear, gộp lead-time"
-  - "2.0h: leap-month fallback - phát hiện năm đích không có tháng nhuận đã nhập, áp LeapFallback policy (REGULAR mặc định / SKIP / ASK)"
-  - "1.0h: MONTHLY expander - sinh occurrence Rằm/Mùng Một mỗi tháng trong năm âm, xử lý tháng nhuận lặp ngày"
-  - "1.0h: OccurrenceCache - tính, lưu computedAt+engineVersion, invalidate, rebuild"
-  - "1.5h: recurrence.test.ts - fixture giỗ 1985 tháng 2 nhuận, giỗ ngày 30 tháng thiếu, MONTHLY 12 lần, round-trip vs FR-001"
-  - "1.0h: index.ts barrel export + doc comment cho fallback policy và timezone lock"
-risk_if_skipped: "Không có model này thì không có gì để nhắc - đây là nguồn dữ liệu mà FR-LUNAR-005 (scheduler rolling-64) và FR-LUNAR-006 (reminder management) đọc từ. Nếu recurrence sai, giỗ ông bà sẽ nhắc lệch ngày mỗi năm, đúng nghĩa vụ cốt lõi của sản phẩm. Nếu không khóa Asia/Ho_Chi_Minh, user đi nước ngoài sẽ thấy ngày âm sai. FR-LUNAR-016/017/018 (Zalo, ZNS, family sync) đều tái dùng đúng type Reminder này, nên sai schema ở đây lan ra cả downstream thương mại."
+  - "1.0h: tz.ts - normalize the time reference to Asia/Ho_Chi_Minh, helper todayInHCM(now?: Date): SolarDate returning the tuple [day, month, year] on-device independent of the machine TZ (CONTRACT signature)"
+  - "2.0h: reminder.ts - full Reminder type (type/recurrence ENUM, leadTimes, channels, isLeapMonth, sharedWith...), validate() + normalize()"
+  - "2.5h: recurrence.ts - nextOccurrences(reminder, opt: RecurrenceOptions {fromYear, count, engineVersion}) calling convertLunar2Solar for each targetLunarYear, folding in lead-time"
+  - "2.0h: leap-month fallback - detect a target year that has no leap month as entered, apply the LeapFallback policy (REGULAR default / SKIP / ASK)"
+  - "1.0h: MONTHLY expander - generate a Ram/Mung Mot occurrence each month in the lunar year, handling the leap month repeating the day"
+  - "1.0h: OccurrenceCache - compute, store computedAt+engineVersion, invalidate, rebuild"
+  - "1.5h: recurrence.test.ts - fixture for the 1985 leap month 2 death anniversary, a day-30 short-month death anniversary, MONTHLY 12 times, round-trip vs FR-001"
+  - "1.0h: index.ts barrel export + doc comment for the fallback policy and timezone lock"
+risk_if_skipped: "Without this model there is nothing to remind - it is the data source that FR-LUNAR-005 (the rolling-64 scheduler) and FR-LUNAR-006 (reminder management) read from. If the recurrence is wrong, a grandparent's death anniversary is reminded on the wrong date every year, breaking the product's core duty. If Asia/Ho_Chi_Minh is not locked, a user traveling abroad sees the wrong lunar date. FR-LUNAR-016/017/018 (Zalo, ZNS, family sync) all reuse exactly this Reminder type, so a schema error here spreads to the commercial downstream."
 ---
 
 ## §1 - Description (BCP-14 normative)
 
-Module này định nghĩa type `Reminder` (cùng `User`, `OccurrenceCache`) và recurrence engine sinh ngày dương từ ngày âm, khóa mọi phép tính về Asia/Ho_Chi_Minh. Đây là contract:
+This module defines the `Reminder` type (along with `User`, `OccurrenceCache`) and the recurrence engine that generates solar dates from lunar dates, locking every calculation to Asia/Ho_Chi_Minh. This is the contract:
 
-1. PHẢI lưu mỗi `Reminder` lặp lại bằng `lunarDay` + `lunarMonth` + `isLeapMonth`, và KHÔNG ĐƯỢC lưu ngày dương làm giá trị nguồn; ngày dương luôn là giá trị derive bằng `convertLunar2Solar` (DEC-LUNAR-040, FR-B02).
-2. PHẢI hỗ trợ trường `recurrence` ENUM `MONTHLY | ANNUAL | ONCE`: `ANNUAL` set `lunarYear = null` (lặp hằng năm), `ONCE` giữ `lunarYear` đã nhập (chốt một lần), `MONTHLY` bỏ qua `lunarMonth` và lặp `lunarDay` mỗi tháng âm (DEC-LUNAR-045, FR-B02).
-3. PHẢI hỗ trợ trường `type` ENUM `RAM | MUNG_MOT | GIO | CUSTOM | FESTIVAL`; `RAM` ngụ ý `lunarDay = 15`, `MUNG_MOT` ngụ ý `lunarDay = 1`, `GIO` là đám giỗ cá nhân, `CUSTOM` là nhắc âm lịch tùy biến, `FESTIVAL` link tới `FestivalContent` (PRD section 10).
-4. PHẢI sinh occurrence bằng hàm `nextOccurrences(reminder, opt)` với `opt: RecurrenceOptions { fromYear, count, engineVersion }` (chữ ký §3), gọi `convertLunar2Solar(lunarDay, lunarMonth, targetLunarYear, isLeap)` độc lập cho từng `targetLunarYear`, và KHÔNG ĐƯỢC nội suy từ occurrence trước (DEC-LUNAR-041). `count` là số occurrence ÂM LỊCH muốn quét (trước khi nhân lead-time); tổng `Occurrence` trả về là `count * leadTimes.length`.
-5. PHẢI áp quy tắc fallback tháng nhuận: khi một đám giỗ nhập ở tháng nhuận (`isLeapMonth = true`) nhưng `targetLunarYear` không có đúng tháng nhuận đó, engine PHẢI tính occurrence vào tháng thường tương ứng (`FALLBACK_REGULAR`) làm mặc định, đồng thời đánh dấu `fellBack = true` để UI cho user xác nhận (DEC-LUNAR-042, PRD section 10).
-6. PHẢI cho phép user chọn chính sách fallback qua trường `leapFallback` ENUM `REGULAR | SKIP | ASK`: `REGULAR` cúng tháng thường, `SKIP` bỏ năm đó, `ASK` trả occurrence ở trạng thái `pending_user_choice` (DEC-LUNAR-042).
-7. PHẢI xử lý đám giỗ rơi ngày không tồn tại trong tháng âm đích (ví dụ ngày 30 mà tháng đích chỉ có 29 ngày): engine PHẢI lùi về ngày cuối cùng của tháng âm đó và đánh dấu `dayClamped = true` (FR-B02 edge case).
-8. PHẢI khóa mọi phép tính về `timeZone = 7.0` (kinh tuyến 105E, Asia/Ho_Chi_Minh) qua `tz.ts`, và KHÔNG ĐƯỢC dùng `new Date()` theo giờ local của thiết bị để derive ngày âm hay xác định "hôm nay" (DEC-LUNAR-043, FR-B06).
-9. PHẢI gán mỗi occurrence một `notifyTime` (mặc định "07:00") và một mảng `leadTimes: number[]` ngày (ví dụ `[0, 1]` = đúng ngày + trước 1 ngày); mỗi cặp (occurrence x leadTime) sinh một điểm nhắc riêng (FR-B04, chuẩn bị cho FR-LUNAR-005).
-10. PHẢI sinh mỗi điểm nhắc dưới dạng `Occurrence` mang `reminderId`, `gregorianDate` (ISO date), `lunarLabel` (chuỗi hiển thị), `leadDays`, và `fireAtLocal` (datetime tại giờ Việt Nam) để FR-LUNAR-005 sắp xếp (PRD section 11).
-11. PHẢI cung cấp `OccurrenceCache { reminderId, gregorianDate, lunarLabel, computedAt, engineVersion }`; cache CÓ THỂ bị xóa và tính lại bất kỳ lúc nào, và PHẢI invalidate khi `engineVersion` của amlich-core thay đổi (DEC-LUNAR-044).
-12. PHẢI cung cấp `validateReminder(r)` trả danh sách lỗi: `lunarDay` ngoài 1..30, `lunarMonth` ngoài 1..12, `RAM` mà `lunarDay != 15`, `ONCE` mà thiếu `lunarYear`, `leadTimes` chứa số âm, `channels` rỗng.
-13. PHẢI cung cấp `normalizeReminder(r)` đặt mặc định ổn định: `notifyTime = "07:00"`, `leadTimes = [1]` (trước 1 ngày), `channels = ["LOCAL"]`, `enabled = true`, `leapFallback = "REGULAR"`, sort+dedupe `leadTimes`.
-14. PHẢI giữ module này zero-dependency và thuần tính toán (không I/O, không storage); đọc/ghi storage thuộc lớp app (FR-LUNAR-010), gửi thông báo thuộc FR-LUNAR-005 (NFR-Offline).
-15. PHẢI đặt mốc lịch sử làm fixture: giỗ nhập 16/02 tháng 2 nhuận 1985 (Ất Sửu) phải sinh đúng occurrence trong dải 21/03-19/04/1985; giỗ MONTHLY ngày 15 phải sinh 12 hoặc 13 occurrence trong năm có tháng nhuận (PRD section 6.6).
-16. NÊN expose `engineVersion` (semver của amlich-core) để OccurrenceCache và FR-LUNAR-018 (cloud sync) biết khi nào phải tính lại phía client.
+1. MUST store each repeating `Reminder` by `lunarDay` + `lunarMonth` + `isLeapMonth`, and MUST NOT store the solar date as the source value; the solar date is always derived via `convertLunar2Solar` (DEC-LUNAR-040, FR-B02).
+2. MUST support the `recurrence` ENUM `MONTHLY | ANNUAL | ONCE`: `ANNUAL` sets `lunarYear = null` (repeats yearly), `ONCE` keeps the entered `lunarYear` (fixed once), `MONTHLY` ignores `lunarMonth` and repeats `lunarDay` every lunar month (DEC-LUNAR-045, FR-B02).
+3. MUST support the `type` ENUM `RAM | MUNG_MOT | GIO | CUSTOM | FESTIVAL`; `RAM` implies `lunarDay = 15`, `MUNG_MOT` implies `lunarDay = 1`, `GIO` is a personal death anniversary, `CUSTOM` is a custom lunar reminder, `FESTIVAL` links to `FestivalContent` (PRD section 10).
+4. MUST generate occurrences via `nextOccurrences(reminder, opt)` with `opt: RecurrenceOptions { fromYear, count, engineVersion }` (signature §3), calling `convertLunar2Solar(lunarDay, lunarMonth, targetLunarYear, isLeap)` independently for each `targetLunarYear`, and MUST NOT interpolate from the previous occurrence (DEC-LUNAR-041). `count` is the number of LUNAR occurrences to scan (before multiplying by lead-time); the total `Occurrence` returned is `count * leadTimes.length`.
+5. MUST apply the leap-month fallback rule: when a death anniversary is entered in a leap month (`isLeapMonth = true`) but the `targetLunarYear` has no such leap month, the engine MUST compute the occurrence in the corresponding regular month (`FALLBACK_REGULAR`) by default, and mark `fellBack = true` so the UI can ask the user to confirm (DEC-LUNAR-042, PRD section 10).
+6. MUST let the user choose the fallback policy via the `leapFallback` ENUM `REGULAR | SKIP | ASK`: `REGULAR` observes the regular month, `SKIP` skips that year, `ASK` returns the occurrence in the `pending_user_choice` state (DEC-LUNAR-042).
+7. MUST handle a death anniversary falling on a day that does not exist in the target lunar month (for example day 30 when the target month has only 29 days): the engine MUST clamp back to the last day of that lunar month and mark `dayClamped = true` (FR-B02 edge case).
+8. MUST lock every calculation to `timeZone = 7.0` (meridian 105E, Asia/Ho_Chi_Minh) via `tz.ts`, and MUST NOT use the device's local-time `new Date()` to derive the lunar date or determine "today" (DEC-LUNAR-043, FR-B06).
+9. MUST assign each occurrence a `notifyTime` (default "07:00") and an array `leadTimes: number[]` in days (for example `[0, 1]` = on the day + 1 day before); each (occurrence x leadTime) pair generates its own reminder point (FR-B04, preparing for FR-LUNAR-005).
+10. MUST generate each reminder point as an `Occurrence` carrying `reminderId`, `gregorianDate` (ISO date), `lunarLabel` (display string), `leadDays`, and `fireAtLocal` (datetime in Vietnam time) for FR-LUNAR-005 to sort (PRD section 11).
+11. MUST provide `OccurrenceCache { reminderId, gregorianDate, lunarLabel, computedAt, engineVersion }`; the cache MAY be cleared and recomputed at any time, and MUST invalidate when the amlich-core `engineVersion` changes (DEC-LUNAR-044).
+12. MUST provide `validateReminder(r)` returning a list of errors: `lunarDay` outside 1..30, `lunarMonth` outside 1..12, `RAM` with `lunarDay != 15`, `ONCE` missing `lunarYear`, `leadTimes` containing a negative number, empty `channels`.
+13. MUST provide `normalizeReminder(r)` setting stable defaults: `notifyTime = "07:00"`, `leadTimes = [1]` (1 day before), `channels = ["LOCAL"]`, `enabled = true`, `leapFallback = "REGULAR"`, sort+dedupe `leadTimes`.
+14. MUST keep this module zero-dependency and purely computational (no I/O, no storage); reading/writing storage belongs to the app layer (FR-LUNAR-010), sending notifications belongs to FR-LUNAR-005 (NFR-Offline).
+15. MUST set the historical reference point as a fixture: a death anniversary entered on 16/02 in the leap month 2 of 1985 (At Suu) must generate the correct occurrence in the range 21/03-19/04/1985; a MONTHLY day-15 death anniversary must generate 12 or 13 occurrences in a year with a leap month (PRD section 6.6).
+16. SHOULD expose `engineVersion` (the semver of amlich-core) so OccurrenceCache and FR-LUNAR-018 (cloud sync) know when to recompute on the client.
 
 ---
 
 ## §2 - Why this design (rationale for humans)
 
-**Tại sao lưu ngày âm, không lưu ngày dương (§1 #1, DEC-LUNAR-040)?** Ngày giỗ là một ngày âm cố định, nhưng ngày dương tương ứng đổi mỗi năm. Nếu lưu ngày dương, sang năm nó sai. Lưu `lunarDay/lunarMonth/isLeapMonth` một lần rồi tính ngày dương mỗi năm là cách duy nhất đúng với bản chất của đám giỗ, và đúng với quy tắc tái diễn trong PRD section 10.
+**Why store the lunar date, not the solar date (§1 #1, DEC-LUNAR-040)?** A death anniversary is a fixed lunar date, but the corresponding solar date changes every year. If you store the solar date, next year it is wrong. Storing `lunarDay/lunarMonth/isLeapMonth` once and computing the solar date each year is the only way to match the nature of a death anniversary, and it matches the recurrence rule in PRD section 10.
 
-**Tại sao gọi convertLunar2Solar từng năm, không nội suy (§1 #4, DEC-LUNAR-041)?** Khoảng cách giữa hai ngày giỗ liên tiếp tính theo ngày dương không cố định - nó dao động vì độ dài năm âm và vị trí tháng nhuận. Cộng thêm 354 hay 384 ngày đều sẽ trôi. Gọi lại engine lunar cho từng `targetLunarYear` là cách duy nhất cho kết quả khớp lịch Hồ Ngọc Đức, và nó rẻ vì FR-LUNAR-001 đã bao chuyển 1 ngày < 5ms.
+**Why call convertLunar2Solar each year, not interpolate (§1 #4, DEC-LUNAR-041)?** The gap between two consecutive death anniversaries measured in solar days is not fixed - it varies because of the lunar year length and the position of the leap month. Adding 354 or 384 days both drift. Calling the lunar engine again for each `targetLunarYear` is the only way to get a result that matches the Ho Ngoc Duc calendar, and it is cheap because FR-LUNAR-001 covers a 1-day conversion in < 5ms.
 
-**Tại sao cần fallback tháng nhuận (§1 #5, #6, DEC-LUNAR-042)?** Một người mất vào tháng nhuận (ví dụ tháng 2 nhuận) gây ra câu hỏi thật: những năm không có tháng 2 nhuận thì cúng ngày nào? Phong tục phổ biến là cúng vào tháng thường tương ứng, nên `FALLBACK_REGULAR` là mặc định hợp lý. Nhưng đây là quyết định văn hóa của gia đình, nên engine đánh dấu `fellBack` và để UI hỏi lại, thay vì tự quyết im lặng.
+**Why the leap-month fallback (§1 #5, #6, DEC-LUNAR-042)?** Someone who died in a leap month (for example the leap month 2) raises a real question: which day do you observe in years that have no leap month 2? The common custom is to observe it in the corresponding regular month, so `FALLBACK_REGULAR` is a reasonable default. But this is a family's cultural decision, so the engine marks `fellBack` and lets the UI ask again, rather than deciding silently.
 
-**Tại sao có thêm dayClamped (§1 #7)?** Tháng âm có thể chỉ có 29 ngày. Một đám giỗ ngày 30 rơi vào năm mà tháng đó thiếu sẽ không có ngày 30. Lùi về ngày cuối tháng (29) và báo `dayClamped` giữ cho nhắc vẫn xảy ra đúng gần ngày, thay vì nhảy sang tháng sau hoặc biến mất.
+**Why add dayClamped (§1 #7)?** A lunar month can have only 29 days. A day-30 death anniversary falling in a year where that month is short has no day 30. Clamping back to the last day of the month (29) and reporting `dayClamped` keeps the reminder happening close to the right day, rather than jumping to the next month or disappearing.
 
-**Tại sao khóa Asia/Ho_Chi_Minh (§1 #8, DEC-LUNAR-043)?** Persona chính là diễn viên hay đi quay xa, có thể ở múi giờ khác. Nếu derive ngày âm theo giờ thiết bị, "hôm nay là mùng 1" sẽ sai khi ở nước ngoài. Khóa mọi phép tính về `tz = 7.0` (105E) giữ lịch âm đúng theo giờ Việt Nam ở mọi nơi, đúng tinh thần FR-B06.
+**Why lock Asia/Ho_Chi_Minh (§1 #8, DEC-LUNAR-043)?** The main persona is an actor who often films far away and may be in a different timezone. If you derive the lunar date by device time, "today is the first of the lunar month" will be wrong abroad. Locking every calculation to `tz = 7.0` (105E) keeps the lunar calendar correct in Vietnam time everywhere, true to the spirit of FR-B06.
 
-**Tại sao tách lead-time thành nhiều điểm nhắc (§1 #9, #10)?** PRD cho phép nhắc "đúng ngày / trước 1 ngày / trước 3 ngày / trước 1 tuần". Mỗi mục là một thông báo riêng ở một thời điểm riêng. Sinh sẵn chúng dưới dạng `Occurrence` có `fireAtLocal` cho FR-LUNAR-005 chỉ việc gộp, sắp xếp theo thời gian, và cắt 64 cái gần nhất - đúng ngân sách 64 pending của iOS.
+**Why split lead-time into multiple reminder points (§1 #9, #10)?** The PRD allows reminders "on the day / 1 day before / 3 days before / 1 week before". Each item is its own notification at its own moment. Pre-generating them as `Occurrence` with a `fireAtLocal` lets FR-LUNAR-005 simply merge, sort by time, and cut the nearest 64 - matching the iOS 64-pending budget.
 
-**Tại sao OccurrenceCache phải invalidate theo engineVersion (§1 #11, DEC-LUNAR-044)?** Nếu một bản vá lỗi amlich-core sửa một hằng số Meeus, mọi ngày đã cache có thể đổi. Gắn `engineVersion` vào cache cho phép phát hiện core đã đổi và tính lại, thay vì phục vụ ngày cũ sai. Cache chỉ là tốc độ, không bao giờ là sự thật.
+**Why must OccurrenceCache invalidate by engineVersion (§1 #11, DEC-LUNAR-044)?** If an amlich-core bug fix changes a Meeus constant, every cached date may change. Attaching `engineVersion` to the cache allows detecting that the core changed and recomputing, rather than serving stale wrong dates. The cache is only speed, never truth.
 
-**Tại sao zero-dependency, thuần tính toán (§1 #14)?** Cùng lý do với FR-LUNAR-001: ba client (web, iOS, Zalo) đều import chung module này. Giữ nó không I/O nghĩa là nó chạy y hệt ở mọi nơi, test được bằng fixture tĩnh, và không kéo theo storage API khác nhau của từng nền.
+**Why zero-dependency, purely computational (§1 #14)?** Same reason as FR-LUNAR-001: three clients (web, iOS, Zalo) all import this module. Keeping it I/O-free means it runs identically everywhere, is testable with static fixtures, and does not pull in each platform's different storage API.
 
 ---
 
@@ -210,23 +210,23 @@ export function todayInHCM(now?: Date): SolarDate;   // SolarDate = readonly [da
 
 ## §4 - Acceptance criteria
 
-1. **Lưu âm, derive dương** - một `Reminder` GIO `{lunarDay:10, lunarMonth:8, lunarYear:null}` không chứa trường ngày dương nào; `nextOccurrences` trả ngày dương khác nhau cho 2025 và 2026.
-2. **ANNUAL lặp hằng năm** - với `recurrence:"ANNUAL"`, `nextOccurrences(count:3)` trả 3 occurrence ở 3 năm âm liên tiếp, mỗi cái gọi `convertLunar2Solar` với `targetLunarYear` riêng.
-3. **MONTHLY sinh 12-13** - `recurrence:"MONTHLY", lunarDay:15` trong một năm âm thường sinh 12 occurrence; trong năm có tháng nhuận sinh 13 (lặp cả tháng nhuận).
-4. **ONCE chốt năm** - `recurrence:"ONCE", lunarYear:2025` chỉ trả đúng 1 occurrence ở năm âm 2025, không tái diễn.
-5. **Fallback tháng nhuận REGULAR** - giỗ `{lunarDay:16, lunarMonth:2, isLeapMonth:true, leapFallback:"REGULAR"}` ở năm không có tháng 2 nhuận trả occurrence trong tháng 2 thường và `fellBack === true`.
-6. **Fallback SKIP** - cùng giỗ với `leapFallback:"SKIP"` bỏ qua năm không có tháng nhuận đó (không sinh occurrence năm ấy).
-7. **Fallback ASK** - với `leapFallback:"ASK"`, occurrence năm thiếu tháng nhuận có `pendingUserChoice === true` và không tự cúng.
-8. **Khớp năm nhuận 1985** - giỗ nhập tháng 2 nhuận 1985 sinh occurrence ngày dương rơi trong dải 21/03..19/04/1985 (cross-check FR-LUNAR-001 fixture).
-9. **Day clamp** - giỗ `{lunarDay:30}` ở tháng âm đích chỉ có 29 ngày lùi về ngày 29 và `dayClamped === true`, không nhảy sang tháng sau.
-10. **Lead-time nhân bản** - `leadTimes:[0,1,7]` trên 1 occurrence sinh đúng 3 `Occurrence` với `leadDays` 0/1/7 và `fireAtLocal` lùi đúng 0/1/7 ngày.
-11. **notifyTime áp dụng** - `notifyTime:"06:30"` cho `fireAtLocal` kết thúc `T06:30:00+07:00`.
-12. **Timezone lock** - `todayInHCM(new Date(...))` trả tuple `[day, month, year]` theo giờ Việt Nam; chạy với `process.env.TZ="America/New_York"` vẫn trả đúng (không lệch 1 ngày). Ký hiệu CONTRACT: `todayInHCM(now?: Date): SolarDate`.
-13. **Cache stale theo engineVersion** - `isCacheStale(cache, "1.1.0")` trả `true` khi cache.engineVersion là "1.0.0".
-14. **validateReminder bắt lỗi** - `RAM` với `lunarDay:14` trả lỗi `code:"RAM_DAY_MISMATCH"`; `ONCE` thiếu `lunarYear` trả `code:"ONCE_NEEDS_YEAR"`.
-15. **normalizeReminder mặc định** - input rỗng trả `notifyTime:"07:00"`, `leadTimes:[1]`, `channels:["LOCAL"]`, `leapFallback:"REGULAR"`, `enabled:true`.
-16. **mergeAndSort tăng dần** - trộn occurrence của 3 Reminder, kết quả sort tăng theo `fireAtLocal`, occurrence gần nhất đứng đầu.
-17. **Round-trip nhất quán** - với mỗi occurrence sinh ra, `convertSolar2Lunar` của `gregorianDate` trả về đúng `(lunarDay, lunarMonth)` đã nhập (trừ trường hợp `fellBack`/`dayClamped` đã đánh dấu).
+1. **Store lunar, derive solar** - a GIO `Reminder` `{lunarDay:10, lunarMonth:8, lunarYear:null}` contains no solar-date field; `nextOccurrences` returns different solar dates for 2025 and 2026.
+2. **ANNUAL repeats yearly** - with `recurrence:"ANNUAL"`, `nextOccurrences(count:3)` returns 3 occurrences in 3 consecutive lunar years, each calling `convertLunar2Solar` with its own `targetLunarYear`.
+3. **MONTHLY generates 12-13** - `recurrence:"MONTHLY", lunarDay:15` in a normal lunar year generates 12 occurrences; in a year with a leap month it generates 13 (repeating the leap month too).
+4. **ONCE fixes the year** - `recurrence:"ONCE", lunarYear:2025` returns exactly 1 occurrence in lunar year 2025, with no recurrence.
+5. **Leap-month fallback REGULAR** - a death anniversary `{lunarDay:16, lunarMonth:2, isLeapMonth:true, leapFallback:"REGULAR"}` in a year without a leap month 2 returns an occurrence in the regular month 2 with `fellBack === true`.
+6. **Fallback SKIP** - the same death anniversary with `leapFallback:"SKIP"` skips the year without that leap month (no occurrence that year).
+7. **Fallback ASK** - with `leapFallback:"ASK"`, the occurrence in a year missing the leap month has `pendingUserChoice === true` and does not observe it automatically.
+8. **Matches leap year 1985** - a death anniversary entered in the leap month 2 of 1985 generates a solar-date occurrence falling in the range 21/03..19/04/1985 (cross-check FR-LUNAR-001 fixture).
+9. **Day clamp** - a death anniversary `{lunarDay:30}` in a target lunar month with only 29 days clamps back to day 29 with `dayClamped === true`, not jumping to the next month.
+10. **Lead-time fan-out** - `leadTimes:[0,1,7]` on 1 occurrence generates exactly 3 `Occurrence` with `leadDays` 0/1/7 and `fireAtLocal` stepped back exactly 0/1/7 days.
+11. **notifyTime applied** - `notifyTime:"06:30"` gives a `fireAtLocal` ending `T06:30:00+07:00`.
+12. **Timezone lock** - `todayInHCM(new Date(...))` returns the tuple `[day, month, year]` in Vietnam time; running with `process.env.TZ="America/New_York"` still returns the correct value (not off by 1 day). CONTRACT signature: `todayInHCM(now?: Date): SolarDate`.
+13. **Cache stale by engineVersion** - `isCacheStale(cache, "1.1.0")` returns `true` when cache.engineVersion is "1.0.0".
+14. **validateReminder catches errors** - `RAM` with `lunarDay:14` returns error `code:"RAM_DAY_MISMATCH"`; `ONCE` missing `lunarYear` returns `code:"ONCE_NEEDS_YEAR"`.
+15. **normalizeReminder defaults** - empty input returns `notifyTime:"07:00"`, `leadTimes:[1]`, `channels:["LOCAL"]`, `leapFallback:"REGULAR"`, `enabled:true`.
+16. **mergeAndSort ascending** - merging occurrences of 3 Reminders, the result is sorted ascending by `fireAtLocal`, with the nearest occurrence first.
+17. **Round-trip consistency** - for each generated occurrence, `convertSolar2Lunar` of `gregorianDate` returns exactly the entered `(lunarDay, lunarMonth)` (except for the `fellBack`/`dayClamped` cases already marked).
 
 ---
 
@@ -336,7 +336,7 @@ describe("recurrence engine", () => {
 
 ## §6 - Implementation skeleton
 
-API contract ở §3 là skeleton. Chi tiết khó nhất đang ghim là vòng sinh occurrence cho ANNUAL, vì nó là nơi quy tắc fallback và clamp gặp nhau:
+The API contract in §3 is the skeleton. The hardest detail being pinned down is the occurrence-generation loop for ANNUAL, because it is where the fallback and clamp rules meet:
 
 ```typescript
 // packages/amlich-core/src/recurrence.ts (lõi - skeleton noi bo; barrel export tra readonly Occurrence[])
@@ -373,17 +373,17 @@ export function nextOccurrences(r: Reminder, opt: RecurrenceOptions): readonly O
 // MAX_SKIP_SCAN bao tran so nam quet them khi SKIP lien tiep (vd giỗ thang nhuan hiem); >= ~30 du an toan.
 ```
 
-`occurrenceBudget`/`opt.count` đếm theo occurrence ÂM; mỗi occurrence âm sinh `leadTimes.length` `Occurrence`. Vòng tăng `lunarOccCount` chỉ khi thực sự sinh occurrence (không tăng khi SKIP), và có `MAX_SKIP_SCAN` guard để giỗ tháng nhuận hiếm gặp với `leapFallback = SKIP` không quét vô hạn - cùng tinh thần `i < 14` của `getLeapMonthOffset` ở FR-LUNAR-001.
+`occurrenceBudget`/`opt.count` counts by LUNAR occurrence; each lunar occurrence generates `leadTimes.length` `Occurrence`. The loop increases `lunarOccCount` only when it actually generates an occurrence (not when it SKIPs), and has a `MAX_SKIP_SCAN` guard so a rare leap-month death anniversary with `leapFallback = SKIP` does not scan forever - the same spirit as the `i < 14` of `getLeapMonthOffset` in FR-LUNAR-001.
 
-`makeOccurrence` lùi `gregorianDate` đi `lead` ngày rồi gắn `notifyTime` tạo `fireAtLocal` với offset `+07:00` cứng. Mọi phép so sánh ngày dùng chuỗi ISO `YYYY-MM-DD` nên sort là so sánh chuỗi, không dùng `Date` local.
+`makeOccurrence` steps `gregorianDate` back by `lead` days and attaches `notifyTime` to build `fireAtLocal` with a hard `+07:00` offset. Every date comparison uses the ISO string `YYYY-MM-DD`, so sorting is string comparison, not local `Date`.
 
 ---
 
 ## §7 - Dependencies
 
-- Upstream: FR-LUNAR-001 (`convertLunar2Solar`, `convertSolar2Lunar`, `getLunarMonth11`, `getLeapMonthOffset`). Module này không tự tính thiên văn, nó chỉ gọi engine lõi và gói vào mô hình dữ liệu.
-- Downstream: FR-LUNAR-005 (scheduler rolling-64 đọc `Occurrence[]` đã `mergeAndSort` rồi cắt 64 cái gần nhất), FR-LUNAR-006 (reminder management CRUD trên type `Reminder`, hiển danh sách sắp tới), FR-LUNAR-016 (Zalo Mini App tái dùng Reminder + tính ngày on-the-fly), FR-LUNAR-017 (ZNS quét Reminder có channel `ZNS`), FR-LUNAR-018 (cloud sync đồng bộ Reminder + `sharedWith`).
-- Cross-cutting: `engineVersion` liên quan FR-LUNAR-001 (semver core) và FR-LUNAR-018 (invalidate cache phía client khi core đổi). `linkedContentId` trỏ tới FR-LUNAR-008 FestivalContent.
+- Upstream: FR-LUNAR-001 (`convertLunar2Solar`, `convertSolar2Lunar`, `getLunarMonth11`, `getLeapMonthOffset`). This module does no astronomy of its own; it only calls the core engine and wraps the results in a data model.
+- Downstream: FR-LUNAR-005 (the rolling-64 scheduler reads the `Occurrence[]` after `mergeAndSort` and cuts the nearest 64), FR-LUNAR-006 (reminder management CRUD on the `Reminder` type, showing the upcoming list), FR-LUNAR-016 (Zalo Mini App reuses Reminder + computes dates on the fly), FR-LUNAR-017 (ZNS scans Reminders with the `ZNS` channel), FR-LUNAR-018 (cloud sync syncs Reminder + `sharedWith`).
+- Cross-cutting: `engineVersion` relates to FR-LUNAR-001 (the core semver) and FR-LUNAR-018 (invalidate the client cache when the core changes). `linkedContentId` points to FR-LUNAR-008 FestivalContent.
 
 ---
 
@@ -432,15 +432,15 @@ export function nextOccurrences(r: Reminder, opt: RecurrenceOptions): readonly O
 
 ## §9 - Open questions
 
-Đã giải quyết trong bản này:
-- Mặc định fallback tháng nhuận -> `REGULAR` (cúng tháng thường), có `fellBack` để UI xác nhận (DEC-LUNAR-042).
-- Khóa mọi phép tính về Asia/Ho_Chi_Minh, không dùng giờ thiết bị (DEC-LUNAR-043).
-- Ngày không tồn tại trong tháng âm -> clamp về ngày cuối tháng (§1 #7).
+Resolved in this version:
+- The leap-month fallback default -> `REGULAR` (observe the regular month), with `fellBack` for the UI to confirm (DEC-LUNAR-042).
+- Lock every calculation to Asia/Ho_Chi_Minh, not device time (DEC-LUNAR-043).
+- A day that does not exist in the lunar month -> clamp to the last day of the month (§1 #7).
 
-Deferred (gần với Caveats / các FR sau):
-- Lịch âm dương dual cho một nhắc (ví dụ vừa nhắc theo ngày dương cố định vừa theo ngày âm) - chưa cần cho MVP; chỉ hỗ trợ lunar recurrence ở bản này.
-- Quy tắc fallback theo vùng miền (có nhà cúng tháng nhuận thay vì tháng thường) - để cho FR-LUNAR-008 kết nối nội dung phong tục; bản này chỉ cung 3 chính sách REGULAR/SKIP/ASK.
-- Độ chính xác ở các năm rất xa (Caveats: ngày Sóc sát nửa đêm) - thuộc trách nhiệm FR-LUNAR-003 (golden harness); module này chỉ gọi engine và tin kết quả của nó.
+Deferred (close to the Caveats / later FRs):
+- A dual lunar-solar calendar for one reminder (for example reminding by a fixed solar date and by a lunar date at once) - not needed for the MVP; this version supports only lunar recurrence.
+- A region-specific fallback rule (some households observe the leap month rather than the regular month) - left for FR-LUNAR-008 to connect the customs content; this version only offers the 3 policies REGULAR/SKIP/ASK.
+- Accuracy in very distant years (Caveats: a Soc point near midnight) - the responsibility of FR-LUNAR-003 (the golden harness); this module only calls the engine and trusts its result.
 
 ---
 
@@ -448,34 +448,34 @@ Deferred (gần với Caveats / các FR sau):
 
 | Failure | Detection | Outcome | Recovery |
 |---|---|---|---|
-| Lưu nhầm ngày dương làm nguồn | type Reminder không có trường solar | sai sang năm không xảy ra | none (by design; AC #1) |
-| Nội suy 365 ngày thay vì tính lại | recurrence engine gọi convertLunar2Solar mỗi năm | không trôi | none (DEC-LUNAR-041; AC #2) |
-| Giỗ tháng nhuận, năm đích không có | resolveLeap kiểm leapOffset | fallback REGULAR + fellBack | UI hỏi user (DEC-LUNAR-042; AC #5) |
-| Giỗ tháng nhuận, user chọn SKIP | leapFallback = SKIP | bỏ năm đó | nhắc lại năm sau có tháng nhuận (AC #6) |
-| Giỗ tháng nhuận, user chọn ASK | leapFallback = ASK | pendingUserChoice | UI hiển lựa chọn (AC #7) |
-| Ngày 30 trong tháng thiếu | clampLunarDay | lùi về ngày 29 + dayClamped | none (AC #9) |
-| Derive theo giờ thiết bị ở nước ngoài | todayInHCM khóa tz=7.0 | đúng ngày VN | none (DEC-LUNAR-043; AC #12) |
-| Core sửa hằng số, cache cũ sai | engineVersion mismatch | isCacheStale = true | tính lại (DEC-LUNAR-044; AC #13) |
-| RAM nhập nhầm lunarDay != 15 | validateReminder | lỗi RAM_DAY_MISMATCH | UI chặn lưu (AC #14) |
-| ONCE thiếu lunarYear | validateReminder | lỗi ONCE_NEEDS_YEAR | UI bắt nhập năm (AC #14) |
-| leadTimes chứa số âm | validateReminder | lỗi LEAD_NEGATIVE | normalize lọc bỏ |
-| channels rỗng | validateReminder | lỗi NO_CHANNEL | normalize đặt ["LOCAL"] |
-| MONTHLY quên lặp tháng nhuận | expander duyệt cả tháng nhuận | 13 lần trong năm nhuận | none (AC #3) |
-| Module bị kéo theo storage I/O | code review zero-dep | từ chối merge | giữ thuần tính toán (§1 #14) |
-| Occurrence không sort | mergeAndSort | sort tăng theo fireAtLocal | none (AC #16) |
+| Storing the solar date as the source by mistake | the Reminder type has no solar field | wrong next year, does not happen | none (by design; AC #1) |
+| Interpolating 365 days instead of recomputing | the recurrence engine calls convertLunar2Solar each year | no drift | none (DEC-LUNAR-041; AC #2) |
+| Leap-month death anniversary, target year has none | resolveLeap checks leapOffset | fallback REGULAR + fellBack | UI asks the user (DEC-LUNAR-042; AC #5) |
+| Leap-month death anniversary, user chose SKIP | leapFallback = SKIP | skips that year | remind next year with a leap month (AC #6) |
+| Leap-month death anniversary, user chose ASK | leapFallback = ASK | pendingUserChoice | UI shows the choice (AC #7) |
+| Day 30 in a short month | clampLunarDay | clamps back to day 29 + dayClamped | none (AC #9) |
+| Deriving by device time abroad | todayInHCM locks tz=7.0 | correct VN date | none (DEC-LUNAR-043; AC #12) |
+| Core changes a constant, stale cache is wrong | engineVersion mismatch | isCacheStale = true | recompute (DEC-LUNAR-044; AC #13) |
+| RAM entered with lunarDay != 15 by mistake | validateReminder | RAM_DAY_MISMATCH error | UI blocks the save (AC #14) |
+| ONCE missing lunarYear | validateReminder | ONCE_NEEDS_YEAR error | UI requires the year (AC #14) |
+| leadTimes containing a negative number | validateReminder | LEAD_NEGATIVE error | normalize filters it out |
+| Empty channels | validateReminder | NO_CHANNEL error | normalize sets ["LOCAL"] |
+| MONTHLY forgets to repeat the leap month | the expander walks the leap month too | 13 times in a leap year | none (AC #3) |
+| Module pulled into storage I/O | zero-dep code review | reject the merge | keep it purely computational (§1 #14) |
+| Occurrence not sorted | mergeAndSort | sorted ascending by fireAtLocal | none (AC #16) |
 
 ---
 
 ## §11 - Implementation notes
 
-- Quy tắc vàng: với mỗi năm đích, gọi lại `convertLunar2Solar` độc lập. Không bao giờ cộng thêm một số ngày cố định từ occurrence trước - đó là sự khác biệt giữa khớp lịch và trôi dần.
-- `resolveLeap` là nơi chính sách fallback sống. Trước khi tính ngày, hỏi `getLeapMonthOffset` xem năm đích có đúng tháng nhuận đã nhập không; nếu không, rẽ nhánh theo `leapFallback` (REGULAR / SKIP / ASK) và đánh dấu `fellBack`/`pendingUserChoice`.
-- Clamp ngày phải dùng độ dài tháng âm thật (29 hay 30 ngày), không giả định 30. Tính độ dài bằng khoảng cách giữa hai điểm Sóc liên tiếp qua engine lõi.
-- `fireAtLocal` luôn mang offset `+07:00` cứng và mọi so sánh ngày dùng chuỗi ISO. Tránh `new Date(str)` rồi đọc `getDate()` vì nó đọc theo TZ runtime - đúng lý do FR-B06 yêu cầu khóa Asia/Ho_Chi_Minh.
-- `engineVersion` nên lấy từ `package.json` của amlich-core và truyền vào `RecurrenceOptions`, để OccurrenceCache (DEC-LUNAR-044) và FR-LUNAR-018 cùng một nguồn sự thật về phiên bản core.
-- MONTHLY có thể lặp ngày 30 ở tháng chỉ có 29 ngày - dùng lại clamp chung; và trong năm nhuận, expander phải sinh occurrence cho cả tháng nhuận (13 lần), khớp AC #3.
-- Giữ `Occurrence` là cấu trúc duy nhất mà FR-LUNAR-005 đọc. Không để scheduler tự derive ngày - mọi logic âm lịch nằm ở đây, scheduler chỉ gộp, sort, cắt 64.
+- The golden rule: for each target year, call `convertLunar2Solar` independently. Never add a fixed number of days from the previous occurrence - that is the difference between matching the calendar and gradually drifting.
+- `resolveLeap` is where the fallback policy lives. Before computing the date, ask `getLeapMonthOffset` whether the target year has the entered leap month; if not, branch on `leapFallback` (REGULAR / SKIP / ASK) and mark `fellBack`/`pendingUserChoice`.
+- The day clamp must use the true lunar month length (29 or 30 days), not assume 30. Compute the length as the distance between two consecutive Soc points via the core engine.
+- `fireAtLocal` always carries a hard `+07:00` offset and every date comparison uses ISO strings. Avoid `new Date(str)` and then reading `getDate()` because it reads by the runtime TZ - exactly the reason FR-B06 requires locking Asia/Ho_Chi_Minh.
+- `engineVersion` should come from the amlich-core `package.json` and be passed into `RecurrenceOptions`, so OccurrenceCache (DEC-LUNAR-044) and FR-LUNAR-018 share a single source of truth for the core version.
+- MONTHLY can repeat day 30 in a month with only 29 days - reuse the shared clamp; and in a leap year, the expander must generate an occurrence for the leap month too (13 times), matching AC #3.
+- Keep `Occurrence` the only structure that FR-LUNAR-005 reads. Do not let the scheduler derive dates itself - all the lunar logic lives here, the scheduler only merges, sorts, and cuts 64.
 
 ---
 
-*Hết FR-LUNAR-004.*
+*End of FR-LUNAR-004.*

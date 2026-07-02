@@ -1,6 +1,6 @@
 ---
 id: FR-LUNAR-010
-title: "App shell - Next.js/React PWA + Capacitor iOS wrapper, import amlich-core, on-device storage, routing, glue cho local notifications"
+title: "App shell - Next.js/React PWA + Capacitor iOS wrapper, import amlich-core, on-device storage, routing, glue for local notifications"
 module: LUNAR
 priority: MUST
 status: ready_to_implement
@@ -19,11 +19,11 @@ source_pages:
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#9 (System Architecture, stack)"
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#14 (Phase 1 roadmap)"
 source_decisions:
-  - DEC-LUNAR-100 (Next.js/React + Tailwind cho web/PWA; Capacitor boc chinh web build do cho iOS native wrapper; toi da code-sharing voi doi web; khong React Native trong Phase 1)
-  - DEC-LUNAR-101 (storage on-device dung localStorage hoac IndexedDB tren web, va @capacitor/preferences tren iOS qua Capacitor plugin; khong co backend trong Phase 1; du lieu chi luu tren thiet bi)
-  - DEC-LUNAR-102 (routing dung Next.js App Router; cac route chinh: "/" (home/today), "/calendar" (luoi thang), "/reminders" (danh sach nhac), "/settings", "/festival/[id]" (trang chi tiet dip))
-  - DEC-LUNAR-103 (Capacitor ket noi glue cho @capacitor/local-notifications; web build la source of truth; Capacitor wrapper la thin shell khong chua business logic)
-  - DEC-LUNAR-104 (PWA manifest va service worker bat buoc cho offline va "Add to Home Screen" tren Android; iOS chua ho tro full PWA push nen Capacitor la kenh chinh tren iPhone)
+  - DEC-LUNAR-100 (Next.js/React + Tailwind for web/PWA; Capacitor wraps that same web build as the iOS native wrapper; maximize code-sharing with the web team; no React Native in Phase 1)
+  - DEC-LUNAR-101 (on-device storage uses localStorage or IndexedDB on the web, and @capacitor/preferences on iOS via a Capacitor plugin; no backend in Phase 1; data is stored only on the device)
+  - DEC-LUNAR-102 (routing uses the Next.js App Router; the main routes: "/" (home/today), "/calendar" (month grid), "/reminders" (reminder list), "/settings", "/festival/[id]" (occasion detail page))
+  - DEC-LUNAR-103 (Capacitor is the connection glue for @capacitor/local-notifications; the web build is the source of truth; the Capacitor wrapper is a thin shell containing no business logic)
+  - DEC-LUNAR-104 (the PWA manifest and service worker are mandatory for offline and "Add to Home Screen" on Android; iOS does not yet support full PWA push, so Capacitor is the main channel on iPhone)
 language: typescript 5.x
 service: apps/web/
 new_files:
@@ -45,62 +45,62 @@ allowed_tools:
   - file_write: apps/web/**
   - bash: cd apps/web && pnpm build && pnpm test
 disallowed_tools:
-  - "luu du lieu nguoi dung len server hoac cloud khong co consent ro rang trong Phase 1 (vi pham DEC-LUNAR-101 / NFR-Privacy)"
-  - "nhung Claude API key vao client code (vi pham NFR-Security)"
-  - "su dung backend API trong Phase 1 cho chuc nang loi lich/nhac (Phase 1 la offline-first, DEC-LUNAR-101)"
+  - "storing user data on a server or cloud without explicit consent in Phase 1 (violates DEC-LUNAR-101 / NFR-Privacy)"
+  - "embedding a Claude API key in client code (violates NFR-Security)"
+  - "using a backend API in Phase 1 for the core calendar/reminder functions (Phase 1 is offline-first, DEC-LUNAR-101)"
 effort_hours: 10
 sub_tasks:
-  - "1.5h: Next.js project khoi tao voi App Router, Tailwind, import @cyberskill/amlich-core va @cyberskill/genie-ui"
-  - "1.5h: storage.ts - Reminder CRUD voi localStorage/IndexedDB + @capacitor/preferences adapter"
-  - "1.0h: app/layout.tsx - global layout voi purple theme, Be Vietnam Pro, bottom nav bar"
-  - "1.0h: app/page.tsx - home screen: ngay hom nay (duong + am + can-chi), nhac sap toi"
+  - "1.5h: initialize the Next.js project with the App Router, Tailwind, import @cyberskill/amlich-core and @cyberskill/genie-ui"
+  - "1.5h: storage.ts - Reminder CRUD with localStorage/IndexedDB + @capacitor/preferences adapter"
+  - "1.0h: app/layout.tsx - global layout with the purple theme, Be Vietnam Pro, bottom nav bar"
+  - "1.0h: app/page.tsx - home screen: today (solar + lunar + can-chi), upcoming reminders"
   - "1.0h: app/calendar/page.tsx - route wrapping CalendarGrid (FR-007)"
-  - "1.0h: app/reminders/page.tsx va settings/page.tsx - placeholder routes cho FR-006"
-  - "1.0h: notificationGlue.ts - interface wrap @capacitor/local-notifications, stub tren web"
+  - "1.0h: app/reminders/page.tsx and settings/page.tsx - placeholder routes for FR-006"
+  - "1.0h: notificationGlue.ts - interface wrapping @capacitor/local-notifications, stub on the web"
   - "0.5h: capacitor.config.ts - config Capacitor bundle ID, webDir, plugin list"
   - "0.5h: manifest.json, next.config.ts - PWA setup, offline cache strategy (DEC-LUNAR-104)"
-  - "1.0h: integration test: build thanh cong, route / render dung, storage CRUD khong crash"
-risk_if_skipped: "Khong co app shell thi khong co gi de deploy cho vo dung thu (tieu chi MVP). FR-005 (rolling-64 notifications) va FR-006 (reminder management) deu phu thuoc app shell de co storage layer va Capacitor plugin glue. FR-007 (grid) can routing de mount CalendarGrid vao route /calendar."
+  - "1.0h: integration test: build succeeds, route / renders correctly, storage CRUD does not crash"
+risk_if_skipped: "Without the app shell, there is nothing to deploy for the wife to try (an MVP criterion). FR-005 (rolling-64 notifications) and FR-006 (reminder management) both depend on the app shell for the storage layer and the Capacitor plugin glue. FR-007 (grid) needs routing to mount CalendarGrid on the /calendar route."
 ---
 
 ## §1 - Description (BCP-14 normative)
 
-App shell PHẢI thiết lập nền móng kỹ thuật cho toàn bộ Phase 1 MVP: Next.js/React PWA, Capacitor wrapper cho iOS, on-device storage, routing, và glue layer cho local notifications.
+The app shell **MUST** set up the technical foundation for the entire Phase 1 MVP: Next.js/React PWA, a Capacitor wrapper for iOS, on-device storage, routing, and the glue layer for local notifications.
 
-1. PHẢI khởi tạo project Next.js (App Router, TypeScript 5.x) tại `apps/web/` với Tailwind CSS; import `@cyberskill/amlich-core` và `@cyberskill/genie-ui` từ workspace packages (DEC-LUNAR-100).
-2. PHẢI cấu hình 5 route chính bằng Next.js App Router: `/` (home - ngày hôm nay), `/calendar` (lưới lịch tháng), `/reminders` (danh sách nhắc), `/settings` (cài đặt), `/festival/[id]` (trang chi tiết dịp) (DEC-LUNAR-102).
-3. PHẢI cung cấp `apps/web/lib/storage.ts` xuất các hàm CRUD cho `Reminder[]`: `getReminders()`, `saveReminder(r: Reminder)`, `deleteReminder(id: string)`, `updateReminder(r: Reminder)`, `getSettings()`, `saveSettings(s: UserSettings)` - lưu on-device, không gọi network (DEC-LUNAR-101).
-4. PHẢI implement storage adapter: trên web (browser) dùng `localStorage` hoặc `IndexedDB`; trên iOS qua Capacitor dùng `@capacitor/preferences`; interface phải đồng nhất để code không cần biết đang chạy ở đâu (DEC-LUNAR-101).
-5. PHẢI cung cấp `apps/web/lib/notificationGlue.ts` xuất interface `NotificationService` với phương thức `scheduleNotification(opts)`, `cancelAllPending()`, `requestPermission()`; trên web (non-Capacitor) implement là no-op stub; trên Capacitor implement gọi `@capacitor/local-notifications` (DEC-LUNAR-103).
-6. PHẢI cấu hình `capacitor.config.ts` với `appId: "world.cyberskill.genieamlich"`, `appName: "Genie Am Lich"`, `webDir: "out"` (Next.js static export), và khai báo plugin `LocalNotifications` (DEC-LUNAR-103).
-7. PHẢI cấu hình `next.config.ts` bật static export (`output: "export"`) để Capacitor có thể đóng gói web build; KHÔNG dùng Next.js server-side rendering hoặc API routes trong Phase 1 (DEC-LUNAR-100, DEC-LUNAR-101).
-8. PHẢI tạo `public/manifest.json` với `name`, `short_name`, `theme_color` (tím từ `PURPLE_TOKENS`), `background_color` (kem từ `PURPLE_TOKENS`), `display: "standalone"`, `icons` cho PWA (DEC-LUNAR-104).
-9. PHẢI hiển thị bottom navigation bar với 4 tab: Hôm nay, Lịch, Nhắc, Cài đặt; active tab highlight bằng token tím; navigation PHẢI hoạt động trên cả web và iOS Capacitor.
-10. PHẢI tại route `/` (home) hiển thị ngày hôm nay gồm: ngày dương đầy đủ, ngày âm lịch, can-chi ngày/tháng/năm bằng cách gọi `convertSolar2Lunar` từ `amlich-core`; và danh sách nhắc sắp tới (tối đa 3 mục) đọc từ storage.
-11. PHẢI import font Be Vietnam Pro từ Google Fonts trong `app/layout.tsx` (hoặc bundle local trong `public/fonts/` cho offline); áp dụng `font-family` cho toàn bộ app qua Tailwind config hoặc global CSS.
-12. PHẢI đảm bảo app shell build thành công với `pnpm build` (Next.js static export, không có TypeScript error, không có missing import từ workspace packages).
-13. PHẢI đảm bảo home route `/` render đúng ngày âm lịch hôm nay khi chạy `pnpm dev` hoặc sau khi build (integration test).
-14. KHÔNG ĐƯỢC lưu bất kỳ dữ liệu người dùng nào lên server trong Phase 1; mọi Reminder và Settings chỉ tồn tại trên thiết bị (DEC-LUNAR-101, NFR-Privacy).
-15. NÊN cấu hình service worker (qua `next-pwa` hoặc tương đương) để cache static assets cho offline; ưu tiên cache font Be Vietnam Pro và `amlich-core` bundle (DEC-LUNAR-104).
-16. NÊN detect môi trường Capacitor runtime (`Capacitor.isNativePlatform()`) và hiển thị điều chỉnh UI nhỏ (ví dụ ẩn một số hành vi web-only) mà không cần build config riêng biệt.
+1. **MUST** initialize a Next.js project (App Router, TypeScript 5.x) at `apps/web/` with Tailwind CSS; import `@cyberskill/amlich-core` and `@cyberskill/genie-ui` from the workspace packages (DEC-LUNAR-100).
+2. **MUST** configure the 5 main routes with the Next.js App Router: `/` (home - today), `/calendar` (month calendar grid), `/reminders` (reminder list), `/settings` (settings), `/festival/[id]` (occasion detail page) (DEC-LUNAR-102).
+3. **MUST** provide `apps/web/lib/storage.ts` exporting the CRUD functions for `Reminder[]`: `getReminders()`, `saveReminder(r: Reminder)`, `deleteReminder(id: string)`, `updateReminder(r: Reminder)`, `getSettings()`, `saveSettings(s: UserSettings)` - stored on-device, with no network call (DEC-LUNAR-101).
+4. **MUST** implement the storage adapter: on the web (browser) use `localStorage` or `IndexedDB`; on iOS via Capacitor use `@capacitor/preferences`; the interface must be uniform so the code need not know where it is running (DEC-LUNAR-101).
+5. **MUST** provide `apps/web/lib/notificationGlue.ts` exporting the `NotificationService` interface with the methods `scheduleNotification(opts)`, `cancelAllPending()`, `requestPermission()`; on the web (non-Capacitor) the implementation is a no-op stub; on Capacitor the implementation calls `@capacitor/local-notifications` (DEC-LUNAR-103).
+6. **MUST** configure `capacitor.config.ts` with `appId: "world.cyberskill.genieamlich"`, `appName: "Genie Am Lich"`, `webDir: "out"` (Next.js static export), and declare the `LocalNotifications` plugin (DEC-LUNAR-103).
+7. **MUST** configure `next.config.ts` to enable static export (`output: "export"`) so Capacitor can package the web build; do NOT use Next.js server-side rendering or API routes in Phase 1 (DEC-LUNAR-100, DEC-LUNAR-101).
+8. **MUST** create `public/manifest.json` with `name`, `short_name`, `theme_color` (purple from `PURPLE_TOKENS`), `background_color` (cream from `PURPLE_TOKENS`), `display: "standalone"`, and `icons` for the PWA (DEC-LUNAR-104).
+9. **MUST** display a bottom navigation bar with 4 tabs: Today, Calendar, Reminders, Settings; the active tab is highlighted with a purple token; navigation **MUST** work on both the web and iOS Capacitor.
+10. **MUST** on the `/` (home) route display today including: the full solar date, the lunar date, the day/month/year can-chi by calling `convertSolar2Lunar` from `amlich-core`; and the list of upcoming reminders (up to 3 items) read from storage.
+11. **MUST** import the Be Vietnam Pro font from Google Fonts in `app/layout.tsx` (or bundle locally in `public/fonts/` for offline); apply `font-family` to the whole app via the Tailwind config or global CSS.
+12. **MUST** ensure the app shell builds successfully with `pnpm build` (Next.js static export, no TypeScript error, no missing import from the workspace packages).
+13. **MUST** ensure the home route `/` renders today's lunar date correctly when running `pnpm dev` or after a build (integration test).
+14. **MUST NOT** store any user data on a server in Phase 1; every Reminder and Settings exists only on the device (DEC-LUNAR-101, NFR-Privacy).
+15. **SHOULD** configure a service worker (via `next-pwa` or equivalent) to cache static assets for offline; prioritize caching the Be Vietnam Pro font and the `amlich-core` bundle (DEC-LUNAR-104).
+16. **SHOULD** detect the Capacitor runtime (`Capacitor.isNativePlatform()`) and show small UI adjustments (for example hiding some web-only behavior) without a separate build config.
 
 ---
 
 ## §2 - Why this design (rationale for humans)
 
-**Tại sao Next.js/React + Capacitor thay vì React Native (DEC-LUNAR-100)?** React Native yêu cầu viết lại UI layer bằng native components, mất lợi thế code-sharing với web. Capacitor bọc chính web build, đội web HCMC quen React không cần học native API; chỉ cần thêm plugin Capacitor cho notification. PRD §9 chỉ định Capacitor và ghi rõ "Nếu sau này cần animation cao cấp, cân nhắc RN" - nhưng cho MVP, Capacitor thắng về tốc độ.
+**Why Next.js/React + Capacitor instead of React Native (DEC-LUNAR-100)?** React Native requires rewriting the UI layer with native components, losing the advantage of code-sharing with the web. Capacitor wraps that same web build, so the HCMC web team that knows React need not learn native APIs; it only needs to add a Capacitor plugin for notifications. PRD §9 specifies Capacitor and states clearly "If advanced animation is needed later, consider RN" - but for the MVP, Capacitor wins on speed.
 
-**Tại sao static export (`output: "export"`) thay vì Next.js SSR (DEC-LUNAR-101)?** Phase 1 không có backend. Capacitor yêu cầu file HTML/JS/CSS tĩnh trong thư mục `out/` để đóng gói vào iOS app bundle. SSR yêu cầu Node.js server runtime - không dùng được trong Capacitor. Static export là lựa chọn tự nhiên và đảm bảo toàn bộ app hoạt động offline.
+**Why static export (`output: "export"`) instead of Next.js SSR (DEC-LUNAR-101)?** Phase 1 has no backend. Capacitor requires static HTML/JS/CSS files in the `out/` directory to package into the iOS app bundle. SSR requires a Node.js server runtime - unusable in Capacitor. Static export is the natural choice and ensures the whole app works offline.
 
-**Tại sao storage adapter pattern (DEC-LUNAR-101)?** `localStorage` hoạt động trên web nhưng Capacitor iOS khuyến cáo dùng `@capacitor/preferences` để đảm bảo dữ liệu không bị xóa bởi iOS khi dung lượng thấp. Wrap hai implementation sau một interface chung giúp unit test storage trên web mà không cần Capacitor runtime.
+**Why the storage adapter pattern (DEC-LUNAR-101)?** `localStorage` works on the web but Capacitor iOS recommends `@capacitor/preferences` to ensure the data is not cleared by iOS under low storage. Wrapping the two implementations behind a common interface lets us unit test storage on the web without the Capacitor runtime.
 
-**Tại sao `notificationGlue.ts` là no-op stub trên web (DEC-LUNAR-103)?** `@capacitor/local-notifications` chỉ hoạt động khi có native runtime. Nếu import trực tiếp vào component, build sẽ lỗi trong môi trường web hoặc test. Stub pattern cho phép FR-005 và FR-006 test logic scheduling mà không cần thiết bị iOS thực.
+**Why is `notificationGlue.ts` a no-op stub on the web (DEC-LUNAR-103)?** `@capacitor/local-notifications` only works with a native runtime. If imported directly into a component, the build would error in the web or test environment. The stub pattern lets FR-005 and FR-006 test the scheduling logic without a real iOS device.
 
-**Tại sao `appId: "world.cyberskill.genieamlich"` (DEC-LUNAR-103)?** Bundle ID theo convention reverse-domain của CyberSkill (`world.cyberskill.*`). Phải quyết định sớm vì App Store Connect yêu cầu bundle ID khi tạo app record và không thể đổi sau.
+**Why `appId: "world.cyberskill.genieamlich"` (DEC-LUNAR-103)?** The bundle ID follows the CyberSkill reverse-domain convention (`world.cyberskill.*`). It must be decided early because App Store Connect requires the bundle ID when creating the app record and it cannot be changed later.
 
-**Tại sao PWA manifest bắt buộc (DEC-LUNAR-104)?** Web push notification trên iOS 16.4+ chỉ hoạt động khi PWA đã "Add to Home Screen" - không có manifest thì không có PWA. Với Android và desktop, manifest còn cho phép cài app từ browser. PRD Key Finding #6 chỉ rõ web push là "bổ trợ", không phải kênh chính, nhưng vẫn cần setup đúng.
+**Why is the PWA manifest mandatory (DEC-LUNAR-104)?** Web push notification on iOS 16.4+ only works when the PWA has been "Add to Home Screen" - without a manifest there is no PWA. For Android and desktop, the manifest also allows installing the app from the browser. PRD Key Finding #6 states clearly that web push is "supplementary", not the main channel, but it still needs to be set up correctly.
 
-**Tại sao không có API route trong Phase 1 (DEC-LUNAR-101)?** API route của Next.js yêu cầu server runtime, xung đột với `output: "export"`. Phase 1 không cần backend (không AI, không ZNS). Khi Phase 2 cần Claude proxy (`/api/genie`), sẽ chuyển sang Vercel Functions hoặc separate service, không thay đổi client code.
+**Why no API route in Phase 1 (DEC-LUNAR-101)?** Next.js API routes require a server runtime, conflicting with `output: "export"`. Phase 1 needs no backend (no AI, no ZNS). When Phase 2 needs a Claude proxy (`/api/genie`), it will move to Vercel Functions or a separate service without changing the client code.
 
 ---
 
@@ -262,21 +262,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ## §4 - Acceptance criteria
 
-1. `pnpm build` trong `apps/web/` hoàn thành không có error; thư mục `out/` được tạo với `index.html`, `calendar/index.html`, `reminders/index.html`, `settings/index.html`.
-2. Route `/festival/[id]` với `id = "vu-lan"` render trang chi tiết Vu Lan lấy từ `getFestivalById("vu-lan")` của FR-LUNAR-008 mà không cần server-side data fetching.
-3. `getReminders()` gọi ngay sau khi app khởi động (empty state) trả mảng rỗng, không throw error.
-4. `saveReminder(r)` rồi `getReminders()` trả mảng có 1 phần tử đúng với `r` đã lưu (round-trip test trên localStorage mock).
-5. `deleteReminder(id)` xóa đúng nhắc theo id; `getReminders()` sau đó không còn nhắc đó.
-6. `createNotificationService()` trên môi trường web (không có Capacitor) trả `WebNotificationStub`; trên môi trường Capacitor trả `CapacitorNotificationService`.
-7. `capacitor.config.ts` export object có `appId === "world.cyberskill.genieamlich"` và `webDir === "out"`.
-8. `public/manifest.json` hợp lệ JSON, có đủ 4 trường `name`, `display: "standalone"`, `theme_color`, `background_color`; `background_color` là giá trị kem ấm từ FR-LUNAR-009.
-9. Route `/` (home) hiển thị ngày hôm nay (ngày dương, ngày âm, can-chi) gọi `convertSolar2Lunar` không cần network (integration test với mock date "2025-01-29" trả Mùng 1 Tết Ất Tỵ).
-10. Bottom navigation có 4 tab; click "Lịch" navigate tới `/calendar`; active tab được highlight bằng màu tím đậm từ token.
-11. Font Be Vietnam Pro được khai báo trong `layout.tsx`; build output không chứa tham chiếu font nào khác làm primary.
-12. `next.config.ts` có `output: "export"` và `transpilePackages: ["@cyberskill/amlich-core", "@cyberskill/genie-ui"]`.
-13. Không có bất kỳ `fetch`, `axios`, hoặc HTTP call nào trong `storage.ts` (kiểm bằng grep trong file).
-14. `pnpm test` trong `apps/web/` chạy không crash với ít nhất 5 test storage CRUD pass.
-15. Build output tại `out/` không chứa file `.env` hoặc bất kỳ API key nào (grep `ANTHROPIC_API_KEY` và `ZNS_TOKEN` ra rỗng).
+1. `pnpm build` in `apps/web/` completes with no error; the `out/` directory is created with `index.html`, `calendar/index.html`, `reminders/index.html`, `settings/index.html`.
+2. The `/festival/[id]` route with `id = "vu-lan"` renders the Vu Lan detail page taken from `getFestivalById("vu-lan")` of FR-LUNAR-008 without server-side data fetching.
+3. `getReminders()` called right after app startup (empty state) returns an empty array without throwing an error.
+4. `saveReminder(r)` then `getReminders()` returns an array with 1 element matching the saved `r` (round-trip test on a localStorage mock).
+5. `deleteReminder(id)` deletes the correct reminder by id; `getReminders()` afterward no longer contains that reminder.
+6. `createNotificationService()` on the web environment (no Capacitor) returns `WebNotificationStub`; on the Capacitor environment returns `CapacitorNotificationService`.
+7. `capacitor.config.ts` exports an object with `appId === "world.cyberskill.genieamlich"` and `webDir === "out"`.
+8. `public/manifest.json` is valid JSON, with all 4 fields `name`, `display: "standalone"`, `theme_color`, `background_color`; `background_color` is the warm cream value from FR-LUNAR-009.
+9. The `/` (home) route displays today (solar date, lunar date, can-chi) calling `convertSolar2Lunar` with no network (integration test with mock date "2025-01-29" returns the first day of Tet At Ty).
+10. The bottom navigation has 4 tabs; clicking "Calendar" navigates to `/calendar`; the active tab is highlighted with the deep purple color from the token.
+11. The Be Vietnam Pro font is declared in `layout.tsx`; the build output contains no other font reference as primary.
+12. `next.config.ts` has `output: "export"` and `transpilePackages: ["@cyberskill/amlich-core", "@cyberskill/genie-ui"]`.
+13. There is no `fetch`, `axios`, or HTTP call in `storage.ts` (checked by grep in the file).
+14. `pnpm test` in `apps/web/` runs without crashing with at least 5 storage CRUD tests passing.
+15. The build output at `out/` contains no `.env` file or any API key (grep for `ANTHROPIC_API_KEY` and `ZNS_TOKEN` returns empty).
 
 ---
 
@@ -413,7 +413,7 @@ test("Home page hien thi ngay am va can-chi dung", () => {
 
 ## §6 - Implementation skeleton
 
-API contract ở §3 là skeleton đầy đủ. Điểm tricky nhất là storage adapter phải hoạt động trong cả JSDOM (test) và môi trường Capacitor thực tế:
+The API contract in §3 is a full skeleton. The trickiest point is that the storage adapter must work in both JSDOM (test) and the real Capacitor environment:
 
 ```typescript
 // apps/web/lib/storage.ts (storage adapter logic)
@@ -462,11 +462,11 @@ export async function saveReminder(r: Reminder): Promise<void> {
 
 ## §7 - Dependencies
 
-Upstream: `FR-LUNAR-001` cung cấp `convertSolar2Lunar` dùng trên home route `/` để tính ngày âm hôm nay; `FR-LUNAR-009` cung cấp `PURPLE_TOKENS`, `SEMANTIC`, và components để áp dụng theme toàn cục trong `layout.tsx`.
+Upstream: `FR-LUNAR-001` provides `convertSolar2Lunar` used on the home route `/` to compute today's lunar date; `FR-LUNAR-009` provides `PURPLE_TOKENS`, `SEMANTIC`, and components to apply the theme globally in `layout.tsx`.
 
-Downstream: `FR-LUNAR-005` (rolling-64 notifications) dùng `NotificationService` interface từ `notificationGlue.ts` và `Reminder[]` từ `storage.ts`; `FR-LUNAR-006` (reminder management) dùng storage CRUD và route `/reminders`; `FR-LUNAR-007` (calendar grid) mount tại route `/calendar`; `FR-LUNAR-012` (good-day picker) mount tại route mới trong Phase 2; `FR-LUNAR-015` (AI Genie) cần Next.js API route - sẽ thay đổi `output: "export"` thành hybrid mode hoặc tách ra Vercel Functions khi Phase 2 bắt đầu.
+Downstream: `FR-LUNAR-005` (rolling-64 notifications) uses the `NotificationService` interface from `notificationGlue.ts` and `Reminder[]` from `storage.ts`; `FR-LUNAR-006` (reminder management) uses the storage CRUD and the `/reminders` route; `FR-LUNAR-007` (calendar grid) mounts on the `/calendar` route; `FR-LUNAR-012` (good-day picker) mounts on a new route in Phase 2; `FR-LUNAR-015` (AI Genie) needs a Next.js API route - it will change `output: "export"` to hybrid mode or split out to Vercel Functions when Phase 2 begins.
 
-Cross-cutting: Tất cả FR Phase 1 phụ thuộc `storage.ts` để đọc/ghi Reminder. `notificationGlue.ts` là contract mà FR-LUNAR-005 implement cụ thể trên Capacitor.
+Cross-cutting: All Phase 1 FRs depend on `storage.ts` to read/write Reminders. `notificationGlue.ts` is the contract that FR-LUNAR-005 implements concretely on Capacitor.
 
 ---
 
@@ -511,15 +511,15 @@ const today = {
 
 ## §9 - Open questions
 
-Đã giải quyết:
-- Static export vs SSR: `output: "export"` cho Phase 1 (DEC-LUNAR-100).
-- Storage adapter: localStorage/IndexedDB + `@capacitor/preferences` sau một interface chung (DEC-LUNAR-101).
+Resolved:
+- Static export vs SSR: `output: "export"` for Phase 1 (DEC-LUNAR-100).
+- Storage adapter: localStorage/IndexedDB + `@capacitor/preferences` behind a common interface (DEC-LUNAR-101).
 - Bundle ID: `world.cyberskill.genieamlich` (DEC-LUNAR-103).
 
-Còn deferred:
-- Phase 2 Next.js API routes (`/api/genie`): `output: "export"` không tương thích với API routes. Khi Phase 2 bắt đầu, cần chuyển sang `output: "standalone"` hoặc dùng Vercel Functions tách biệt - deferred, không ảnh hưởng Phase 1.
-- IndexedDB vs localStorage: `localStorage` đủ cho Phase 1 với lượng nhắc nhỏ (< 100 records). Nếu user có > 100 đám giỗ, chuyển sang IndexedDB - deferred.
-- Service worker: `next-pwa` hoặc `@ducanh2912/next-pwa` cần review tương thích với Next.js 15 App Router trước khi dùng - deferred sau khi pin Next.js version.
+Still deferred:
+- Phase 2 Next.js API routes (`/api/genie`): `output: "export"` is not compatible with API routes. When Phase 2 begins, we need to switch to `output: "standalone"` or use separate Vercel Functions - deferred, does not affect Phase 1.
+- IndexedDB vs localStorage: `localStorage` is enough for Phase 1 with a small number of reminders (< 100 records). If the user has > 100 death anniversaries, switch to IndexedDB - deferred.
+- Service worker: `next-pwa` or `@ducanh2912/next-pwa` needs a compatibility review with Next.js 15 App Router before use - deferred after pinning the Next.js version.
 
 ---
 
@@ -527,30 +527,30 @@ Còn deferred:
 
 | Failure | Detection | Outcome | Recovery |
 |---|---|---|---|
-| `output: export` xung dot voi API route Phase 2 | Build error khi them /api/genie | Phase 2 bi block | Chuyen sang hybrid mode hoac tach Vercel Functions |
-| localStorage bi xoa khi iOS thieu dung luong | App mat het du lieu | Nguoi dung mat nhac | Migrate sang @capacitor/preferences trong storage adapter |
-| Capacitor khong nhan dien webDir "out" sau khi Next.js doi ten | npx cap sync loi | iOS build that bai | Dam bao webDir trong capacitor.config khop voi output folder |
-| Be Vietnam Pro khong cache offline | Service worker miss | Font fallback system-ui | Bundle font local vao public/fonts/ va cache trong SW |
-| transpilePackages thieu amlich-core hoac ui | Build error "can not find module" | App khong build duoc | Them vao transpilePackages trong next.config.ts |
-| Storage CRUD race condition (save/get dong thoi) | Flaky test | Du lieu mat | Dung async queue hoac sequential await |
-| createNotificationService() tra sai loai | Unit test | FR-005 goi Capacitor API tren web, crash | Fix isCapacitor() check |
-| manifest.json thieu truong icons | Lighthouse PWA audit fail | Khong Add to Home Screen duoc | Them icon 192 va 512 vao public/icons/ |
-| API key lo trong build output | grep ANTHROPIC_API_KEY trong out/ | Bao mat nguy hiem | Dam bao khong co .env.local bi commit; dung .gitignore |
-| TypeScript error trong workspace package import | pnpm build fail | Deploy bi block | Fix types trong amlich-core va ui truoc khi build |
-| Capacitor sync that bai (ios/ chua duoc init) | npx cap add ios error | iOS target khong ton tai | Chay `npx cap add ios` truoc `npx cap sync` |
-| bottom nav active tab sai (highlight sai route) | Integration test click nav | UX nham lan | Dung usePathname() tu Next.js, so sanh voi pathname hien tai |
+| `output: export` conflicts with a Phase 2 API route | Build error when adding /api/genie | Phase 2 blocked | Switch to hybrid mode or split out Vercel Functions |
+| localStorage cleared when iOS is low on storage | App loses all data | User loses reminders | Migrate to @capacitor/preferences in the storage adapter |
+| Capacitor does not recognize webDir "out" after Next.js renames it | npx cap sync error | iOS build fails | Ensure webDir in capacitor.config matches the output folder |
+| Be Vietnam Pro not cached offline | Service worker miss | Font falls back to system-ui | Bundle the font locally in public/fonts/ and cache it in the SW |
+| transpilePackages missing amlich-core or ui | Build error "can not find module" | App cannot build | Add it to transpilePackages in next.config.ts |
+| Storage CRUD race condition (save/get concurrently) | Flaky test | Data loss | Use an async queue or sequential await |
+| createNotificationService() returns the wrong type | Unit test | FR-005 calls a Capacitor API on the web, crash | Fix the isCapacitor() check |
+| manifest.json missing the icons field | Lighthouse PWA audit fail | Cannot Add to Home Screen | Add icon 192 and 512 to public/icons/ |
+| API key leaked in the build output | grep ANTHROPIC_API_KEY in out/ | Dangerous security exposure | Ensure no .env.local is committed; use .gitignore |
+| TypeScript error in a workspace package import | pnpm build fail | Deploy blocked | Fix types in amlich-core and ui before building |
+| Capacitor sync fails (ios/ not initialized yet) | npx cap add ios error | The iOS target does not exist | Run `npx cap add ios` before `npx cap sync` |
+| Bottom nav active tab wrong (highlights the wrong route) | Integration test clicking nav | Confusing UX | Use usePathname() from Next.js, compare with the current pathname |
 
 ---
 
 ## §11 - Implementation notes
 
-- `isCapacitor()` nen check `typeof window !== "undefined" && !!(window as any).Capacitor?.isNativePlatform()` - hai check can thiet: mot cho SSG/SSR safety, mot cho runtime detection. (§3 da ship dung dang nay; optional chaining mot minh KHONG cuu `window` chua khai bao.)
-- Home route `/` lap rap ngay am giong FR-LUNAR-007: `convertSolar2Lunar` tra TUPLE `[d,m,y,leap]` (khong co can-chi/zodiac). Can-chi/zodiac PHAI goi rieng tu FR-LUNAR-002 voi JDN: `const jdn = jdFromDate(d,m,y); canChiDay(jdn).label; canChiYear(lYear).label; zodiacOf(lYear)`. Mock test §5 da sua khop dang nay - tranh false-green khi mock object-shape khac hop dong that.
-- `output: "export"` trong `next.config.ts` co nghia la `useSearchParams()`, `useRouter().push()` voi query params phuc tap, va dynamic routes nhu `/festival/[id]` deu phai dung `generateStaticParams()` de pre-render. Quen buoc nay lam build loi hoac trang 404 khi deploy.
-- Capacitor `@capacitor/local-notifications` can `requestPermissions()` truoc khi `schedule()`; loi thuong gap la goi `schedule()` ma khong check permission, gay silent fail tren iOS. `notificationGlue.ts` CapacitorNotificationService PHAI goi `requestPermission()` truoc.
-- Storage key `genie_reminders` va `genie_settings` phai duoc export thanh constants (khong hardcode string o nhieu noi) de de doi khi can migrate schema.
-- `transpilePackages` trong `next.config.ts` can thiet vi `@cyberskill/amlich-core` la ESM-only package trong workspace; Next.js can transpile no sang CommonJS hoac ESM phu hop voi bundler mode.
-- Font Be Vietnam Pro tren CDN Google Fonts can `<link rel="preconnect">` de giam latency; nhung cho PWA offline day du, nen bundle vao `public/fonts/` va reference bang `@font-face` trong global CSS - quyet dinh nay anh huong service worker strategy.
-- JSDOM trong test khong ho tro `Capacitor` runtime; moi test import `storage.ts` se thuc hien nhanh localStorage path. Dam bao mock `localStorage` dung cach `Object.defineProperty` (khong phai `jest.spyOn`) vi JSDOM co localStorage thi cai dat nay co the khac.
+- `isCapacitor()` should check `typeof window !== "undefined" && !!(window as any).Capacitor?.isNativePlatform()` - two checks are needed: one for SSG/SSR safety, one for runtime detection. (§3 already ships this exact form; optional chaining alone does NOT rescue an undeclared `window`.)
+- The home route `/` assembles the lunar date like FR-LUNAR-007: `convertSolar2Lunar` returns a TUPLE `[d,m,y,leap]` (no can-chi/zodiac). Can-chi/zodiac MUST be called separately from FR-LUNAR-002 with a JDN: `const jdn = jdFromDate(d,m,y); canChiDay(jdn).label; canChiYear(lYear).label; zodiacOf(lYear)`. The §5 mock test has been fixed to match this form - avoiding a false-green when the mock object-shape differs from the real contract.
+- `output: "export"` in `next.config.ts` means `useSearchParams()`, `useRouter().push()` with complex query params, and dynamic routes such as `/festival/[id]` all have to use `generateStaticParams()` to pre-render. Forgetting this step causes a build error or a 404 page on deploy.
+- Capacitor `@capacitor/local-notifications` needs `requestPermissions()` before `schedule()`; a common mistake is calling `schedule()` without checking permission, causing a silent fail on iOS. The `notificationGlue.ts` CapacitorNotificationService MUST call `requestPermission()` first.
+- The storage keys `genie_reminders` and `genie_settings` must be exported as constants (not hardcoded strings in many places) so they are easy to change when the schema needs migrating.
+- `transpilePackages` in `next.config.ts` is needed because `@cyberskill/amlich-core` is an ESM-only package in the workspace; Next.js needs to transpile it to CommonJS or ESM appropriate to the bundler mode.
+- The Be Vietnam Pro font on the Google Fonts CDN needs `<link rel="preconnect">` to reduce latency; but for a fully offline PWA, bundle it into `public/fonts/` and reference it with `@font-face` in global CSS - this decision affects the service worker strategy.
+- JSDOM in the test does not support the `Capacitor` runtime; every test importing `storage.ts` runs the fast localStorage path. Ensure the `localStorage` mock uses `Object.defineProperty` (not `jest.spyOn`) because JSDOM having localStorage may make this setup differ.
 
-*Hết FR-LUNAR-010.*
+*End of FR-LUNAR-010.*

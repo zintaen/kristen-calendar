@@ -1,19 +1,20 @@
-# Antigravity kickoff prompts - Genie Âm Lịch
+# Antigravity kickoff prompts - Genie Am Lich
 
-Bộ prompt để build dự án bằng Antigravity (hoặc bất kỳ coding agent nào), một prompt cho mỗi slice
-theo `docs/BUILD-RUNBOOK.md`. Cách dùng: mở một phiên agent cho mỗi slice, dán nguyên một khối prompt
-(mỗi khối tự đủ). Làm tuần tự P0 trước, không nhảy cóc. Sau mỗi slice agent dừng và báo cáo; review
-nhánh, merge, rồi sang slice sau. Khối `[Context]/[Read first]/[Invariants]/[Discipline]` lặp lại trong
-mỗi prompt là cố ý, để mỗi phiên độc lập không cần ngữ cảnh phiên trước.
+A set of prompts to build the project with Antigravity (or any coding agent), one prompt per slice,
+following `docs/BUILD-RUNBOOK.md`. How to use: open one agent session per slice and paste a whole prompt
+block (each block is self-contained). Do P0 first, in order, no skipping. After each slice the agent stops
+and reports; review the branch, merge, then move to the next slice. The
+`[Context]/[Read first]/[Invariants]/[Discipline]` block repeats in every prompt on purpose, so each
+session stands alone without the previous session's context.
 
-Mỗi prompt là tiếng Anh vì coding agent đọc chính xác nhất; agent vẫn đọc được các doc tiếng Việt.
+Each prompt is in English because coding agents read English most precisely; the agent can still read the docs.
 
 ---
 
 ## P0 - slice 1: core engine (FR-LUNAR-001, 002, 003)
 
 ```text
-[Context] You are an autonomous coding agent in the repo kristen-calendar (product "Genie Âm Lịch", a
+[Context] You are an autonomous coding agent in the repo kristen-calendar (product "Genie Am Lich", a
 Vietnamese lunar-calendar reminder app, built as a full commercial product). Implement to spec; never
 redesign or change the spec/CONTRACT to make tests pass.
 [Read first] docs/feature-requests/lunar/SHIP-READINESS.md, docs/AGENT-GUIDE.md,
@@ -22,7 +23,7 @@ read its docs/feature-requests/lunar/FR-LUNAR-NNN-*.md section 3 (API) and secti
 (AGENTS.md at the repo root is the CyberOS memory protocol, NOT a build guide.)
 [Invariants] convertSolar2Lunar/convertLunar2Solar return labeled TUPLES (destructure; never read
 .year/.month; invalid sentinel [0,0,0] via isInvalidSolar()). Can-chi day: can=(jdn+9)%10,
-chi=(jdn+1)%12 (FR-002 owns); take địa chi from canChiDay(jdn).chiIndex. amlich-core is zero-dependency
+chi=(jdn+1)%12 (FR-002 owns); take dia chi from canChiDay(jdn).chiIndex. amlich-core is zero-dependency
 and offline; all date math locked to Asia/Ho_Chi_Minh (todayInHCM). Import only names that exist in
 CONTRACT.md. The three epochs and two synodic constants in constants.ts are distinct; never conflate.
 [Discipline] Work on a dedicated branch dev/p0-core. Run continuously without pausing
@@ -34,7 +35,7 @@ just inconvenient), STOP and flag the exact clause.
 [Task this session] Implement packages/amlich-core for FR-LUNAR-001, 002, 003 to a fully green gate. The
 package is scaffolded (constants, types, fixtures, harness exist; algorithm functions are STUBS that
 throw). Fill the stubs in dependency order: jd.ts -> astro.ts -> leap.ts -> convert.ts -> canchi.ts ->
-tietkhi.ts, porting the canonical Hồ Ngọc Đức algorithm using the EXACT constants already in
+tietkhi.ts, porting the canonical Ho Ngoc Duc algorithm using the EXACT constants already in
 src/constants.ts. Run `pnpm install` first.
 
 P0 ACCURACY GATE (FR-003, the founder's commercial bar):
@@ -42,14 +43,14 @@ P0 ACCURACY GATE (FR-003, the founder's commercial bar):
 - Absolute correctness for 1900-2100 is a HARD gate, verified INDEPENDENTLY of the engine by the
   astronomy-engine oracle test (add astronomy-engine as a devDependency; exact-day match) AND the
   gold-data diff vs test/fixtures/gold-1900-2199.json. The gold file is seeded with the edge years;
-  expand it with a dense sampled set from the official Hồ Ngọc Đức calculator if you can source it,
+  expand it with a dense sampled set from the official Ho Ngoc Duc calculator if you can source it,
   otherwise rely on the astronomy oracle as the absolute check and clearly flag that the gold set
   needs expanding.
 - For 2100-2199: within-1-day is acceptable; emit the suspect-midnight report (new moon within ~15 min
   of Asia/Ho_Chi_Minh midnight) and add a small hardcoded correction table ONLY if a discrepancy is
   confirmed. Not gate-blocking.
-- Property tests per FR-003 §5 (12 or 13 months/year, leap only in 13-month years, Đông chí in month 11,
-  month length 29/30, Tết = 2nd new moon after winter solstice).
+- Property tests per FR-003 §5 (12 or 13 months/year, leap only in 13-month years, Dong chi in month 11,
+  month length 29/30, Tet = 2nd new moon after winter solstice).
 If ANY 1-day mismatch appears in 1900-2100 -> STOP, debug, and do NOT build any UI.
 
 When green: STOP and report which tests pass, the gate output, the suspect-date list (if any), and any
@@ -61,7 +62,7 @@ spec issues you flagged. Propose starting P1 slice 2.
 ## P1 - slice 2: foundation (FR-LUNAR-009, 004, 010, 005)
 
 ```text
-[Context] You are an autonomous coding agent in the repo kristen-calendar (product "Genie Âm Lịch", a
+[Context] You are an autonomous coding agent in the repo kristen-calendar (product "Genie Am Lich", a
 Vietnamese lunar-calendar reminder app, full commercial product). Implement to spec; never change the
 spec/CONTRACT to pass tests.
 [Read first] docs/feature-requests/lunar/SHIP-READINESS.md, docs/AGENT-GUIDE.md,
@@ -69,7 +70,7 @@ docs/feature-requests/lunar/CONTRACT.md (API authority), docs/BUILD-RUNBOOK.md; 
 docs/feature-requests/lunar/FR-LUNAR-NNN-*.md section 3 + section 5 first. (Root AGENTS.md = CyberOS
 memory protocol, not a build guide.) Prereq: P0 (amlich-core) is green.
 [Invariants] convert* return tuples (destructure; invalid [0,0,0] via isInvalidSolar); can-chi day
-can=(jdn+9)%10 chi=(jdn+1)%12, địa chi via canChiDay().chiIndex; amlich-core zero-dep + offline, dates
+can=(jdn+9)%10 chi=(jdn+1)%12, dia chi via canChiDay().chiIndex; amlich-core zero-dep + offline, dates
 locked Asia/Ho_Chi_Minh (todayInHCM); import only CONTRACT names; the Reminder type is owned by FR-004 in
 @cyberskill/amlich-core - import it, never redeclare/mirror.
 [Discipline] Branch dev/p1-foundation. Run continuously (implement -> typecheck -> test -> fix). One
@@ -100,29 +101,29 @@ When green: STOP and report. Propose P1 slice 3.
 ## P1 - slice 3: MVP usable (FR-LUNAR-008, 007, 006)
 
 ```text
-[Context] Autonomous coding agent in kristen-calendar (Genie Âm Lịch, VN lunar reminder app, commercial).
+[Context] Autonomous coding agent in kristen-calendar (Genie Am Lich, VN lunar reminder app, commercial).
 Implement to spec; never change spec/CONTRACT to pass tests.
 [Read first] docs/feature-requests/lunar/SHIP-READINESS.md, docs/AGENT-GUIDE.md,
 docs/feature-requests/lunar/CONTRACT.md (API authority), docs/BUILD-RUNBOOK.md; for each FR read its
 FR-LUNAR-NNN-*.md §3 + §5. (Root AGENTS.md = CyberOS memory protocol.) Prereq: P0 + P1 slice 2 green.
 [Invariants] convert* return tuples (destructure; invalid [0,0,0] via isInvalidSolar); can-chi
-can=(jdn+9)%10 chi=(jdn+1)%12, địa chi via canChiDay().chiIndex; amlich-core offline + zero-dep, dates
+can=(jdn+9)%10 chi=(jdn+1)%12, dia chi via canChiDay().chiIndex; amlich-core offline + zero-dep, dates
 Asia/Ho_Chi_Minh (todayInHCM); import only CONTRACT names; Reminder owned by FR-004.
 [Discipline] Branch dev/p1-mvp. Continuous loop (implement -> typecheck -> test -> fix). One atomic commit
 per FR on green gate; never push/merge; never mark done before gate green; never skip deps; STOP + flag if
 spec/CONTRACT genuinely wrong.
 
 [Task this session]
-- FR-LUNAR-008 (packages/content = @cyberskill/genie-content): FestivalContent for the 13 dịp from PRD
+- FR-LUNAR-008 (packages/content = @cyberskill/genie-content): FestivalContent for the 13 dip from PRD
   section 7. Use the FLAT shape from CONTRACT (lunarDay/lunarMonth as number|null, top-level), a mandatory
-  "tham khảo phong tục dân gian" disclaimer on every record, region variants where relevant; Thanh Minh and
-  đám giỗ cá nhân have lunarDay null. buildFestivalDateSet(year) must destructure the convert tuple.
+  "tham khao phong tuc dan gian" disclaimer on every record, region variants where relevant; Thanh Minh and
+  dam gio ca nhan have lunarDay null. buildFestivalDateSet(year) must destructure the convert tuple.
 - FR-LUNAR-007 (apps/web): month calendar grid. Use a one-pass buildMonthGrid (no per-cell convert inside
   the React render loop); SSR/SSG-safe month start-padding computed via Intl Asia/Ho_Chi_Minh (not
-  Date.getDay()); use tietKhiAt (NOT getTietKhi) and show a tiết-khí label only on the start day; tap a day
+  Date.getDay()); use tietKhiAt (NOT getTietKhi) and show a tiet-khi label only on the start day; tap a day
   -> detail. Target render < 100ms.
-- FR-LUNAR-006 (apps/web): reminder management. Rằm/Mùng Một monthly toggles; giỗ entry by lunar date;
-  custom reminders; lead-time options {đúng ngày, trước 1/3 ngày, trước 1 tuần} + notify time; the form must
+- FR-LUNAR-006 (apps/web): reminder management. Ram/Mung Mot monthly toggles; gio entry by lunar date;
+  custom reminders; lead-time options {dung ngay, truoc 1/3 ngay, truoc 1 tuan} + notify time; the form must
   SURFACE the leapFallback selector when isLeapMonth, and the upcoming list must show fellBack /
   pendingUserChoice state; upcoming list shows the solar dates.
 
@@ -135,20 +136,20 @@ on-device, no backend). When green: STOP and report, and note it is ready for re
 ## P2 - slice 4: day-quality + Genie (FR-LUNAR-011, 012, 015)
 
 ```text
-[Context] Autonomous coding agent in kristen-calendar (Genie Âm Lịch, VN lunar reminder app, commercial).
+[Context] Autonomous coding agent in kristen-calendar (Genie Am Lich, VN lunar reminder app, commercial).
 Implement to spec; never change spec/CONTRACT to pass tests.
 [Read first] SHIP-READINESS.md, docs/AGENT-GUIDE.md, CONTRACT.md (API authority), docs/BUILD-RUNBOOK.md;
 for each FR read its FR-LUNAR-NNN-*.md §3 + §5. (Root AGENTS.md = CyberOS memory protocol.) Prereq: P0 + P1 green.
-[Invariants] convert* tuples; can-chi can=(jdn+9)%10 chi=(jdn+1)%12, địa chi via canChiDay().chiIndex;
+[Invariants] convert* tuples; can-chi can=(jdn+9)%10 chi=(jdn+1)%12, dia chi via canChiDay().chiIndex;
 amlich-core offline + zero-dep, dates Asia/Ho_Chi_Minh; import only CONTRACT names; Reminder owned by FR-004.
 [Discipline] Branch dev/p2-quality. Continuous loop; one atomic commit per FR on green gate; never
 push/merge; never mark done before gate green; never skip deps; STOP + flag if spec/CONTRACT genuinely wrong.
 After changing amlich-core (FR-011), re-run pnpm gate:p0.
 
 [Task this session]
-- FR-LUNAR-011 (packages/amlich-core, new dayquality.ts): Hoàng đạo/Hắc đạo, 12 Trực, 28 sao, giờ Hoàng đạo.
-  CRITICAL: take địa chi from canChiDay(jdn).chiIndex (= (jdn+1)%12); NEVER (jdn+9)%60 then %12. Compute Trực
-  using tietKhiStartDiaChi(jdn) from FR-002. Every result carries the "Tham khảo phong thủy dân gian"
+- FR-LUNAR-011 (packages/amlich-core, new dayquality.ts): Hoang dao/Hac dao, 12 Truc, 28 sao, gio Hoang dao.
+  CRITICAL: take dia chi from canChiDay(jdn).chiIndex (= (jdn+1)%12); NEVER (jdn+9)%60 then %12. Compute Truc
+  using tietKhiStartDiaChi(jdn) from FR-002. Every result carries the "Tham khao phong thuy dan gian"
   disclaimer. Export getDayQuality / getMonthDayQualities / DayQuality / GioInfo exactly as in CONTRACT.
 - FR-LUNAR-012 (apps/web): good-day picker. CONSUME FR-011 (getMonthDayQualities); do NOT reimplement folk
   logic. 90-day range clamp. EventKit integration is optional/COULD and must not block the main flow.
@@ -165,22 +166,22 @@ When green: STOP and report. Propose P2 slice 5.
 ## P2 - slice 5: glanceable surfaces + cards (FR-LUNAR-013, 014)
 
 ```text
-[Context] Autonomous coding agent in kristen-calendar (Genie Âm Lịch, VN lunar reminder app, commercial).
+[Context] Autonomous coding agent in kristen-calendar (Genie Am Lich, VN lunar reminder app, commercial).
 Implement to spec; never change spec/CONTRACT to pass tests.
 [Read first] SHIP-READINESS.md, docs/AGENT-GUIDE.md, CONTRACT.md, docs/BUILD-RUNBOOK.md; for each FR read its
 FR-LUNAR-NNN-*.md §3 + §5. (Root AGENTS.md = CyberOS memory protocol.) Prereq: P0 + P1 + P2 slice 4 green.
-[Invariants] convert* tuples; can-chi can=(jdn+9)%10 chi=(jdn+1)%12, địa chi via canChiDay().chiIndex;
+[Invariants] convert* tuples; can-chi can=(jdn+9)%10 chi=(jdn+1)%12, dia chi via canChiDay().chiIndex;
 dates Asia/Ho_Chi_Minh; import only CONTRACT names.
 [Discipline] Branch dev/p2-surfaces. Continuous loop; one atomic commit per FR on green; never push/merge;
 never mark done before gate green; STOP + flag if spec genuinely wrong.
 
 [Task this session]
 - FR-LUNAR-013 (apps/web/ios/App, native Swift): WidgetKit home-screen widget + Apple Watch complication
-  showing today's lunar date, can-chi, and giờ Hoàng đạo. Native SwiftUI is required. Port the minimal lunar
-  calc to Swift (LunarCalcSwift) using the EXACT PRD 6.2 epoch constants; địa chi = (jdn+1)%12; share data
+  showing today's lunar date, can-chi, and gio Hoang dao. Native SwiftUI is required. Port the minimal lunar
+  calc to Swift (LunarCalcSwift) using the EXACT PRD 6.2 epoch constants; dia chi = (jdn+1)%12; share data
   from the web layer via an App Group; keep tz=7 consistent across all functions. NOTE the day-pillar fixture:
-  29/01/2025 day pillar is Mậu Tuất (Ất Tỵ is the YEAR can-chi, not the day). XCTest must cover this.
-- FR-LUNAR-014 (apps/web): shareable purple cards. Render a 1080x1080 canvas image ("Hôm nay Rằm tháng Giêng"
+  29/01/2025 day pillar is Mau Tuat (At Ty is the YEAR can-chi, not the day). XCTest must cover this.
+- FR-LUNAR-014 (apps/web): shareable purple cards. Render a 1080x1080 canvas image ("Hom nay Ram thang Gieng"
   etc.); text must pass APCA per the theme thresholds; consume the already-computed DayInfo without recompute;
   Web Share API with an <a download> fallback.
 
@@ -192,7 +193,7 @@ When green: STOP and report. Propose P3 slice 6. (At this point the personal exp
 ## P3 - slice 6: Zalo + ZNS (FR-LUNAR-016, 017)
 
 ```text
-[Context] Autonomous coding agent in kristen-calendar (Genie Âm Lịch, VN lunar reminder app, commercial).
+[Context] Autonomous coding agent in kristen-calendar (Genie Am Lich, VN lunar reminder app, commercial).
 Implement to spec; never change spec/CONTRACT to pass tests.
 [Read first] SHIP-READINESS.md, docs/AGENT-GUIDE.md, CONTRACT.md, docs/BUILD-RUNBOOK.md; for each FR read its
 FR-LUNAR-NNN-*.md §3 + §5. (Root AGENTS.md = CyberOS memory protocol.) Prereq: P0 + P1 + P2 green.
@@ -211,7 +212,7 @@ never mark done before gate green; STOP + flag if spec genuinely wrong.
   personalization param, no pure-ad content); send window 06:00-22:00 checked in Asia/Ho_Chi_Minh (NOT server
   UTC); <=7 days before/after the event; OA token auto-refresh; idempotency via zns_send_log to avoid
   double-billing on cron retry; CRON_SECRET auth; SchedulerReminder MUST carry recurrence + a month-expander so
-  MONTHLY reminders (Rằm/Mùng Một) recur each month. Migration 0018_zns_send_log.sql. Start via a distributor
+  MONTHLY reminders (Ram/Mung Mot) recur each month. Migration 0018_zns_send_log.sql. Start via a distributor
   (e.g. VietGuys) per the founder decision.
 
 When green: STOP and report. Propose P3 slice 7.
@@ -222,7 +223,7 @@ When green: STOP and report. Propose P3 slice 7.
 ## P3 - slice 7: family + PDPL + freemium (FR-LUNAR-018, 019, 020)
 
 ```text
-[Context] Autonomous coding agent in kristen-calendar (Genie Âm Lịch, VN lunar reminder app, commercial).
+[Context] Autonomous coding agent in kristen-calendar (Genie Am Lich, VN lunar reminder app, commercial).
 Implement to spec; never change spec/CONTRACT to pass tests.
 [Read first] SHIP-READINESS.md, docs/AGENT-GUIDE.md, CONTRACT.md, docs/BUILD-RUNBOOK.md; for each FR read its
 FR-LUNAR-NNN-*.md §3 + §5. (Root AGENTS.md = CyberOS memory protocol.) Prereq: P0 + P1 + P2 + P3 slice 6 green.
@@ -252,13 +253,13 @@ test/gate status and any spec issues flagged across the build.
 
 ---
 
-## Lưu ý chung
+## General notes
 
-- Optional v2 đã được gộp sẵn trong các FR: Apple Watch complication (trong FR-013), EventKit (FR-012), TTS
-  (FR-015). Không cần prompt riêng.
-- Sau mỗi slice: review nhánh, merge vào nhánh tích hợp, rồi mới sang slice sau. Đừng để agent tự push/merge.
-- Nếu một slice quá lớn cho một phiên, tách theo từng FR trong slice đó (mỗi FR một phiên) bằng cách giữ
-  nguyên khối [Context]/[Read first]/[Invariants]/[Discipline] và rút gọn [Task] còn một FR.
-- Decision còn để mở duy nhất khi thực thi: nguồn dữ liệu vàng cho FR-003 (mở rộng gold-1900-2199.json) và
-  việc đăng ký Zalo OA + nộp ZNS template (làm sớm vì duyệt mất thời gian).
-```
+- The optional v2 items are already folded into the FRs: Apple Watch complication (in FR-013), EventKit
+  (FR-012), TTS (FR-015). No separate prompt is needed.
+- After each slice: review the branch, merge into the integration branch, then move to the next slice.
+  Do not let the agent push or merge on its own.
+- If a slice is too large for one session, split it per FR (one FR per session) by keeping the
+  [Context]/[Read first]/[Invariants]/[Discipline] block and reducing [Task] to a single FR.
+- The only decisions left open at build time: the gold-data source for FR-003 (expand gold-1900-2199.json)
+  and registering the Zalo OA plus submitting the ZNS template (do this early because approval takes time).

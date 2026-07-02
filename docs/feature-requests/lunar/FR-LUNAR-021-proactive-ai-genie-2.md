@@ -1,6 +1,6 @@
 ---
 id: FR-LUNAR-021
-title: "Proactive AI (Genie 2.0) - Tự động cron check và push ZNS thông minh cho dịp lớn"
+title: "Proactive AI (Genie 2.0) - Automated cron check and smart ZNS push for major occasions"
 module: LUNAR
 priority: MUST
 status: ready_to_implement
@@ -18,7 +18,7 @@ blocks: []
 source_pages:
   - BACKLOG.md
 source_decisions:
-  - DEC-021 (Tự động gửi lời chúc ZNS cá nhân hóa thông qua Claude proxy vào các dịp lớn)
+  - DEC-021 (Automatically send personalized ZNS greetings through the Claude proxy on major occasions)
 language: typescript
 service: packages/genie-api
 new_files:
@@ -34,12 +34,12 @@ disallowed_tools:
   - Local polling in client app (must be server-side)
 effort_hours: 15
 sub_tasks:
-  - "2h: Thiết kế data model cho user opt-in Proactive AI"
-  - "3h: Tích hợp Zalo ZNS API service"
-  - "3h: Cấu hình cron worker duyệt user và gọi Claude API"
-  - "4h: Xử lý rate limit, error handling, retry logic"
-  - "3h: Unit test và Integration test cho worker"
-risk_if_skipped: "Thiếu tính năng chủ động gửi thông báo cá nhân hóa sẽ làm giảm mức độ tương tác và tính cá nhân hóa của Genie. Người dùng sẽ chỉ tương tác khi họ chủ động mở app, bỏ lỡ giá trị cốt lõi của một 'Genie' nhắc nhở thông minh."
+  - "2h: Design the data model for user opt-in to Proactive AI"
+  - "3h: Integrate the Zalo ZNS API service"
+  - "3h: Configure the cron worker to scan users and call the Claude API"
+  - "4h: Handle rate limits, error handling, retry logic"
+  - "3h: Unit tests and integration tests for the worker"
+risk_if_skipped: "Missing the ability to proactively send personalized notifications will reduce Genie's engagement and personalization. Users would only interact when they actively open the app, missing the core value of a smart reminder 'Genie'."
 ---
 
 # Feature Request
@@ -48,17 +48,17 @@ risk_if_skipped: "Thiếu tính năng chủ động gửi thông báo cá nhân 
 
 ## Summary
 
-Triển khai Proactive AI (Genie 2.0) bằng cách thiết lập một server-side cron job trên `genie-api`. Cron này sẽ quét các dịp lễ Âm lịch lớn sắp tới (VD: Rằm, Mùng 1, Lễ Tết), tìm các user đã opt-in, gọi Claude proxy để tạo lời chúc cá nhân hóa, và đẩy qua Zalo ZNS.
+Implement Proactive AI (Genie 2.0) by setting up a server-side cron job on `genie-api`. This cron scans upcoming major lunar occasions (e.g., full moon, first of the month, Tet holidays), finds users who have opted in, calls the Claude proxy to generate a personalized greeting, and pushes it via Zalo ZNS.
 
 ## Problem
 
-Người dùng hiện tại chỉ nhận được push notification local (theo FR-LUNAR-004) với nội dung tĩnh. Họ mong muốn Genie chủ động tương tác với nội dung cá nhân hóa, gợi ý chuẩn bị lễ cúng một cách thông minh qua Zalo ZNS, giống như một trợ lý ảo thực thụ.
+Users today only receive local push notifications (per FR-LUNAR-004) with static content. They want Genie to proactively engage with personalized content, smartly suggesting how to prepare offerings via Zalo ZNS, like a real virtual assistant.
 
 ## Customer Quotes
 
-<untrusted_content source="user-feedback"> "App nhắc ngày Rằm tốt đấy, nhưng nội dung cứ lặp đi lặp lại. Phải chi nó nhắn tin Zalo chúc mình và dặn dò mình mua đồ cúng luôn thì tiện quá." </untrusted_content>
+<untrusted_content source="user-feedback"> "The app reminding me of the full moon day is nice, but the content keeps repeating. It would be so convenient if it messaged me on Zalo to greet me and remind me to buy offering supplies too." </untrusted_content>
 
-## §1 — Description (Normative Clauses)
+## §1 - Description (Normative Clauses)
 
 1. **MUST** add `proactive_zns_opt_in` (boolean) to the `user_settings` table. Defaults to `false`.
 2. **MUST** implement a Supabase Cron Worker (or Cloudflare Worker) that executes daily at 08:00 AM VN time (UTC+7).
@@ -71,7 +71,7 @@ Người dùng hiện tại chỉ nhận được push notification local (theo 
 9. **SHOULD** fallback to a static message payload if the Claude API times out after 5 seconds, ensuring the notification is still delivered.
 10. **MUST** ensure the worker is idempotent (if re-run for the same date, it must not send duplicate messages to the same user).
 
-## §2 — Why this design
+## §2 - Why this design
 
 **Why use server-side cron instead of Capacitor background fetch (§1 #2)?** 
 Local background tasks on iOS/Android are highly constrained and unreliable. To guarantee ZNS message delivery at exactly 08:00 AM, a server-side cron orchestrator is required.
@@ -82,7 +82,7 @@ Zalo OA has strict API rate limits (typically 50 req/sec). Processing users sequ
 **Why Claude fallback (§1 #9)?**
 LLM latency can spike or the API can go down. The core value is the reminder; personalization is a bonus. We must never drop the reminder just because the AI is slow.
 
-## §3 — API contract
+## §3 - API contract
 
 ```typescript
 // ZNS Payload Schema
@@ -108,15 +108,15 @@ export interface ProactiveZnsWorkerConfig {
 export async function processProactiveZnsBatch(date: Date, config: ProactiveZnsWorkerConfig): Promise<void>;
 ```
 
-## §4 — Acceptance criteria
+## §4 - Acceptance criteria
 
-1. **Tier 1 hits first** — When a user has `proactive_zns_opt_in = true` and T+1 is a lunar event, the cron job successfully generates a personalized message via Claude and dispatches it via ZNS.
-2. **Rate Limit Handling** — When 1000 users are eligible, the worker batches calls to Zalo API such that it never exceeds 50 requests per second.
-3. **LLM Fallback** — When Claude API takes > 5000ms, the system falls back to a predefined static string without failing the ZNS dispatch.
-4. **Idempotency** — When `processProactiveZnsBatch` is called twice for the same `date`, it queries the database and sends 0 duplicate ZNS messages.
-5. **PII Redaction** — When writing to `genie.action_log`, the `phone` field is redacted to mask middle digits.
+1. **Tier 1 hits first** - When a user has `proactive_zns_opt_in = true` and T+1 is a lunar event, the cron job successfully generates a personalized message via Claude and dispatches it via ZNS.
+2. **Rate Limit Handling** - When 1000 users are eligible, the worker batches calls to Zalo API such that it never exceeds 50 requests per second.
+3. **LLM Fallback** - When Claude API takes > 5000ms, the system falls back to a predefined static string without failing the ZNS dispatch.
+4. **Idempotency** - When `processProactiveZnsBatch` is called twice for the same `date`, it queries the database and sends 0 duplicate ZNS messages.
+5. **PII Redaction** - When writing to `genie.action_log`, the `phone` field is redacted to mask middle digits.
 
-## §5 — Verification
+## §5 - Verification
 
 ```typescript
 // test/workers/proactive-zns.test.ts
@@ -148,7 +148,7 @@ describe('Proactive ZNS Worker', () => {
 });
 ```
 
-## §6 — Implementation skeleton
+## §6 - Implementation skeleton
 
 The cron worker will be deployed as a Supabase Edge Function triggered by pg_cron.
 
@@ -188,13 +188,13 @@ export async function processProactiveZnsBatch(targetDate: Date, config: Proacti
 }
 ```
 
-## §7 — Dependencies
+## §7 - Dependencies
 
 - **Upstream:** FR-LUNAR-015 (Claude proxy for AI text generation).
 - **Upstream:** FR-LUNAR-017 (Zalo Mini App integration for OA privileges).
 - **Downstream:** FR-LUNAR-022 (O2O Commerce - injecting affiliate links into the ZNS template).
 
-## §8 — Example payloads
+## §8 - Example payloads
 
 **Audit Log Row (Redacted PII):**
 ```json
@@ -211,11 +211,11 @@ export async function processProactiveZnsBatch(targetDate: Date, config: Proacti
 }
 ```
 
-## §9 — Open questions
+## §9 - Open questions
 
 - `All resolved.` (Wait on Zalo OA template approval, but technical spec is clear).
 
-## §10 — Failure modes inventory
+## §10 - Failure modes inventory
 
 | Failure | Detection | Outcome | Recovery |
 |---|---|---|---|
@@ -230,7 +230,7 @@ export async function processProactiveZnsBatch(targetDate: Date, config: Proacti
 | ZNS template rejected by Zalo | HTTP 400 with specific code | ZNS rejects | Log `template_rejected`, requires PM action |
 | User opts out mid-batch | `proactive_zns_opt_in` is false | N/A (query happens once) | Sent anyway for this batch. Will not trigger next time. |
 
-## §11 — Implementation notes
+## §11 - Implementation notes
 
 - **PII Scrubbing:** The `redactPhone` utility must replace all but the first two and last three digits with `*`. This must happen *before* calling the logging service.
 - **Transactions:** It is difficult to wrap an external HTTP call (Zalo ZNS) in a DB transaction reliably without holding connections open for too long. We mark the tracking ID in DB *after* sending. If the DB write fails, a subsequent retry might send a duplicate ZNS. The risk of occasional duplicate ZNS is acceptable compared to holding Postgres transactions open across network calls.
@@ -238,12 +238,12 @@ export async function processProactiveZnsBatch(targetDate: Date, config: Proacti
 
 ## Sales/CS Summary
 
-Genie giờ đây thông minh hơn bao giờ hết! Kích hoạt tính năng Genie Proactive để nhận những lời nhắc và lời chúc được cá nhân hóa qua Zalo trước các dịp lễ Âm lịch quan trọng.
+Genie is now smarter than ever! Turn on Genie Proactive to receive personalized reminders and greetings via Zalo ahead of important lunar occasions.
 
 ## AI Authorship Disclosure
 
 - **Tools used:** LLM agent acting as feature-request-author
-- **Scope:** Toàn bộ nội dung FR.
-- **Human review:** Được operator review sau khi sinh.
+- **Scope:** The entire FR content.
+- **Human review:** Reviewed by the operator after generation.
 
 *End of FR-LUNAR-021.*

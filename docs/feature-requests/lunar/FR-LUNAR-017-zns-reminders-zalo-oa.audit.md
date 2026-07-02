@@ -12,56 +12,56 @@ authoring_md_compliance: 2026-06-27 (rule 36 - 7 ISS > 6 minimum; DEC-LUNAR-170.
 
 ## §1 - Verdict summary
 
-FR-LUNAR-017 đặc tả ZNS sender serverless cho "Genie Âm Lịch". Phạm vi: 14 mệnh đề BCP-14 trong §1 (chỉ gửi cho người đã cấp số qua Zalo Mini App + đồng ý, template <= 400 ký tự >= 1 tham số, cấm quảng cáo, khung 06:00-22:00 Asia/Ho_Chi_Minh, window <= 7 ngày, OA token auto-refresh < 10 phút hết hạn, CRON_SECRET auth, serverless cron <= 15 phút, amlich-core tính ngày, log zns_send_log, xử lý mã lỗi và không retry ngay, hỗ trợ nhà phân phối, điền đủ tham số template, idempotency). 7 §2 rationale block. §3 có đầy đủ interfaces (OATokenPair, SendWindowResult, ZNSPayload, ZNSSendResult, SchedulerReminder, CronRunResult), hàm `isWithinHourWindow`, `isWithinDayRange`, `canSendNow`, `sendZNS`, `runZNSCron`, handler Vercel Function. 14 acceptance criteria. §5 có tests cho window (4 test biên giờ, 4 test biên ngày, 1 test phối hợp, 1 template length check), scheduler (3 test), và oa-token (1 test). §6 có migration SQL `zns_send_log` và pattern idempotency. §10 có 13 failure row. §11 có 7 ghi chú triển khai. Ánh xạ PRD FR-B08, §11 (ZNS architecture), Key Findings 4, Caveats (ZNS price/rules).
+FR-LUNAR-017 specifies the serverless ZNS sender for "Genie Am Lich". Scope: 14 BCP-14 clauses in §1 (send only to people who provided a number via the Zalo Mini App + consented, template <= 400 characters >= 1 parameter, ban advertising, window 06:00-22:00 Asia/Ho_Chi_Minh, range <= 7 days, OA token auto-refresh < 10 minutes to expiry, CRON_SECRET auth, serverless cron <= 15 minutes, amlich-core computes dates, log zns_send_log, handle error codes and no immediate retry, support distributors, fill all template parameters, idempotency). 7 §2 rationale blocks. §3 has the full interfaces (OATokenPair, SendWindowResult, ZNSPayload, ZNSSendResult, SchedulerReminder, CronRunResult), functions `isWithinHourWindow`, `isWithinDayRange`, `canSendNow`, `sendZNS`, `runZNSCron`, the Vercel Function handler. 14 acceptance criteria. §5 has tests for the window (4 hour-boundary tests, 4 day-boundary tests, 1 combined test, 1 template length check), the scheduler (3 tests), and oa-token (1 test). §6 has the migration SQL `zns_send_log` and the idempotency pattern. §10 has 13 failure rows. §11 has 7 implementation notes. Maps to PRD FR-B08, §11 (ZNS architecture), Key Findings 4, Caveats (ZNS price/rules).
 
 ## §2 - Findings (all resolved during authoring)
 
-### ISS-001 - Khung gửi chỉ tính theo UTC, bỏ qua chuyển đổi Asia/Ho_Chi_Minh
-Nếu `isWithinHourWindow` lấy `new Date().getHours()` (UTC server time), khung 06:00-22:00 sẽ tính sai khi server đặt ở AWS us-east hay Cloudflare - có thể gửi lúc 2:00 sáng VN. Resolved: §1 #4 + §3 `isWithinHourWindow` dùng `toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })`; AC #1 test với UTC timestamps cụ thể; §11 ghi chú 3.
+### ISS-001 - The send window is computed in UTC only, ignoring the Asia/Ho_Chi_Minh conversion
+If `isWithinHourWindow` uses `new Date().getHours()` (UTC server time), the 06:00-22:00 window is computed wrong when the server is in AWS us-east or Cloudflare - it could send at 2:00 am VN. Resolved: §1 #4 + §3 `isWithinHourWindow` uses `toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })`; AC #1 tests with specific UTC timestamps; §11 note 3.
 
-### ISS-002 - OA access token hết hạn giữa cron -> toàn bộ lô gửi thất bại nhỏ
-Không có cơ chế refresh proactive sẽ gây ra kỳ cron mất nhắc cho tất cả người dùng. Resolved: §1 #6 kiểm tra hết hạn trước mỗi đợt cron; `ensureFreshToken` refresh khi còn < 10 phút; `oa-token.ts` trong §3; AC #8; test "refresh khi còn 5 phút" trong §5.
+### ISS-002 - The OA access token expires mid-cron -> the whole batch fails quietly
+Without a proactive refresh mechanism, a cron run misses reminders for all users. Resolved: §1 #6 checks expiry before each cron batch; `ensureFreshToken` refreshes when < 10 minutes remain; `oa-token.ts` in §3; AC #8; test "refresh when 5 minutes remain" in §5.
 
-### ISS-003 - Cron chạy nhiều lần (Vercel retry) gửi ZNS trùng -> over-billing
-Vercel Cron có thể gọi endpoint nhiều hơn 1 lần khi có timeout/retry; mỗi lần gửi thành công thì Zalo tính ~200 VND -> có thể gửi gấp đôi. Resolved: §1 #14 idempotency bắt buộc; §6 pattern `SELECT FROM zns_send_log WHERE reminder_id AND ngày = today` trước khi gửi; AC #7; §10 row "Gửi trùng do cron retry".
+### ISS-003 - Cron runs multiple times (Vercel retry) sends duplicate ZNS -> over-billing
+Vercel Cron can call the endpoint more than once on timeout/retry; each successful send costs Zalo ~200 VND -> it could send twice. Resolved: §1 #14 idempotency required; §6 pattern `SELECT FROM zns_send_log WHERE reminder_id AND date = today` before sending; AC #7; §10 row "Duplicate send due to cron retry".
 
-### ISS-004 - getPhoneNumber trả token không phải số thực -> lưu sai vào User.phone
-Nếu lưu trực tiếp "token" từ `getPhoneNumber` vào `User.phone` và gửi thẳng cho ZNS, Zalo sẽ trả lời "invalid_phone". Resolved: §1 #1 ghi rõ chỉ gửi cho "số điện thoại đã cung cấp"; §11 ghi chú 1 mô tả quy trình đổi token qua OA API; DEC-LUNAR-163 (từ FR-016) được tham chiếu; §8 payload có số thực "0909123456".
+### ISS-004 - getPhoneNumber returns a token not the real number -> stored wrong into User.phone
+If the "token" from `getPhoneNumber` is stored directly into `User.phone` and sent straight to ZNS, Zalo replies "invalid_phone". Resolved: §1 #1 states clearly to send only to "the phone number provided"; §11 note 1 describes the token-exchange process via the OA API; DEC-LUNAR-163 (from FR-016) is referenced; §8 payload has the real number "0909123456".
 
-### ISS-005 - Template ZNS dùng nội dung quảng cáo hoặc thiếu tham số -> bị Zalo từ chối/khóa OA
-Nếu template không qua duyệt hoặc có quảng cáo thuần túy, Zalo có thể từ chối gửi và/hoặc khóa OA. Resolved: §1 #2 + #3 ràng buộc chặt chẽ (đã duyệt, <= 400 ký tự, >= 1 tham số, cấm quảng cáo); DEC-LUNAR-171; §8 template mẫu 84 ký tự với 4 tham số; AC #13 test độ dài và tham số; §5 "template mặc định <= 400 ký tự".
+### ISS-005 - A ZNS template with advertising content or missing parameters -> rejected by Zalo/OA locked
+If the template is not approved or has pure advertising, Zalo may reject the send and/or lock the OA. Resolved: §1 #2 + #3 tight constraints (approved, <= 400 characters, >= 1 parameter, ban advertising); DEC-LUNAR-171; §8 sample template of 84 characters with 4 parameters; AC #13 tests length and parameters; §5 "default template <= 400 characters".
 
-### ISS-006 - Không có CRON_SECRET auth -> bất kỳ ai có thể trigger /api/zns gửi bulk ZNS
-Endpoint cron nếu expose public mà không xác thực sẽ bị gọi tùy ý, tiêu tiền ZNS hàng loạt và vi phạm quy tắc Zalo. Resolved: §1 #7 + §3 handler kiểm tra `Authorization: Bearer CRON_SECRET`; AC #12 test 401 khi header sai; DEC-LUNAR-170; NFR-Security.
+### ISS-006 - No CRON_SECRET auth -> anyone can trigger /api/zns to send bulk ZNS
+If the cron endpoint is exposed public without authentication, it can be called arbitrarily, spending ZNS money in bulk and violating Zalo rules. Resolved: §1 #7 + §3 handler checks `Authorization: Bearer CRON_SECRET`; AC #12 tests 401 on a wrong header; DEC-LUNAR-170; NFR-Security.
 
-### ISS-007 - Không có log zns_send_log -> không thể báo cáo chi phí, debug lỗi, hay phòng gửi trùng
-Không có bảng log thì: (a) không báo cáo chi phí ZNS, (b) không debug được lỗi "invalid_phone" của ai, (c) idempotency (ISS-003) không thể thực hiện. Resolved: §1 #10 bắt buộc log mỗi lần gửi; §3 `ZNSSendResult` có `zaloMessageId`; §6 migration SQL `0016_zns_send_log.sql` với columns đầy đủ; AC #9 và #10 kiểm tra insert vào log cả khi success lẫn error; §10 row "Leakage OA token vào logs" nhận xét thêm.
+### ISS-007 - No zns_send_log -> cannot report cost, debug errors, or prevent duplicate sends
+Without a log table: (a) no ZNS cost report, (b) cannot debug whose "invalid_phone" error, (c) idempotency (ISS-003) cannot be done. Resolved: §1 #10 requires logging each send; §3 `ZNSSendResult` has `zaloMessageId`; §6 migration SQL `0016_zns_send_log.sql` with full columns; AC #9 and #10 check the insert into the log on both success and error; §10 row "OA token leakage into logs" noted additionally.
 
 ## §3 - Resolution
 
-Cả 7 vấn đề có học được giải quyết trong lúc biên soạn. Tính đúng giờ ICT (ISS-001) và auto-refresh token (ISS-002) là bẫy kỹ thuật triển khai cao; idempotency (ISS-003) và phone token vs. số thực (ISS-004) là những nhầm lẫn phổ biến trong tích hợp Zalo; template compliance (ISS-005) và CRON_SECRET (ISS-006) là ràng buộc bảo mật; và log đầy đủ (ISS-007) là cơ sở cho toàn bộ báo cáo chi phí và debug. **Score = 10/10.** Sẵn sàng transition draft -> ready_to_implement.
+All 7 substantive issues resolved during authoring. Correct ICT time (ISS-001) and token auto-refresh (ISS-002) are high-difficulty implementation traps; idempotency (ISS-003) and phone token vs. real number (ISS-004) are common mistakes in Zalo integration; template compliance (ISS-005) and CRON_SECRET (ISS-006) are security constraints; and full logging (ISS-007) is the basis for all cost reporting and debugging. **Score = 10/10.** Ready to transition draft -> ready_to_implement.
 
 ## §3b - Independent adversarial pass (2026-06-27)
 
-Reviewer độc lập (không viết spec) chạy lại đối chiếu §3 với contract upstream FR-LUNAR-001/004. Pre-fix độc lập: 7/10. Ba defect được tìm ra và sửa, tất cả ở `zns-scheduler.ts` §3:
+The independent reviewer (who did not write the spec) re-ran a comparison of §3 against the upstream FR-LUNAR-001/004 contract. Pre-fix independent: 7/10. Three defects found and fixed, all in `zns-scheduler.ts` §3:
 
-- MAJOR - drift kiểu trả về của `convertLunar2Solar`. FR-001 khai báo `convertLunar2Solar(...): SolarDate` với `SolarDate = [day, month, year]` (tuple) và sentinel `[0,0,0]` khi tháng nhuận không khớp (KHÔNG bao giờ trả null). Scheduler lại (a) `if (!solarDate)` - tuple luôn truthy, sentinel `[0,0,0]` cũng truthy -> occurrence không hợp lệ KHÔNG bị skip, và (b) đọc `solarDate.year/.month/.day` - undefined trên tuple -> `new Date("undefined-undefined-...")` = Invalid Date. Hệ quả runtime: occurrence rác lọt qua window check. Đã sửa: destructure `[gd, gm, gy]`, kiểm tra `gd===0 && gm===0 && gy===0`, build ISO với zero-pad.
-- MAJOR (cùng gốc) - `ngay_duong` trong templateData đọc `eventDate.getDate()/getMonth()/getFullYear()` theo TZ runtime của server -> lệch 1 ngày trên server UTC, vi phạm yêu cầu khóa Asia/Ho_Chi_Minh. Đã sửa: build `ngay_duong` trực tiếp từ tuple ICT `${dd}/${mm}/${gy}`.
-- MINOR - §10 row "convertLunar2Solar trả null" mô tả detection sai (engine không trả null). Đã sửa thành sentinel `[0,0,0]`.
+- MAJOR - drift in the return type of `convertLunar2Solar`. FR-001 declares `convertLunar2Solar(...): SolarDate` with `SolarDate = [day, month, year]` (tuple) and a sentinel `[0,0,0]` when the leap month does not match (NEVER returns null). But the scheduler (a) `if (!solarDate)` - a tuple is always truthy, the sentinel `[0,0,0]` is also truthy -> an invalid occurrence is NOT skipped, and (b) reads `solarDate.year/.month/.day` - undefined on a tuple -> `new Date("undefined-undefined-...")` = Invalid Date. Runtime consequence: garbage occurrences slip past the window check. Fixed: destructure `[gd, gm, gy]`, check `gd===0 && gm===0 && gy===0`, build the ISO with zero-pad.
+- MAJOR (same root) - `ngay_duong` in templateData reads `eventDate.getDate()/getMonth()/getFullYear()` by the server's runtime TZ -> off by 1 day on a UTC server, violating the requirement to lock to Asia/Ho_Chi_Minh. Fixed: build `ngay_duong` directly from the ICT tuple `${dd}/${mm}/${gy}`.
+- MINOR - the §10 row "convertLunar2Solar returns null" describes the wrong detection (the engine does not return null). Fixed to the sentinel `[0,0,0]`.
 
-Đã ghi nhận (không sửa, để mở cho founder): `SchedulerReminder` thiếu trường `recurrence` của model FR-004; cron hiện chỉ tính 1 occurrence/năm nên nhắc MONTHLY (Rằm/Mùng Một, recurrence=MONTHLY) sẽ không lặp đúng 12 lần/năm phía server -> đề xuất bổ sung `recurrence` + vòng mở rộng tháng, hoặc giới hạn rõ ZNS chỉ cho ANNUAL/ONCE trong §1. Migration `0016_zns_send_log.sql` trùng số với `0016_family_sharing_schema.sql` của FR-018 (cùng thư mục `services/genie-api/supabase/migrations/`) - cần đánh lại số khi merge. Post-fix: 9.5/10.
+Recorded (not fixed, left open for the founder): `SchedulerReminder` lacks the FR-004 model's `recurrence` field; the cron currently computes only 1 occurrence/year so MONTHLY reminders (Ram/Mung Mot, recurrence=MONTHLY) would not repeat the correct 12 times/year server-side -> propose adding `recurrence` + a month-expansion loop, or clearly limiting ZNS to ANNUAL/ONCE in §1. The migration `0016_zns_send_log.sql` collides in number with FR-018's `0016_family_sharing_schema.sql` (same directory `services/genie-api/supabase/migrations/`) - must be renumbered on merge. Post-fix: 9.5/10.
 
 ## §4 - Readiness pass (2026-06-28)
 
-Vấn đề MONTHLY recurrence còn mở trong §3b đã được giải quyết hoàn toàn theo quyết định founder (full commercial product):
+The MONTHLY recurrence issue left open in §3b is fully resolved per the founder's decision (full commercial product):
 
-1. `SchedulerReminder` bổ sung trường `recurrence: "MONTHLY" | "ANNUAL" | "ONCE"`.
-2. Hàm `candidateLunarYears()` được thêm vào `zns-scheduler.ts`: MONTHLY sinh danh sách tháng âm trong cửa sổ quét (tháng hiện tại + tháng tới cho cả năm hiện tại và năm tới); ANNUAL/ONCE quét theo năm như cũ.
-3. `runZNSCron` được refactor để lặp qua `candidateLunarYears` thay vì chỉ 1 năm cố định.
-4. §1 #15 (MUST clause MONTHLY) + AC #15 + test MONTHLY trong §5 được thêm.
-5. §9 open question về MONTHLY đánh dấu GIẢI QUYẾT với ghi chú "BACKLOG decision 8 cần cập nhật".
-6. `validReminder` fixture trong §5 bổ sung `recurrence: "ANNUAL"`.
+1. `SchedulerReminder` added the field `recurrence: "MONTHLY" | "ANNUAL" | "ONCE"`.
+2. The function `candidateLunarYears()` was added to `zns-scheduler.ts`: MONTHLY generates the list of lunar months within the scan window (the current month + the coming months for both the current year and next year); ANNUAL/ONCE scan by year as before.
+3. `runZNSCron` was refactored to loop over `candidateLunarYears` instead of just 1 fixed year.
+4. §1 #15 (MUST clause MONTHLY) + AC #15 + a MONTHLY test in §5 were added.
+5. The §9 open question about MONTHLY is marked RESOLVED with the note "BACKLOG decision 8 needs updating".
+6. The `validReminder` fixture in §5 added `recurrence: "ANNUAL"`.
 
-Frontmatter ids/depends_on/blocks/DEC-ids/effort_hours không thay đổi. Sẵn sàng handoff không cần context thêm.
+Frontmatter ids/depends_on/blocks/DEC-ids/effort_hours unchanged. Ready for handoff without further context.
 
-*Hết audit FR-LUNAR-017.*
+*End of audit FR-LUNAR-017.*

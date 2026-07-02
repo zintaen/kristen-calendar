@@ -1,6 +1,6 @@
 ---
 id: FR-LUNAR-005
-title: "Local notification scheduler - chien luoc rolling-64 tren iOS qua @capacitor/local-notifications, removeAllPending + reschedule 64 su kien gan nhat, deep-link userInfo"
+title: "Local notification scheduler - rolling-64 strategy on iOS via @capacitor/local-notifications, removeAllPending + reschedule the nearest 64 events, deep-link userInfo"
 module: LUNAR
 priority: MUST
 status: ready_to_implement
@@ -20,13 +20,13 @@ source_pages:
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#11 (Notification Architecture)"
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#15 (Key Findings 5/6, Caveats iOS background)"
 source_decisions:
-  - DEC-LUNAR-050 (iOS chỉ giữ tối đa 64 local notification pending -> mỗi lần reschedule: removeAllPendingNotificationRequests() rồi add lại tối đa 64 điểm nhắc gần nhất)
-  - DEC-LUNAR-051 (trigger reschedule: app open (foreground) là chính; BGAppRefreshTask là best-effort, KHÔNG đảm bảo thời điểm - không được coi là kênh nhắc đảm bảo)
-  - DEC-LUNAR-052 (lead-time = nhiều notification cho cùng sự kiện, MỖI notification ăn một slot trong ngân sách 64 - đếm đúng)
-  - DEC-LUNAR-053 (mỗi notification mang userInfo.reminderId + occurrenceDate để deep-link tới đúng màn hình chi tiết khi user chạm)
-  - DEC-LUNAR-054 (cửa sổ lịch xa 6-12 tháng; nếu tổng điểm nhắc > 64 thì cắt theo fireAtLocal gần nhất trước, ghi log slotsDropped)
-  - DEC-LUNAR-055 (web push chỉ khả dụng iOS 16.4+ khi PWA đã Add to Home Screen -> coi là bổ trợ, không phải kênh chính trên iPhone; Android/desktop dùng Push API bình thường)
-  - DEC-LUNAR-056 (scheduler là pure planner + thin native adapter: planner tính kế hoạch test được, adapter chỉ gọi Capacitor schedule/cancel; tất cả occurrence từ FR-LUNAR-004, scheduler không tự derive ngày âm)
+  - DEC-LUNAR-050 (iOS keeps at most 64 pending local notifications -> each reschedule: removeAllPendingNotificationRequests() then re-add at most the nearest 64 reminder points)
+  - DEC-LUNAR-051 (reschedule trigger: app open (foreground) is primary; BGAppRefreshTask is best-effort, NOT guaranteed timing - must not be treated as a guaranteed reminder channel)
+  - DEC-LUNAR-052 (lead-time = multiple notifications for the same event, EACH notification consumes a slot in the 64 budget - count them correctly)
+  - DEC-LUNAR-053 (each notification carries userInfo.reminderId + occurrenceDate to deep-link to the correct detail screen when the user taps)
+  - DEC-LUNAR-054 (calendar window 6-12 months out; if the total reminder points > 64, cut by nearest fireAtLocal first, log slotsDropped)
+  - DEC-LUNAR-055 (web push is only available iOS 16.4+ when the PWA has been Added to Home Screen -> treated as auxiliary, not the primary channel on iPhone; Android/desktop use the Push API normally)
+  - DEC-LUNAR-056 (the scheduler is a pure planner + thin native adapter: the planner computes a testable plan, the adapter only calls Capacitor schedule/cancel; all occurrences come from FR-LUNAR-004, the scheduler does not derive lunar dates itself)
 language: typescript 5.x
 service: apps/web/
 new_files:
@@ -43,62 +43,62 @@ allowed_tools:
   - file_write: apps/web/{lib/notifications,ios/App,test}/**
   - bash: cd apps/web && pnpm test notifications
 disallowed_tools:
-  - lập lịch vượt 64 pending trên iOS (vi phạm DEC-LUNAR-050 - phải cắt còn 64)
-  - coi BGAppRefreshTask là kênh nhắc đảm bảo thời điểm (vi phạm DEC-LUNAR-051 - best-effort)
-  - tự tính ngày âm trong scheduler thay vì đọc Occurrence từ FR-LUNAR-004 (vi phạm DEC-LUNAR-056)
+  - scheduling more than 64 pending on iOS (violates DEC-LUNAR-050 - must cut to 64)
+  - treating BGAppRefreshTask as a guaranteed-timing reminder channel (violates DEC-LUNAR-051 - best-effort)
+  - deriving lunar dates in the scheduler instead of reading Occurrence from FR-LUNAR-004 (violates DEC-LUNAR-056)
 effort_hours: 10
 sub_tasks:
-  - "2.0h: planner.ts - planSchedule(reminders, now, horizonMonths, budget=64) -> mergeAndSort occurrence rồi cắt đầu 64; đếm slotsDropped"
-  - "1.5h: scheduler.ts - reschedule(): cancelAll() rồi schedule(plan); idempotent; gọi khi app open + onResume"
-  - "1.5h: adapter.capacitor.ts - bọc @capacitor/local-notifications (requestPermissions, schedule, cancel, getPending), id ổn định từ reminderId+occurrenceDate+leadDays"
-  - "1.0h: deeplink.ts - parse userInfo.reminderId + occurrenceDate -> route tới màn hình chi tiết nhắc"
-  - "1.0h: horizon + budget logic - 6-12 tháng, fill theo thời gian gần nhất, đảm bảo mỗi reminder enabled có ít nhất occurrence gần nhất trước khi nhường slot"
-  - "1.0h: BGRefresh.swift - đăng ký BGAppRefreshTask, gọi vào reschedule, kèm comment best-effort"
-  - "1.5h: notifications.planner.test.ts - 100 reminder -> đúng 64 pending, lead-time đếm slot, sort gần nhất, deep-link payload, cancelAll trước add"
-  - "0.5h: capacitor.config.ts - cấu hình plugin LocalNotifications, channel/sound mặc định"
-risk_if_skipped: "Không có scheduler thì dù FR-LUNAR-004 sinh occurrence đúng, máy vẫn không reo - app không nhắc được gì, đúng mục tiêu G1 của PRD. Nếu lập quá 64 pending trên iOS, hệ thống âm thầm vứt bỏ và user mất đúng những nhắc xa nhất - khó phát hiện, mất lòng tin. Nếu phụ thuộc BGAppRefreshTask làm kênh đảm bảo, người ít mở app sẽ trượt slot. FR-LUNAR-006 (reminder management) gọi reschedule mỗi khi user thêm/sửa/bật-tắt nhắc nên phải có API ổn định ở đây."
+  - "2.0h: planner.ts - planSchedule(reminders, now, horizonMonths, budget=64) -> mergeAndSort occurrences then cut the first 64; count slotsDropped"
+  - "1.5h: scheduler.ts - reschedule(): cancelAll() then schedule(plan); idempotent; called on app open + onResume"
+  - "1.5h: adapter.capacitor.ts - wrap @capacitor/local-notifications (requestPermissions, schedule, cancel, getPending), a stable id from reminderId+occurrenceDate+leadDays"
+  - "1.0h: deeplink.ts - parse userInfo.reminderId + occurrenceDate -> route to the reminder detail screen"
+  - "1.0h: horizon + budget logic - 6-12 months, fill by nearest time, ensure every enabled reminder gets at least its nearest occurrence before yielding a slot"
+  - "1.0h: BGRefresh.swift - register BGAppRefreshTask, call into reschedule, with a best-effort comment"
+  - "1.5h: notifications.planner.test.ts - 100 reminders -> exactly 64 pending, lead-time counts a slot, nearest sort, deep-link payload, cancelAll before add"
+  - "0.5h: capacitor.config.ts - configure the LocalNotifications plugin, default channel/sound"
+risk_if_skipped: "Without the scheduler, even if FR-LUNAR-004 generates the correct occurrences, the device never rings - the app cannot remind anything, which is the PRD's G1 goal. If more than 64 pending are scheduled on iOS, the system silently drops them and the user loses exactly the farthest reminders - hard to detect, loss of trust. If it depends on BGAppRefreshTask as a guaranteed channel, users who rarely open the app miss slots. FR-LUNAR-006 (reminder management) calls reschedule whenever the user adds/edits/toggles a reminder, so a stable API is required here."
 ---
 
 ## §1 - Description (BCP-14 normative)
 
-Scheduler biến danh sách `Occurrence` (từ FR-LUNAR-004) thành local notifications, tôn trọng trần 64 pending của iOS bằng chiến lược rolling reschedule. Đây là contract:
+The scheduler turns the list of `Occurrence` (from FR-LUNAR-004) into local notifications, honoring iOS's 64-pending ceiling with a rolling reschedule strategy. This is the contract:
 
-1. PHẢI mỗi lần reschedule gọi `removeAllPendingNotificationRequests()` (cancelAll) trước, rồi `add()` lại tối đa 64 điểm nhắc gần nhất từ tất cả `Reminder` đang `enabled`; KHÔNG ĐƯỢC để tổng pending vượt 64 trên iOS (DEC-LUNAR-050, FR-B05).
-2. PHẢI đọc occurrence từ FR-LUNAR-004 (`nextOccurrences` rồi `mergeAndSort`) và KHÔNG ĐƯỢC tự tính ngày âm trong scheduler; scheduler chỉ gộp, sort theo `fireAtLocal`, và cắt 64 cái gần nhất (DEC-LUNAR-056).
-3. PHẢI coi sự kiện "app mở (foreground/onResume)" là trigger chính để reschedule; `BGAppRefreshTask` chỉ là best-effort và KHÔNG ĐƯỢC coi là kênh nhắc đảm bảo thời điểm (DEC-LUNAR-051, Caveats iOS background).
-4. PHẢI đếm lead-time vào ngân sách 64: mỗi cặp (occurrence x leadTime) là một notification riêng và ăn một slot; ví dụ một reminder với `leadTimes:[0,1]` chiếm 2 slot mỗi lần xuất hiện (DEC-LUNAR-052, PRD section 11).
-5. PHẢI gán mỗi notification một `userInfo` mang `reminderId` và `occurrenceDate` (ISO date) để khi user chạm, app deep-link tới đúng màn hình chi tiết nhắc (DEC-LUNAR-053, PRD section 11).
-6. PHẢI lập lịch trong cửa sổ 6-12 tháng tới (`horizonMonths`); nếu tổng điểm nhắc trong cửa sổ vượt 64, PHẢI cắt theo `fireAtLocal` gần nhất trước và ghi log `slotsDropped` (DEC-LUNAR-054, PRD section 11). `count` truyền cho `nextOccurrences` của MỖI reminder PHẢI đủ lớn để phủ hết `horizonMonths` (ví dụ MONTHLY cần `>= ceil(horizonMonths) + 1` occurrence âm) TRƯỚC khi cắt 64; nếu `count` thiếu, planner sẽ bỏ sót notification gần tương lai của reminder đó và phá vỡ bảo đảm "64 gần nhất" - đây là điều kiện đúng đắn, không phải tối ưu.
-7. PHẢI đảm bảo mỗi `Reminder` đang `enabled` có ít nhất occurrence gần nhất được lập trước khi một reminder khác được cấp slot thứ hai, để một reminder đầy notification không nuốt hết ngân sách (fairness; PRD Recommendations "nếu > 50 nhắc thì rà soát").
-8. PHẢI dùng `id` notification ổn định và deterministic suy từ `reminderId + occurrenceDate + leadDays`, để reschedule là idempotent (lặp lại cùng input cho cùng tập pending), tránh trùng lặp (DEC-LUNAR-050).
-9. PHẢI yêu cầu quyền thông báo qua `requestPermissions()` trước lần lập lịch đầu; nếu user từ chối, PHẢI trả trạng thái `permission: "denied"` lên UI thay vì thất bại âm thầm.
-10. PHẢI tách làm hai lớp: `planner` thuần tính toán (`planSchedule(...)` trả kế hoạch có thể test) và `adapter` mỏng chỉ gọi Capacitor (`schedule`/`cancel`/`getPending`); logic nghiệp vụ KHÔNG ĐƯỢC nằm trong adapter (DEC-LUNAR-056).
-11. PHẢI coi web push chỉ là bổ trợ: chỉ khả dụng iOS 16.4+ khi PWA đã "Add to Home Screen"; trên iPhone, local notification qua Capacitor là kênh chính; Android/desktop CÓ THỂ dùng Push API + Service Worker bình thường (DEC-LUNAR-055, Key Findings 6).
-12. PHẢI đặt `fireAtLocal` của mỗi notification đúng giờ Việt Nam từ Occurrence (`+07:00`), và KHÔNG ĐƯỢC tự chuyển múi giờ trong scheduler; múi giờ đã khóa ở FR-LUNAR-004 (DEC-LUNAR-056, FR-B06).
-13. PHẢI bỏ qua mọi occurrence có `fireAtLocal` trong quá khứ (so với `now`) khi lập lịch, vì iOS tự loại notification quá thời điểm (§1 #6 horizon chỉ tiến lên).
-14. PHẢI expose `getPlanDiagnostics()` trả `{ scheduled, slotsDropped, remindersCovered, horizonMonths }` cho màn hình debug và cho FR-LUNAR-006 hiển "bạn có quá nhiều nhắc, một số sẽ lập lại khi đến gần".
-15. NÊN gộp notification của các occurrence pendingUserChoice/fellBack (từ FR-LUNAR-004) kèm cờ trong `userInfo` để màn hình chi tiết có thể nhắc user xác nhận fallback tháng nhuận.
-16. NÊN ghi một dòng log `notif.rescheduled` mỗi lần reschedule với số slot dùng và số bị cắt, để quan sát hành vi rolling trên thiết bị thật.
+1. MUST, on each reschedule, call `removeAllPendingNotificationRequests()` (cancelAll) first, then `add()` at most the nearest 64 reminder points from all `enabled` Reminders; MUST NOT let the total pending exceed 64 on iOS (DEC-LUNAR-050, FR-B05).
+2. MUST read the occurrences from FR-LUNAR-004 (`nextOccurrences` then `mergeAndSort`) and MUST NOT derive lunar dates in the scheduler; the scheduler only merges, sorts by `fireAtLocal`, and cuts the nearest 64 (DEC-LUNAR-056).
+3. MUST treat the "app open (foreground/onResume)" event as the primary reschedule trigger; `BGAppRefreshTask` is only best-effort and MUST NOT be treated as a guaranteed-timing reminder channel (DEC-LUNAR-051, Caveats iOS background).
+4. MUST count lead-time into the 64 budget: each (occurrence x leadTime) pair is its own notification and consumes a slot; for example a reminder with `leadTimes:[0,1]` occupies 2 slots per appearance (DEC-LUNAR-052, PRD section 11).
+5. MUST assign each notification a `userInfo` carrying `reminderId` and `occurrenceDate` (ISO date) so that when the user taps, the app deep-links to the correct reminder detail screen (DEC-LUNAR-053, PRD section 11).
+6. MUST schedule within the next 6-12 month window (`horizonMonths`); if the total reminder points in the window exceed 64, MUST cut by nearest `fireAtLocal` first and log `slotsDropped` (DEC-LUNAR-054, PRD section 11). The `count` passed to `nextOccurrences` for EACH reminder MUST be large enough to cover the whole `horizonMonths` (for example MONTHLY needs `>= ceil(horizonMonths) + 1` lunar occurrences) BEFORE cutting to 64; if `count` is too small, the planner will miss a near-future notification of that reminder and break the "nearest 64" guarantee - this is a correctness condition, not an optimization.
+7. MUST ensure every `enabled` Reminder gets at least its nearest occurrence scheduled before any reminder gets a second slot, so that one reminder full of notifications does not swallow the whole budget (fairness; PRD Recommendations "if > 50 reminders, review").
+8. MUST use a stable and deterministic notification `id` derived from `reminderId + occurrenceDate + leadDays`, so that reschedule is idempotent (repeating the same input yields the same pending set) and avoids duplicates (DEC-LUNAR-050).
+9. MUST request notification permission via `requestPermissions()` before the first scheduling; if the user declines, MUST return the state `permission: "denied"` to the UI rather than failing silently.
+10. MUST split into two layers: a purely computational `planner` (`planSchedule(...)` returning a testable plan) and a thin `adapter` that only calls Capacitor (`schedule`/`cancel`/`getPending`); business logic MUST NOT live in the adapter (DEC-LUNAR-056).
+11. MUST treat web push as only auxiliary: available only on iOS 16.4+ when the PWA has been "Added to Home Screen"; on iPhone, local notification via Capacitor is the primary channel; Android/desktop MAY use the Push API + Service Worker normally (DEC-LUNAR-055, Key Findings 6).
+12. MUST set each notification's `fireAtLocal` to the correct Vietnam time from the Occurrence (`+07:00`), and MUST NOT convert timezones in the scheduler; the timezone is already locked in FR-LUNAR-004 (DEC-LUNAR-056, FR-B06).
+13. MUST skip any occurrence with a `fireAtLocal` in the past (relative to `now`) when scheduling, because iOS drops past-moment notifications itself (§1 #6 horizon only moves forward).
+14. MUST expose `getPlanDiagnostics()` returning `{ scheduled, slotsDropped, remindersCovered, horizonMonths }` for the debug screen and for FR-LUNAR-006 to show "you have too many reminders, some will be re-scheduled as they get close".
+15. SHOULD attach the notifications of pendingUserChoice/fellBack occurrences (from FR-LUNAR-004) with a flag in `userInfo` so the detail screen can prompt the user to confirm the leap-month fallback.
+16. SHOULD write a `notif.rescheduled` log line on each reschedule with the number of slots used and the number cut, to observe the rolling behavior on a real device.
 
 ---
 
 ## §2 - Why this design (rationale for humans)
 
-**Tại sao removeAll rồi add lại (§1 #1, DEC-LUNAR-050)?** iOS chỉ giữ 64 notification pending sớm nhất và âm thầm vứt phần còn lại (tài liệu Apple, Developer Forums thread 811171). Sự kiện âm lịch lặp lại không map cố định sang dương lịch nên không thể đặt sẵn vô hạn. Cách an toàn duy nhất là mỗi lần mở app, xóa sạch pending rồi đặt lại 64 cái gần nhất - rolling window. Làm mới từ đầu loại bỏ rủi ro lệch giữa cái đã đặt và cái đang muốn.
+**Why removeAll then re-add (§1 #1, DEC-LUNAR-050)?** iOS keeps only the earliest 64 pending notifications and silently drops the rest (Apple docs, Developer Forums thread 811171). A repeating lunar event does not map to a fixed solar date, so you cannot pre-set them indefinitely. The only safe way is that each time the app opens, clear all pending and re-set the nearest 64 - a rolling window. Refreshing from scratch removes the risk of drift between what was set and what you now want.
 
-**Tại sao app-open là trigger chính, BGAppRefreshTask chỉ best-effort (§1 #3, DEC-LUNAR-051)?** iOS không hứa chạy tác vụ nền đúng giờ - hệ điều hành tự quyết khi nào chạy `BGAppRefreshTask` dựa trên thói quen dùng. Với người mở app đều, reschedule mỗi lần mở là đủ tin cậy cho 64 slot. Coi BG là "thưởng" chứ không phải "đảm bảo" giữ kỳ vọng đúng với giới hạn thực của nền tảng (Caveats).
+**Why is app-open the primary trigger, BGAppRefreshTask only best-effort (§1 #3, DEC-LUNAR-051)?** iOS does not promise to run background tasks on time - the OS decides when to run `BGAppRefreshTask` based on usage habits. For users who open the app regularly, rescheduling on each open is reliable enough for 64 slots. Treating BG as a "bonus" rather than a "guarantee" keeps expectations aligned with the platform's real limits (Caveats).
 
-**Tại sao lead-time đếm vào 64 (§1 #4, DEC-LUNAR-052)?** Một sự kiện với nhắc "đúng ngày + trước 1 ngày" thực chất là hai notification ở hai thời điểm. Nếu không đếm cả hai vào ngân sách, planner sẽ tính sai số slot và có thể vượt 64 mà không biết. Đếm đúng từng notification giữ kế hoạch trung thực với giới hạn.
+**Why does lead-time count into 64 (§1 #4, DEC-LUNAR-052)?** An event with reminders "on the day + 1 day before" is really two notifications at two moments. If you do not count both into the budget, the planner miscounts the slots and can exceed 64 without knowing. Counting each notification correctly keeps the plan honest about the limit.
 
-**Tại sao userInfo mang reminderId (§1 #5, DEC-LUNAR-053)?** Khi user chạm vào thông báo "Mai là giỗ bà", họ muốn mở đúng màn hình nhắc đó - không phải màn hình chính. Mang `reminderId + occurrenceDate` trong payload cho deep-link route chính xác, đúng trải nghiệm PRD mô tả.
+**Why does userInfo carry reminderId (§1 #5, DEC-LUNAR-053)?** When the user taps the notification "Tomorrow is grandma's death anniversary", they want to open that specific reminder screen - not the home screen. Carrying `reminderId + occurrenceDate` in the payload lets the deep-link route precisely, matching the experience the PRD describes.
 
-**Tại sao fairness giữa các reminder (§1 #7)?** Một reminder MONTHLY với nhiều lead-time có thể sinh hàng chục occurrence gần nhau và nuốt hết 64 slot, đẩy các giỗ quan trọng ra ngoài cửa sổ. Đảm bảo mỗi reminder enabled có occurrence gần nhất trước khi cấp slot thứ hai giữ cho không nhắc nào bị bỏ quên vì một nhắc khác "tham ăn".
+**Why fairness between reminders (§1 #7)?** A MONTHLY reminder with several lead-times can generate dozens of nearby occurrences and swallow all 64 slots, pushing important death anniversaries out of the window. Ensuring every enabled reminder gets its nearest occurrence before any gets a second slot keeps no reminder forgotten because another one is "greedy".
 
-**Tại sao id deterministic, reschedule idempotent (§1 #8)?** Vì reschedule chạy mỗi lần mở app, nó phải cho kết quả ổn định: cùng input -> cùng tập pending. id suy từ `reminderId+occurrenceDate+leadDays` ngăn trùng lặp và cho phép so sánh "đã đặt đúng chưa" khi debug.
+**Why deterministic ids, idempotent reschedule (§1 #8)?** Because reschedule runs on every app open, it must produce a stable result: the same input -> the same pending set. An id derived from `reminderId+occurrenceDate+leadDays` prevents duplicates and lets you compare "is it set correctly" when debugging.
 
-**Tại sao tách planner và adapter (§1 #10, DEC-LUNAR-056)?** Không thể chạy UNUserNotificationCenter trong unit test Node. Tách planner thuần tính toán cho phép assert "100 reminder -> đúng 64 kế hoạch, lead-time đếm slot, cắt gần nhất" trong CI mà không cần thiết bị; adapter mỏng chỉ dịch kế hoạch sang lời gọi Capacitor, kiểm thử thủ công trên máy thật.
+**Why split planner and adapter (§1 #10, DEC-LUNAR-056)?** You cannot run UNUserNotificationCenter in a Node unit test. Splitting the purely computational planner lets you assert "100 reminders -> exactly 64 in the plan, lead-time counts a slot, cut the nearest" in CI without a device; the thin adapter only translates the plan into Capacitor calls, tested manually on a real device.
 
-**Tại sao web push chỉ là bổ trợ trên iPhone (§1 #11, DEC-LUNAR-055)?** Web Push trên iOS chỉ chạy từ 16.4+ và chỉ khi PWA đã Add to Home Screen, không silent push, không background sync, reach thấp hơn native ~10-15 lần (Key Findings 6). Đây là lý do có Capacitor app native; web push vẫn bật cho Android/desktop nhưng không được làm kênh nhắc chính trên iPhone.
+**Why is web push only auxiliary on iPhone (§1 #11, DEC-LUNAR-055)?** Web Push on iOS runs only from 16.4+ and only when the PWA has been Added to Home Screen, no silent push, no background sync, with reach roughly 10-15x lower than native (Key Findings 6). This is the reason for a native Capacitor app; web push stays on for Android/desktop but is not made the primary reminder channel on iPhone.
 
 ---
 
@@ -188,20 +188,20 @@ import BackgroundTasks
 
 ## §4 - Acceptance criteria
 
-1. **Không vượt 64** - với 100 `Reminder` enabled sinh hàng trăm occurrence, `planSchedule` trả đúng `notifications.length <= 64` và `diagnostics.scheduled <= 64`.
-2. **Cắt gần nhất trước** - khi vượt ngân sách, plan giữ 64 notification có `fireAtLocal` sớm nhất; cái bị cắt là các cái xa hơn, và `slotsDropped > 0`.
-3. **cancelAll trước add** - `reschedule` gọi `adapter.cancelAll()` trước mọi `adapter.schedule()` (assert thứ tự qua mock adapter).
-4. **Lead-time đếm slot** - một reminder `leadTimes:[0,1]` sinh 2 notification cho mỗi occurrence gần nhất; cả hai ăn slot riêng trong ngân sách.
-5. **userInfo deep-link** - mọi `PlannedNotification.userInfo` có `reminderId` và `occurrenceDate`; `parseDeepLink` trả đúng route `/reminder/:id`.
-6. **Bỏ occurrence quá khứ** - occurrence có `fireAtLocal < now` không xuất hiện trong plan.
-7. **Horizon 6-12 tháng** - với `horizonMonths:6`, plan không chứa notification xa hơn 6 tháng từ `now`.
-8. **Fairness** - với 70 reminder, mỗi reminder enabled có ít nhất 1 notification gần nhất trước khi reminder bất kỳ được slot thứ 2 (assert `remindersCovered` tối đa trong giới hạn 64).
-9. **id deterministic + idempotent** - gọi `planSchedule` hai lần cùng input cho cùng tập `id`; không có id trùng trong một plan.
-10. **Permission denied surfaced** - khi adapter trả `denied`, `reschedule` trả `permission:"denied"` thay vì ném lỗi; không gọi `schedule`.
-11. **Timezone giữ +07:00** - `fireAtLocal` của mọi notification giữ offset `+07:00` y như Occurrence; scheduler không chuyển đổi.
-12. **Diagnostics chính xác** - `getPlanDiagnostics` trả `scheduled + (số bị cắt tính được)` nhất quán với tổng occurrence trong horizon; `remindersCovered` đúng số reminder có notification.
-13. **Web push phụ** - trên môi trường không phải iOS-A2HS, code không coi web push là kênh chính; cấu hình ghi rõ là auxiliary (assert có flag/comment + Android Push API path tồn tại).
-14. **fellBack/pendingUserChoice mang theo** - notification của occurrence có `fellBack=true` mang cờ đó trong `userInfo` để UI nhắc xác nhận.
+1. **Never exceeds 64** - with 100 enabled `Reminder` generating hundreds of occurrences, `planSchedule` returns exactly `notifications.length <= 64` and `diagnostics.scheduled <= 64`.
+2. **Cut the nearest first** - when over budget, the plan keeps the 64 notifications with the earliest `fireAtLocal`; the ones cut are the farther ones, and `slotsDropped > 0`.
+3. **cancelAll before add** - `reschedule` calls `adapter.cancelAll()` before any `adapter.schedule()` (assert the order via a mock adapter).
+4. **Lead-time counts a slot** - a reminder `leadTimes:[0,1]` generates 2 notifications for each nearest occurrence; both consume their own slot in the budget.
+5. **userInfo deep-link** - every `PlannedNotification.userInfo` has `reminderId` and `occurrenceDate`; `parseDeepLink` returns the correct route `/reminder/:id`.
+6. **Drop past occurrences** - an occurrence with `fireAtLocal < now` does not appear in the plan.
+7. **Horizon 6-12 months** - with `horizonMonths:6`, the plan contains no notification farther than 6 months from `now`.
+8. **Fairness** - with 70 reminders, every enabled reminder gets at least 1 nearest notification before any reminder gets a second slot (assert `remindersCovered` is maximal within the 64 limit).
+9. **id deterministic + idempotent** - calling `planSchedule` twice with the same input yields the same set of `id`; no duplicate id within a plan.
+10. **Permission denied surfaced** - when the adapter returns `denied`, `reschedule` returns `permission:"denied"` rather than throwing; it does not call `schedule`.
+11. **Timezone keeps +07:00** - the `fireAtLocal` of every notification keeps the `+07:00` offset just like the Occurrence; the scheduler does not convert.
+12. **Diagnostics correct** - `getPlanDiagnostics` returns `scheduled + (the computed number cut)` consistent with the total occurrences in the horizon; `remindersCovered` is the correct number of reminders with a notification.
+13. **Web push auxiliary** - in a non-iOS-A2HS environment, the code does not treat web push as the primary channel; the config explicitly marks it auxiliary (assert a flag/comment + the Android Push API path exists).
+14. **fellBack/pendingUserChoice carried** - the notification of an occurrence with `fellBack=true` carries that flag in `userInfo` so the UI can prompt for confirmation.
 
 ---
 
@@ -358,7 +358,7 @@ describe("rolling-64 planner", () => {
 
 ## §6 - Implementation skeleton
 
-API ở §3 là skeleton. Chi tiết khó nhất là vòng fill ngân sách có fairness, vì nó là nơi giới hạn 64 + ưu tiên gần nhất + công bằng gặp nhau:
+The API in §3 is the skeleton. The hardest detail is the budget-fill loop with fairness, because it is where the 64 limit + nearest-first priority + fairness meet:
 
 ```typescript
 // apps/web/lib/notifications/planner.ts (lõi)
@@ -383,15 +383,15 @@ export function planSchedule(reminders, nowUtcMs, opts): SchedulePlan {
 }
 ```
 
-`reschedule` thì đơn giản và đầy đủ: xin quyền, nếu không granted thì trả về sớm; còn lại `cancelAll()` rồi `schedule(plan.notifications)`.
+`reschedule` is then simple and complete: request permission, return early if not granted; otherwise `cancelAll()` then `schedule(plan.notifications)`.
 
 ---
 
 ## §7 - Dependencies
 
-- Upstream: FR-LUNAR-004 (`nextOccurrences`, `mergeAndSort`, type `Reminder`/`Occurrence`, `engineVersion`) là nguồn mọi điểm nhắc; FR-LUNAR-010 (app shell cung cấp Capacitor host, lớp storage đọc danh sách Reminder, và gọi `reschedule` lúc app open/onResume).
-- Downstream: FR-LUNAR-006 (reminder management gọi `reschedule` mỗi khi user thêm/sửa/xóa/bật-tắt nhắc, và dùng `getPlanDiagnostics` để cảnh báo khi quá nhiều nhắc).
-- Cross-cutting: deep-link route `/reminder/:id` khớp màn hình chi tiết của FR-LUNAR-006; cờ `fellBack`/`pendingUserChoice` đến từ FR-LUNAR-004 để UI nhắc xác nhận fallback tháng nhuận.
+- Upstream: FR-LUNAR-004 (`nextOccurrences`, `mergeAndSort`, the `Reminder`/`Occurrence` types, `engineVersion`) is the source of every reminder point; FR-LUNAR-010 (the app shell provides the Capacitor host, the storage layer that reads the Reminder list, and calls `reschedule` on app open/onResume).
+- Downstream: FR-LUNAR-006 (reminder management calls `reschedule` whenever the user adds/edits/deletes/toggles a reminder, and uses `getPlanDiagnostics` to warn when there are too many reminders).
+- Cross-cutting: the deep-link route `/reminder/:id` matches the FR-LUNAR-006 detail screen; the `fellBack`/`pendingUserChoice` flags come from FR-LUNAR-004 for the UI to prompt the leap-month fallback confirmation.
 
 ---
 
@@ -421,15 +421,15 @@ export function planSchedule(reminders, nowUtcMs, opts): SchedulePlan {
 
 ## §9 - Open questions
 
-Đã giải quyết:
-- Trần 64 -> removeAll + reschedule 64 gần nhất mỗi lần mở app (DEC-LUNAR-050).
-- BGAppRefreshTask là best-effort, app-open là kênh chính (DEC-LUNAR-051).
-- Lead-time đếm vào ngân sách 64 (DEC-LUNAR-052).
+Resolved:
+- The 64 ceiling -> removeAll + reschedule the nearest 64 on each app open (DEC-LUNAR-050).
+- BGAppRefreshTask is best-effort, app-open is the primary channel (DEC-LUNAR-051).
+- Lead-time counts into the 64 budget (DEC-LUNAR-052).
 
-Deferred (gần với Caveats / các FR sau):
-- Remote push qua APNs để lập lịch nền tin cậy hơn - chưa cần cho MVP; cần backend (`@capacitor/push-notifications`) và nằm ở phạm vi thương mại, không phải Phase 1.
-- Notification grouping/summary khi nhiều nhắc cùng ngày - cải thiện UX nhưng không đổi kiến trúc; để sau.
-- Độ tin cậy BGAppRefreshTask với người hiếm mở app (Caveats: rủi ro trượt slot) - phải test thực tế trên thiết bị, có thể bổ sung nhắc định kỳ qua ZNS (FR-LUNAR-017) ở bản thương mại làm lưới an toàn.
+Deferred (close to the Caveats / later FRs):
+- Remote push via APNs for more reliable background scheduling - not needed for the MVP; it needs a backend (`@capacitor/push-notifications`) and is in commercial scope, not Phase 1.
+- Notification grouping/summary when many reminders fall on the same day - a UX improvement but does not change the architecture; left for later.
+- The reliability of BGAppRefreshTask for users who rarely open the app (Caveats: the risk of missing slots) - must be tested in practice on a device, and could be supplemented with a periodic reminder via ZNS (FR-LUNAR-017) as a safety net in the commercial version.
 
 ---
 
@@ -437,33 +437,33 @@ Deferred (gần với Caveats / các FR sau):
 
 | Failure | Detection | Outcome | Recovery |
 |---|---|---|---|
-| Lập vượt 64 pending | planner cắt budget=64 | giữ 64 gần nhất | none (by design; AC #1) |
-| iOS âm thầm vứt notification xa | rolling reschedule mỗi app-open | lập lại 64 gần nhất | none (DEC-LUNAR-050) |
-| BGAppRefreshTask không chạy đúng giờ | coi là best-effort | app-open reschedule khi mở | nhắc qua ZNS ở bản thương mại (DEC-LUNAR-051) |
-| Lead-time làm vượt ngân sách âm thầm | đếm từng notification | slotsDropped ghi log | UI cảnh báo quá nhiều nhắc (DEC-LUNAR-052; AC #4) |
-| User chạm notification mở nhầm màn hình | userInfo.reminderId | deep-link đúng màn hình | none (DEC-LUNAR-053; AC #5) |
-| Một reminder nuốt hết slot | fairness pass | mỗi reminder có occurrence gần nhất | none (§1 #7; AC #8) |
-| Reschedule tạo trùng lặp | id deterministic | idempotent | none (AC #9) |
-| User từ chối quyền | requestPermissions = denied | permission denied lên UI | UI hướng dẫn bật lại (AC #10) |
-| Occurrence quá khứ được lập | lọc fireAtLocal < now | bỏ qua | none (AC #6) |
-| Sai múi giờ khi lập lịch | giữ +07:00 từ Occurrence | đúng giờ VN | none (FR-B06; AC #11) |
-| Web push được dùng làm kênh chính iPhone | coi web push auxiliary | local notification là chính | none (DEC-LUNAR-055; AC #13) |
-| Logic nghiệp vụ lọt vào adapter | code review tách planner/adapter | từ chối merge | giữ planner thuần tính toán (DEC-LUNAR-056) |
-| Quá nhiều nhắc (> 50) | getPlanDiagnostics | cảnh báo remindersCovered | user tắt bớt/ưu tiên (PRD Recommendations) |
-| Occurrence pendingUserChoice bị lập âm thầm | mang cờ trong userInfo | UI nhắc xác nhận fallback | user chọn tháng cúng (§1 #15) |
+| Scheduling over 64 pending | the planner cuts to budget=64 | keep the nearest 64 | none (by design; AC #1) |
+| iOS silently drops the farthest notifications | rolling reschedule on each app-open | re-set the nearest 64 | none (DEC-LUNAR-050) |
+| BGAppRefreshTask does not run on time | treated as best-effort | app-open reschedule on open | remind via ZNS in the commercial version (DEC-LUNAR-051) |
+| Lead-time silently exceeds the budget | count each notification | slotsDropped logged | UI warns of too many reminders (DEC-LUNAR-052; AC #4) |
+| User taps a notification and opens the wrong screen | userInfo.reminderId | deep-link to the correct screen | none (DEC-LUNAR-053; AC #5) |
+| One reminder swallows all slots | fairness pass | every reminder gets its nearest occurrence | none (§1 #7; AC #8) |
+| Reschedule creates duplicates | deterministic id | idempotent | none (AC #9) |
+| User declines permission | requestPermissions = denied | permission denied surfaced to the UI | UI guides re-enabling (AC #10) |
+| Past occurrence scheduled | filter fireAtLocal < now | skipped | none (AC #6) |
+| Wrong timezone when scheduling | keep +07:00 from the Occurrence | correct VN time | none (FR-B06; AC #11) |
+| Web push used as the primary iPhone channel | treat web push as auxiliary | local notification is primary | none (DEC-LUNAR-055; AC #13) |
+| Business logic leaking into the adapter | code review splitting planner/adapter | reject the merge | keep the planner purely computational (DEC-LUNAR-056) |
+| Too many reminders (> 50) | getPlanDiagnostics | warn via remindersCovered | user turns some off/prioritizes (PRD Recommendations) |
+| pendingUserChoice occurrence scheduled silently | carry the flag in userInfo | UI prompts the fallback confirmation | user chooses the observance month (§1 #15) |
 
 ---
 
 ## §11 - Implementation notes
 
-- Trái tim của thiết kế là rolling reschedule: mỗi lần app mở, `cancelAll()` rồi đặt lại 64 cái gần nhất. Không cố gắng giữ trạng thái pending qua các lần chạy - làm mới từ đầu là cách duy nhất chắc chắn khớp với giới hạn 64 của iOS.
-- Đếm lead-time là chỗ dễ sai nhất: một sự kiện với `[0,1,7]` là ba notification, ba slot. Planner phải đếm ở mức notification, không ở mức occurrence, nếu không sẽ vượt 64 mà không biết.
-- Fairness pass chạy trước fill toàn cục: lấy occurrence gần nhất của mỗi reminder enabled, rồi mới đổ phần còn lại theo thời gian. Nhờ đó một reminder MONTHLY nhiều lead-time không đẩy hết các giỗ quan trọng ra ngoài cửa sổ.
-- id phải deterministic (`reminderId|occurrenceDate|leadDays`) để reschedule idempotent và để debug "đã đặt đúng chưa" bằng `getPending()`.
-- Adapter chỉ dịch kế hoạch sang Capacitor: `requestPermissions`, `cancel`, `schedule`. Không tính ngày, không lọc, không sort trong adapter - tất cả ở planner để test được trong Node.
-- BGAppRefreshTask viết trong Swift (`BGRefresh.swift`) và gọi vào bridge JS để chạy `reschedule()`, kèm comment rõ là best-effort - thời điểm do iOS quyết định, không đảm bảo.
-- Web push giữ lại cho Android/desktop qua Push API + Service Worker, nhưng trên iPhone luôn coi local notification qua Capacitor là kênh chính; đánh dấu web push là auxiliary trong cấu hình để không ai nhầm.
+- The heart of the design is the rolling reschedule: each time the app opens, `cancelAll()` then re-set the nearest 64. Do not try to keep pending state across runs - refreshing from scratch is the only way to reliably match iOS's 64 limit.
+- Counting lead-time is the most error-prone spot: an event with `[0,1,7]` is three notifications, three slots. The planner must count at the notification level, not the occurrence level, or it will exceed 64 without knowing.
+- The fairness pass runs before the global fill: take the nearest occurrence of every enabled reminder, then pour in the rest by time. That way a MONTHLY reminder with many lead-times does not push all the important death anniversaries out of the window.
+- The id must be deterministic (`reminderId|occurrenceDate|leadDays`) so reschedule is idempotent and so you can debug "is it set correctly" with `getPending()`.
+- The adapter only translates the plan into Capacitor: `requestPermissions`, `cancel`, `schedule`. No date computation, no filtering, no sorting in the adapter - all of that is in the planner so it can be tested in Node.
+- BGAppRefreshTask is written in Swift (`BGRefresh.swift`) and calls into the JS bridge to run `reschedule()`, with a comment making clear it is best-effort - the timing is decided by iOS and is not guaranteed.
+- Web push is kept for Android/desktop via the Push API + Service Worker, but on iPhone local notification via Capacitor is always the primary channel; mark web push as auxiliary in the config so nobody confuses it.
 
 ---
 
-*Hết FR-LUNAR-005.*
+*End of FR-LUNAR-005.*

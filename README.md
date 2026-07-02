@@ -1,114 +1,114 @@
-# Genie Âm Lịch (kristen-calendar)
+# Genie Am Lich (kristen-calendar)
 
-Ứng dụng nhắc âm lịch Việt Nam tông tím của CyberSkill. Nó tính ngày âm on-device theo thuật toán Hồ Ngọc Đức (giờ Việt Nam UTC+7, kinh tuyến 105°E), nhắc Rằm, Mùng Một, đám giỗ và lễ tết, giải thích ý nghĩa cùng cách chuẩn bị mỗi dịp, và chạy trên Web/PWA, iOS (qua Capacitor), và Zalo Mini App, với một backend serverless mỏng cho AI Genie (Claude) và ZNS. Đây là sản phẩm thương mại đầy đủ tính năng; người dùng đầu tiên và design partner là vợ founder.
+A purple-themed Vietnamese lunar-calendar reminder app by CyberSkill. It computes lunar dates on-device using the Ho Ngoc Duc algorithm (Vietnam time UTC+7, meridian 105E), reminds you of Ram, Mung Mot, death anniversaries, and festivals, explains the meaning and how to prepare for each occasion, and runs on Web/PWA, iOS (via Capacitor), and the Zalo Mini App, with a thin serverless backend for the AI Genie (Claude) and ZNS. This is a full-featured commercial product; the first user and design partner is the founder's wife.
 
-Tài liệu này là điểm vào cho cả người mới lẫn agent. Đọc hết phần "Bắt đầu nhanh" và "Đọc theo thứ tự", rồi rẽ theo việc bạn cần làm.
+This document is the entry point for both newcomers and agents. Read the whole "Quick start" and "Read in order" sections, then branch off to the work you need to do.
 
-## Trạng thái
+## Status
 
-Spec đầy đủ và đã audit, cộng P0 runway đã verify. Chưa viết logic thuật toán - đó là việc của giai đoạn implement.
+Full and audited spec, plus a verified P0 runway. The algorithm logic has not been written yet - that is the job of the implement phase.
 
-- 20 feature request `FR-LUNAR-001..020` ở trạng thái `ready_to_implement`, mỗi cái một engineering-spec 11 mục kèm file audit 10/10. Tổng ước tính khoảng 209.5 engineering-hours.
-- Một lượt audit độc lập (adversarial) đã chạy: tìm và fix 2 blocker cộng khoảng 13 code-level major. Xem `docs/feature-requests/lunar/INDEPENDENT-AUDIT-2026-06-27.md`.
-- `packages/amlich-core` đã scaffold: hằng số PRD 6.2, kiểu dữ liệu, golden fixtures, và harness đã wired; các hàm thuật toán là STUB (ném lỗi "chua implement"). Chạy harness ra 1 test xanh (dữ liệu) trên tổng số đỏ - đúng trạng thái cổng go/no-go cần có.
-- Tám founder decision đã chốt hết (xem `docs/feature-requests/BACKLOG.md`); không còn quyết định nào chặn ship.
+- 20 feature requests `FR-LUNAR-001..020` in `ready_to_implement` state, each with an 11-section engineering spec and a 10/10 audit file. Total estimate about 209.5 engineering-hours.
+- An independent (adversarial) audit pass has run: it found and fixed 2 blockers plus about 13 code-level majors. See `docs/feature-requests/lunar/INDEPENDENT-AUDIT-2026-06-27.md`.
+- `packages/amlich-core` has been scaffolded: PRD 6.2 constants, data types, golden fixtures, and a wired harness; the algorithm functions are STUBS (they throw "not implemented" errors). Running the harness produces 1 green test (data) out of a total that is red - exactly the go/no-go gate state you want.
+- All eight founder decisions are settled (see `docs/feature-requests/BACKLOG.md`); no decision is blocking ship anymore.
 
-## Bắt đầu nhanh
+## Quick start
 
-Yêu cầu: Node 20 trở lên và pnpm 9. iOS cần macOS với Xcode (chỉ khi tới slice native widget/watch).
+Requirements: Node 20 or higher and pnpm 9. iOS needs macOS with Xcode (only when you reach the native widget/watch slice).
 
 ```bash
-pnpm install                 # cài dependency cho cả workspace
-pnpm gate:p0                 # golden harness cho amlich-core (cổng P0); hien tai do vi stub chua implement
-pnpm --filter @cyberskill/amlich-core typecheck   # phai sach
+pnpm install                 # install dependencies for the whole workspace
+pnpm gate:p0                 # golden harness for amlich-core (P0 gate); currently red because the stubs are not implemented
+pnpm --filter @cyberskill/amlich-core typecheck   # must be clean
 ```
 
-Khi P0 được implement, `pnpm gate:p0` phải xanh 100% trước khi xây bất kỳ UI nào.
+Once P0 is implemented, `pnpm gate:p0` must be 100% green before building any UI.
 
-## Đọc theo thứ tự
+## Read in order
 
-Tùy việc bạn cần, có hai lối đọc.
+Depending on what you need, there are two reading paths.
 
-Nếu bạn là người mới muốn hiểu sản phẩm: đọc PRD/SRS gốc `docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (...).md`, rồi `docs/feature-requests/lunar/README.md` (catalog 20 FR cộng build order và PRD traceability), rồi `docs/feature-requests/BACKLOG.md` (phasing cộng founder decisions).
+If you are a newcomer who wants to understand the product: read the original PRD/SRS `docs/PRD + SRS - Ung Dung Nhac Am Lich Viet Nam (...).md`, then `docs/feature-requests/lunar/README.md` (catalog of the 20 FRs plus build order and PRD traceability), then `docs/feature-requests/BACKLOG.md` (phasing plus founder decisions).
 
-Nếu bạn là agent hoặc developer sắp build: đọc `docs/feature-requests/lunar/SHIP-READINESS.md` (handoff, đọc trước tiên), rồi `docs/AGENT-GUIDE.md` (invariant core cộng kỷ luật build), rồi `docs/feature-requests/lunar/CONTRACT.md` (hợp đồng API duy nhất), rồi `docs/BUILD-RUNBOOK.md` (thứ tự build từng slice). Khi implement một FR cụ thể, đọc file FR đó section 3 (API contract) và section 5 (Verification) trước.
+If you are an agent or a developer about to build: read `docs/feature-requests/lunar/SHIP-READINESS.md` (handoff, read first), then `docs/AGENT-GUIDE.md` (core invariants plus build discipline), then `docs/feature-requests/lunar/CONTRACT.md` (the single API contract), then `docs/BUILD-RUNBOOK.md` (the build order for each slice). When implementing a specific FR, read that FR file's section 3 (API contract) and section 5 (Verification) first.
 
-## Kiến trúc
+## Architecture
 
-Một thư viện lõi TypeScript dùng chung, `@cyberskill/amlich-core` (zero-dependency, offline, đã unit-test), tính toàn bộ logic âm lịch một lần và được import vào cả ba client. Web/PWA viết bằng Next.js/React là nền cho cả PWA và Capacitor; iOS bọc chính web build đó bằng Capacitor, cộng widget và Watch complication viết native Swift trong `ios/App`; Zalo Mini App viết React cộng zmp-ui và zmp-sdk. Một backend serverless mỏng (`services/genie-api`) chỉ làm hai việc: proxy gọi Claude (AI Genie) và gửi ZNS qua Zalo Official Account. Dữ liệu mặc định lưu on-device; đồng bộ cloud (Supabase) là tùy chọn cho family sharing và phải có consent.
+A shared TypeScript core library, `@cyberskill/amlich-core` (zero-dependency, offline, unit-tested), computes all lunar-calendar logic once and is imported into all three clients. The Web/PWA written in Next.js/React is the base for both the PWA and Capacitor; iOS wraps that same web build with Capacitor, plus a widget and Watch complication written in native Swift in `ios/App`; the Zalo Mini App is written in React plus zmp-ui and zmp-sdk. A thin serverless backend (`services/genie-api`) does only two things: proxy the Claude call (AI Genie) and send ZNS via the Zalo Official Account. Data is stored on-device by default; cloud sync (Supabase) is optional for family sharing and must have consent.
 
-Lý do chọn kiến trúc này: logic âm lịch là tài sản lõi và là rủi ro kỹ thuật cao nhất, nên viết một lần và tái dùng 100%; ba client chia sẻ cùng một engine nên không lệch ngày giữa các nền tảng.
+The reason for choosing this architecture: the lunar-calendar logic is the core asset and the highest technical risk, so it is written once and reused 100%; the three clients share the same engine, so dates never drift between platforms.
 
-## Cấu trúc repo
+## Repo structure
 
 ```
-packages/amlich-core/   @cyberskill/amlich-core - loi am lich (Ho Ngoc Duc): convert, can-chi, tiet khi,
+packages/amlich-core/   @cyberskill/amlich-core - lunar core (Ho Ngoc Duc): convert, can-chi, tiet khi,
                         recurrence, day-quality. Zero-dependency, offline. FR-001/002/003/004/011.
-packages/content/       @cyberskill/genie-content - noi dung 13 dip am lich (y nghia, mam cung, checklist). FR-008.
-packages/ui/            @cyberskill/genie-ui - purple theme pack, cong tuong phan APCA, Be Vietnam Pro. FR-009.
-apps/web/               genie-web - Next.js/React PWA + Capacitor iOS host; ios/App cho widget/watch native Swift.
+packages/content/       @cyberskill/genie-content - content for the 13 lunar occasions (meaning, offerings, checklist). FR-008.
+packages/ui/            @cyberskill/genie-ui - purple theme pack, APCA contrast gate, Be Vietnam Pro. FR-009.
+apps/web/               genie-web - Next.js/React PWA + Capacitor iOS host; ios/App for the native Swift widget/watch.
                         FR-005 (notification), 006, 007, 010, 012, 013, 014, 015 (UI).
 zalo/                   genie-zalo - Zalo Mini App (React + zmp-ui + zmp-sdk). FR-016.
 services/genie-api/     @cyberskill/genie-api - serverless TS: Claude proxy, ZNS, sync, PDPL, billing.
                         FR-015, 017, 018, 019, 020.
-docs/                   PRD/SRS goc, BUILD-RUNBOOK, AGENT-GUIDE, va docs/feature-requests/ (20 FR + audit + spine).
+docs/                   original PRD/SRS, BUILD-RUNBOOK, AGENT-GUIDE, and docs/feature-requests/ (20 FR + audit + spine).
 ```
 
-Hiện chỉ `packages/amlich-core` đã scaffold đầy đủ; các package khác mới có `package.json` placeholder và sẽ scaffold khi tới slice tương ứng.
+Currently only `packages/amlich-core` has been fully scaffolded; the other packages only have a placeholder `package.json` and will be scaffolded when their corresponding slice is reached.
 
-## Cách build
+## How to build
 
-Build theo phase và slice, đúng thứ tự topological trong `docs/feature-requests/lunar/README.md`. Không nhảy cóc dependency.
+Build by phase and slice, in the exact topological order in `docs/feature-requests/lunar/README.md`. Do not skip dependencies.
 
-- P0 - core engine (FR-001..003), làm trước. Đây là rủi ro kỹ thuật cao nhất và là cổng go/no-go: amlich-core phải khớp 100% lịch Hồ Ngọc Đức cho dải năm thực dùng trước khi xây bất kỳ UI nào.
-- P1 - MVP cá nhân (FR-004..010): nhắc Rằm/Mùng Một/đám giỗ cộng lịch tháng cộng nội dung dịp, chạy Web/PWA cộng Capacitor iOS, lưu on-device, không backend.
-- P2 - trải nghiệm nâng cao (FR-011..015): xem ngày tốt (Hoàng đạo/Trực/28 sao), good-day picker, iOS widget cộng Watch, shareable cards, AI Genie.
-- P3 - thương mại hóa (FR-016..020): Zalo Mini App, ZNS, family sharing cộng cloud sync, tuân thủ PDPL, freemium.
+- P0 - core engine (FR-001..003), do first. This is the highest technical risk and the go/no-go gate: amlich-core must match the Ho Ngoc Duc calendar 100% for the actually-used year range before building any UI.
+- P1 - personal MVP (FR-004..010): reminders for Ram/Mung Mot/death anniversaries plus the month calendar plus occasion content, running on Web/PWA plus Capacitor iOS, stored on-device, no backend.
+- P2 - advanced experience (FR-011..015): auspicious-day viewing (Hoang dao/Truc/28 stars), the good-day picker, the iOS widget plus Watch, shareable cards, AI Genie.
+- P3 - commercialization (FR-016..020): Zalo Mini App, ZNS, family sharing plus cloud sync, PDPL compliance, freemium.
 
-Vòng đời một FR: `ready_to_implement` thành `implementing` thành `done`. Một FR chỉ chuyển `done` sau khi qua gate (mọi §4 acceptance criteria pass, mọi §5 test xanh, typecheck sạch, không vi phạm quy tắc vàng). Không tự ý flip status. Operator (Stephen) chạy gate cuối và git commit trên máy thật.
+An FR's lifecycle: `ready_to_implement` to `implementing` to `done`. An FR only moves to `done` after passing the gate (every section 4 acceptance criterion passes, every section 5 test is green, typecheck is clean, no golden-rule violations). Do not flip the status arbitrarily. The operator (Stephen) runs the final gate and does the git commit on the real machine.
 
-Cổng accuracy của P0 (founder decision 3): khớp tuyệt đối với dữ liệu vàng là hard gate cho 1900-2100 (dải người dùng thực chạm: giỗ quá khứ cộng lịch tương lai gần); với 2100-2199 chấp nhận sai trong 1 ngày cộng flag ngày nghi ngờ cộng bảng correction nếu xác nhận lệch, không chặn gate. Round-trip sweep vẫn hard 1900-2199.
+The P0 accuracy gate (founder decision 3): an exact match with the golden data is a hard gate for 1900-2100 (the range real users touch: past death anniversaries plus the near-future calendar); for 2100-2199 an error of up to 1 day is accepted plus a suspect-day flag plus a correction table if a discrepancy is confirmed, and it does not block the gate. The round-trip sweep is still a hard gate for 1900-2199.
 
-## Quy tắc vàng cho code amlich-core (vi phạm là defect)
+## Golden rules for amlich-core code (a violation is a defect)
 
-Đây là các bất biến mà lượt audit độc lập đã bắt lỗi; một agent build phải tuân.
+These are the invariants the independent audit pass caught bugs on; a build agent must follow them.
 
-1. `CONTRACT.md` là hợp đồng API duy nhất. Mọi import phải khớp tên và chữ ký ở đó. Tên không tồn tại hay bị nhầm: `getTietKhi`, `getTietKhiForDate` - dùng `tietKhiAt` và `tietKhiStartDiaChi`.
-2. `convertSolar2Lunar` và `convertLunar2Solar` trả về labeled tuple, không phải object. Luôn destructure (`const [d, m, y, leap] = ...`), không đọc `.year` hay `.month`. Sentinel invalid là `[0, 0, 0]`; kiểm bằng `isInvalidSolar()`, không kiểm `=== null`.
-3. Can-chi ngày: `can = (jdn + 9) % 10`, `chi = (jdn + 1) % 12` (FR-002 là owner). Day-quality lấy địa chi từ `canChiDay(jdn).chiIndex`, không suy từ `(jdn+9)%60 % 12` (lệch 8).
-4. Ba epoch và hai synodic constant trong `constants.ts` là các đại lượng riêng (PRD 6.2), không gộp nhầm.
-5. Core offline, zero-dependency, không gọi network để tính ngày. Mọi phép tính khóa về `Asia/Ho_Chi_Minh` kể cả khi thiết bị ở nước ngoài; dùng `todayInHCM()`.
-6. Type `Reminder` do FR-004 sở hữu trong `@cyberskill/amlich-core`; mọi nơi khác import, không redeclare hay mirror.
+1. `CONTRACT.md` is the single API contract. Every import must match the name and signature there. Names that do not exist or get confused: `getTietKhi`, `getTietKhiForDate` - use `tietKhiAt` and `tietKhiStartDiaChi`.
+2. `convertSolar2Lunar` and `convertLunar2Solar` return a labeled tuple, not an object. Always destructure (`const [d, m, y, leap] = ...`), do not read `.year` or `.month`. The invalid sentinel is `[0, 0, 0]`; check it with `isInvalidSolar()`, do not check `=== null`.
+3. Day can-chi: `can = (jdn + 9) % 10`, `chi = (jdn + 1) % 12` (FR-002 is the owner). Day-quality takes the dia chi from `canChiDay(jdn).chiIndex`, do not derive it from `(jdn+9)%60 % 12` (off by 8).
+4. The three epochs and two synodic constants in `constants.ts` are separate quantities (PRD 6.2), do not merge them by mistake.
+5. The core is offline, zero-dependency, and does not call the network to compute dates. Every calculation is locked to `Asia/Ho_Chi_Minh` even when the device is abroad; use `todayInHCM()`.
+6. The `Reminder` type is owned by FR-004 in `@cyberskill/amlich-core`; everywhere else imports it, does not redeclare or mirror it.
 
-## Founder decisions (đã chốt 2026-06-28)
+## Founder decisions (settled 2026-06-28)
 
-Go thương mại đầy đủ; tự port amlich-core; accuracy hard gate 1900-2100 (flag cộng correction 2100-2199); Capacitor cho v1 (widget và watch vẫn native Swift); ZNS khởi đầu qua distributor; Genie dùng Claude Haiku 4.5; PDPL privacy-first cộng tham vấn pháp lý; ZNS hỗ trợ MONTHLY. Chi tiết và lý do ở `docs/feature-requests/BACKLOG.md`.
+Full commercial go; self-port amlich-core; accuracy hard gate 1900-2100 (flag plus correction 2100-2199); Capacitor for v1 (widget and watch still native Swift); ZNS starting via a distributor; Genie uses Claude Haiku 4.5; PDPL privacy-first plus legal consultation; ZNS supports MONTHLY. Details and rationale in `docs/feature-requests/BACKLOG.md`.
 
-## Quy ước
+## Conventions
 
-Đặt tên package: lõi tái dùng được không có tiền tố (`@cyberskill/amlich-core`); package sản phẩm có tiền tố genie (`@cyberskill/genie-content`, `@cyberskill/genie-ui`, `@cyberskill/genie-api`); app dùng tên trần (`genie-web`, `genie-zalo`).
+Package naming: reusable core has no prefix (`@cyberskill/amlich-core`); product packages have a genie prefix (`@cyberskill/genie-content`, `@cyberskill/genie-ui`, `@cyberskill/genie-api`); apps use plain names (`genie-web`, `genie-zalo`).
 
-Hai file hướng dẫn agent, hai mục đích khác nhau: `AGENTS.md` ở gốc repo được dành cho CyberOS Layer-1 Memory Protocol (kích hoạt BRAIN ở `.cyberos-memory/`); `docs/AGENT-GUIDE.md` là hướng dẫn build riêng của dự án. Một agent ở repo này theo cả hai - AGENTS.md cho giao thức bộ nhớ, AGENT-GUIDE cho invariant build.
+Two agent-guidance files, two different purposes: `AGENTS.md` at the repo root is reserved for the CyberOS Layer-1 Memory Protocol (activating BRAIN at `.cyberos-memory/`); `docs/AGENT-GUIDE.md` is the project's own build guide. An agent in this repo follows both - AGENTS.md for the memory protocol, AGENT-GUIDE for the build invariants.
 
-Quy ước viết tài liệu: prose tiếng Việt có dấu đầy đủ; thuật ngữ kỹ thuật, API, và code giữ tiếng Anh; chỉ dùng ký tự bàn phím chuẩn trong prose (straight quotes, hyphen cho dấu gạch, ba dấu chấm cho ellipsis); không em dash, en dash, hay curly quote.
+Documentation writing convention: Vietnamese prose with full diacritics; technical terms, APIs, and code stay in English; use only standard keyboard characters in prose (straight quotes, hyphen for dashes, three periods for the ellipsis); no em dash, en dash, or curly quotes.
 
-## Bản đồ tài liệu
+## Documentation map
 
-- `docs/PRD + SRS — ...md` - tài liệu nền tảng (product + software requirements), nguồn của mọi FR.
-- `docs/feature-requests/lunar/README.md` - catalog 20 FR, build order topological, dependency edges, PRD traceability.
-- `docs/feature-requests/lunar/SHIP-READINESS.md` - handoff cho agent implement; đọc trước tiên khi build.
-- `docs/feature-requests/lunar/CONTRACT.md` - hợp đồng API amlich-core và content (authority cho mọi import).
-- `docs/feature-requests/lunar/INDEPENDENT-AUDIT-2026-06-27.md` - defect đã fix cộng open items.
-- `docs/feature-requests/lunar/manifest.json` - trạng thái máy đọc của 20 FR.
+- `docs/PRD + SRS - ...md` - the foundation document (product + software requirements), the source of every FR.
+- `docs/feature-requests/lunar/README.md` - catalog of the 20 FRs, topological build order, dependency edges, PRD traceability.
+- `docs/feature-requests/lunar/SHIP-READINESS.md` - handoff for the implementing agent; read first when building.
+- `docs/feature-requests/lunar/CONTRACT.md` - the amlich-core and content API contract (the authority for every import).
+- `docs/feature-requests/lunar/INDEPENDENT-AUDIT-2026-06-27.md` - fixed defects plus open items.
+- `docs/feature-requests/lunar/manifest.json` - machine-readable status of the 20 FRs.
 - `docs/feature-requests/BACKLOG.md` - phasing, headline metrics, founder decisions.
-- `docs/AGENT-GUIDE.md` - invariant core, kỷ luật build, quy ước viết.
-- `docs/BUILD-RUNBOOK.md` - thứ tự build từng slice cộng lệnh gate.
-- `docs/DEPLOYMENT.md` - Hướng dẫn deployment, các yêu cầu tài khoản bên ngoài (Claude, Zalo), cấu hình môi trường và RevenueCat (In-app purchase).
-- `docs/DEVELOPMENT.md` - Hướng dẫn setup và phát triển local.
-- `AGENTS.md` (gốc repo, do Stephen đặt) - CyberOS BRAIN/memory protocol.
+- `docs/AGENT-GUIDE.md` - core invariants, build discipline, writing conventions.
+- `docs/BUILD-RUNBOOK.md` - the build order for each slice plus gate commands.
+- `docs/DEPLOYMENT.md` - Deployment guide, external account requirements (Claude, Zalo), environment configuration and RevenueCat (In-app purchase).
+- `docs/DEVELOPMENT.md` - Local setup and development guide.
+- `AGENTS.md` (repo root, set by Stephen) - CyberOS BRAIN/memory protocol.
 
-## Thuật ngữ (cho người mới)
+## Glossary (for newcomers)
 
-Âm lịch: lịch theo chu kỳ mặt trăng. Dương lịch: lịch theo mặt trời (lịch thường ngày). Rằm: ngày 15 âm (trăng tròn). Mùng Một: ngày 1 âm (đầu tháng). Đám giỗ: ngày tưởng nhớ người đã mất, tính theo ngày âm. Tháng nhuận: tháng âm lặp lại trong năm 13 tháng. Can-chi: hệ đếm 60 (10 Can cộng 12 Chi), ví dụ Giáp Tý. Tiết khí: 24 mốc thời tiết trong năm; Đông chí luôn rơi vào tháng 11 âm. Hoàng đạo / Hắc đạo: ngày tốt / xấu theo phong tục. Trực và Nhị thập bát tú (28 sao): các yếu tố xem ngày dân gian. Tết, Vu Lan, Đoan Ngọ, Trung Thu: các dịp lễ âm lịch.
+Am lich: the lunar calendar (based on the moon's cycle). Duong lich: the solar calendar (the everyday calendar). Ram: the 15th lunar day (full moon). Mung Mot: the 1st lunar day (start of the month). Death anniversary (gio): the day to remember a deceased person, counted by the lunar date. Leap month (thang nhuan): a lunar month that repeats in a 13-month year. Can-chi: the sexagenary counting system (10 Can plus 12 Chi), for example Giap Ty. Tiet khi: the 24 seasonal markers in a year; Dong chi always falls in the 11th lunar month. Hoang dao / Hac dao: auspicious / inauspicious days by custom. Truc and the Twenty-eight Mansions (28 stars): folk day-selection factors. Tet, Vu Lan, Doan Ngo, Trung Thu: lunar festival occasions.
 
-Thuật toán Hồ Ngọc Đức: cách tính âm lịch Việt Nam chuẩn, dựa công thức thiên văn Jean Meeus. PWA: Progressive Web App. Capacitor: bọc web app thành app native. Zalo Mini App: app chạy trong Zalo. ZNS (Zalo Notification Service): kênh gửi thông báo qua Zalo Official Account (OA). PDPL: Luật Bảo vệ Dữ liệu Cá nhân Việt Nam.
+Ho Ngoc Duc algorithm: the standard way to compute the Vietnamese lunar calendar, based on Jean Meeus's astronomical formulas. PWA: Progressive Web App. Capacitor: wraps a web app into a native app. Zalo Mini App: an app that runs inside Zalo. ZNS (Zalo Notification Service): a channel for sending notifications via a Zalo Official Account (OA). PDPL: Vietnam's Personal Data Protection Law.

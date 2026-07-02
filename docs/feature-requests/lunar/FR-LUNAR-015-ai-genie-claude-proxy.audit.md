@@ -12,52 +12,52 @@ authoring_md_compliance: 2026-06-27 (rule 36 - 7 ISS >= 6 minimum; key-isolation
 
 ## §1 - Verdict summary
 
-FR-LUNAR-015 đặc tả serverless Claude proxy cho AI Genie. Phạm vi: 15 mệnh đề BCP-14 trong §1 (key isolation, model config server-side, prompt caching ephemeral, system prompt persona Genie + footer, GenieContext sans PII, rate-limit 20/ngày + 429, log minimization, 4 questionType covers FR-C01..C04, TTS client-side, GenieChat UI, client override prevention, requestId, streaming NÊN). §2 có 7 đoạn rationale (proxy security, Haiku cost, prompt caching 90%, PDPL PII, rate-limit 20/ngày, TTS on-device, log minimization). §3 định nghĩa `GenieRequest`, `GenieResponse`, `GenieErrorResponse`, `SYSTEM_PROMPT_BLOCK` với `cache_control`, `buildGenieMessages`, `sanitizeQuestion`, `RateLimiter` interface, `VercelKVRateLimiter`, `InMemoryRateLimiter`, `fetchGenie`, và implementation skeleton. §4 có 15 AC kiểm tra được. §5 có 7 test case deterministic dùng mock Anthropic SDK (không cần network). §10 có 12 hàng failure modes. §11 có 7 ghi chú implementation. Map tới PRD FR-C01..C06, §12 (AI Feature Architecture), Key Findings §7 (Claude Haiku 4.5 pricing).
+FR-LUNAR-015 specifies the serverless Claude proxy for the AI Genie. Scope: 15 BCP-14 clauses in §1 (key isolation, model config server-side, prompt caching ephemeral, system prompt Genie persona + footer, GenieContext without PII, rate-limit 20/day + 429, log minimization, 4 questionType covering FR-C01..C04, TTS client-side, GenieChat UI, client override prevention, requestId, streaming SHOULD). §2 has 7 rationale paragraphs (proxy security, Haiku cost, prompt caching 90%, PDPL PII, rate-limit 20/day, TTS on-device, log minimization). §3 defines `GenieRequest`, `GenieResponse`, `GenieErrorResponse`, `SYSTEM_PROMPT_BLOCK` with `cache_control`, `buildGenieMessages`, `sanitizeQuestion`, the `RateLimiter` interface, `VercelKVRateLimiter`, `InMemoryRateLimiter`, `fetchGenie`, and the implementation skeleton. §4 has 15 testable ACs. §5 has 7 deterministic test cases using a mocked Anthropic SDK (no network needed). §10 has 12 failure-mode rows. §11 has 7 implementation notes. Maps to PRD FR-C01..C06, §12 (AI Feature Architecture), Key Findings §7 (Claude Haiku 4.5 pricing).
 
 ## §2 - Findings (all resolved during authoring)
 
-### ISS-001 - API key có thể bị nhúng vào client bundle nếu không có enforcement
-Không có gate CI thi developer có thể vô tình dùng `NEXT_PUBLIC_ANTHROPIC_API_KEY` hoặc import trong file client. Resolved: DEC-LUNAR-150 + §1 #1 + disallowed_tools; AC #1 grep assertion; §11 ghi chú CI grep step; §10 "API key bi nhung vao client" -> CI fail hard.
+### ISS-001 - The API key could be embedded in the client bundle without enforcement
+Without a CI gate, a developer could accidentally use `NEXT_PUBLIC_ANTHROPIC_API_KEY` or import it in a client file. Resolved: DEC-LUNAR-150 + §1 #1 + disallowed_tools; AC #1 grep assertion; §11 note on the CI grep step; §10 "API key embedded in client" -> CI fails hard.
 
-### ISS-002 - Không có cơ chế ngăn client chọn model đắt tiền hơn
-Nếu client truyền `model: "claude-opus-4"` và handler không validate, chi phí tăng không kiểm soát. Resolved: DEC-LUNAR-151 + §1 #3, #13 hardcode `claude-haiku-4-5` server-side; AC #14 test mock verify `lastCallModel`; §5 test "model trong Claude call luon la claude-haiku-4-5".
+### ISS-002 - No mechanism to prevent the client choosing a more expensive model
+If the client passes `model: "claude-opus-4"` and the handler does not validate, cost rises uncontrolled. Resolved: DEC-LUNAR-151 + §1 #3, #13 hardcode `claude-haiku-4-5` server-side; AC #14 mock test verifying `lastCallModel`; §5 test "the model in the Claude call is always claude-haiku-4-5".
 
-### ISS-003 - Prompt caching không được áp dụng thi chi phí input token tăng 90%
-Thiếu `cache_control` thi mỗi request gửi lại toàn bộ system prompt, không tận dụng Anthropic caching. Resolved: DEC-LUNAR-152 + §1 #4, #5 + `SYSTEM_PROMPT_BLOCK.cache_control`; AC #3 assertion; §5 test "system prompt block chua cache_control ephemeral"; §11 giải thích TTL 5 phút và `cacheReadInputTokens` monitoring.
+### ISS-003 - Not applying prompt caching raises input-token cost by 90%
+Without `cache_control`, every request resends the whole system prompt, not using Anthropic caching. Resolved: DEC-LUNAR-152 + §1 #4, #5 + `SYSTEM_PROMPT_BLOCK.cache_control`; AC #3 assertion; §5 test "the system prompt block contains cache_control ephemeral"; §11 explains the 5-minute TTL and `cacheReadInputTokens` monitoring.
 
-### ISS-004 - PII (tên người đã mất) có thể đi qua Claude API vi phạm PDPL
-Câu hỏi "Giỗ bà Nguyễn Thị Mai cúng gì?" nếu không sanitize sẽ gửi tên cá nhân ra ngoài Việt Nam. Resolved: DEC-LUNAR-154 + §1 #6 liệt kê field bị cấm; `sanitizeQuestion` trong prompt-builder; AC #5 test PII stripped; §5 "buildGenieMessages loai bo ten nguoi da mat"; §10 "PII trong question" -> replace pattern.
+### ISS-004 - PII (the name of the deceased) could pass through the Claude API, violating PDPL
+The question "What offerings for the anniversary of Mrs. Nguyen Thi Mai?" would, without sanitizing, send a personal name outside Vietnam. Resolved: DEC-LUNAR-154 + §1 #6 lists the banned fields; `sanitizeQuestion` in prompt-builder; AC #5 tests PII stripped; §5 "buildGenieMessages removes the deceased's name"; §10 "PII in question" -> replace pattern.
 
-### ISS-005 - Rate-limit không có kế hoạch reset theo ngày Việt Nam (UTC+7)
-Nếu reset theo UTC thi ngưỡng reset lúc 7h sáng Việt Nam, không phải nửa đêm - người dùng bị cắt sớm hoặc muộn. Resolved: DEC-LUNAR-153 + §11 "VercelKVRateLimiter TTL = giay con lai den nua dem UTC+7, date = YYYY-MM-DD theo Asia/Ho_Chi_Minh"; AC #4 test 429 sau 20 requests.
+### ISS-005 - The rate-limit has no plan to reset by the Vietnam day (UTC+7)
+Resetting by UTC would reset the threshold at 7am Vietnam time, not midnight - users get cut off early or late. Resolved: DEC-LUNAR-153 + §11 "VercelKVRateLimiter TTL = seconds remaining until UTC+7 midnight, date = YYYY-MM-DD by Asia/Ho_Chi_Minh"; AC #4 tests 429 after 20 requests.
 
-### ISS-006 - TTS không rõ phía client hay proxy xử lý; AVSpeechSynthesizer cần native bridge
-Không rõ ràng thi developer có thể implement TTS trong handler (gây latency + cost). Resolved: DEC-LUNAR-155 + §1 #11 TTS hoàn toàn client-side; §3 comment ví dụ `speechSynthesis.speak`; AC #11 test nút TTS ẩn khi không hỗ trợ; §9 deferred AVSpeechSynthesizer -> FR-LUNAR-013 bridge.
+### ISS-006 - Unclear whether TTS is handled client-side or by the proxy; AVSpeechSynthesizer needs a native bridge
+Without clarity a developer could implement TTS in the handler (adding latency + cost). Resolved: DEC-LUNAR-155 + §1 #11 TTS fully client-side; §3 example comment `speechSynthesis.speak`; AC #11 tests the TTS button is hidden when unsupported; §9 defers AVSpeechSynthesizer -> FR-LUNAR-013 bridge.
 
-### ISS-007 - Log production có thể ghi `question`/`answer` full text, vi phạm PDPL
-Logger mặc định của framework (Next.js, Vercel) có thể log toàn bộ request body. Resolved: §1 #8 spec log tối thiểu rõ ràng; AC #6 assert `question`/`answer` không trong log; DEC-LUNAR-154; §11 hash userId truoc khi log; §10 hàng "PII trong question" và log policy.
+### ISS-007 - Production logs could write full `question`/`answer` text, violating PDPL
+The framework's default logger (Next.js, Vercel) can log the entire request body. Resolved: §1 #8 specs minimal logging clearly; AC #6 asserts `question`/`answer` are not in the log; DEC-LUNAR-154; §11 hash the userId before logging; §10 row "PII in question" and log policy.
 
 ## §3 - Resolution
 
-Tất cả 7 vấn de kỹ thuật đã giải quyết trong quá trình soạn thảo. **Score = 10/10.** Sẵn sàng transition draft -> ready_to_implement.
+All 7 technical issues resolved during authoring. **Score = 10/10.** Ready to transition draft -> ready_to_implement.
 
 ## §4 - Independent adversarial pass (2026-06-27)
 
-Reviewer độc lập kiểm các điểm bảo mật: `ANTHROPIC_API_KEY` chỉ server-side (§1 #1, AC #1/#9), model không client-override (§1 #13, AC #14 + test `lastCallModel`), `cache_control: ephemeral` trên system block (§1 #4, AC #3), PII strip truoc khi gọi Claude (§1 #6, `sanitizeQuestion`, AC #5), log minimization (§1 #8, AC #6). KHÔNG có đường rò key - không blocker. Một MINOR đã sửa: §1 #7 (clause normative) chỉ nói "nửa đêm" mà không nêu múi giờ, trong khi §11 nêu rõ `Asia/Ho_Chi_Minh` (UTC+7); đã làm rõ §1 #7 = số nguyên giây đến nửa đêm UTC+7, đồng bộ với §11. **Score độc lập (pre-fix): 9/10.**
+The independent reviewer checked the security points: `ANTHROPIC_API_KEY` is server-side only (§1 #1, AC #1/#9), the model is not client-overridable (§1 #13, AC #14 + test `lastCallModel`), `cache_control: ephemeral` on the system block (§1 #4, AC #3), PII stripped before calling Claude (§1 #6, `sanitizeQuestion`, AC #5), log minimization (§1 #8, AC #6). NO key-leak path - no blocker. One MINOR fixed: §1 #7 (a normative clause) said only "midnight" without stating the timezone, while §11 states `Asia/Ho_Chi_Minh` (UTC+7) clearly; clarified §1 #7 = an integer number of seconds to UTC+7 midnight, synced with §11. **Independent score (pre-fix): 9/10.**
 
 ---
 
 ## §5 - Readiness pass (2026-06-28)
 
-Pass thu hai do reviewer doc lap.
+A second pass by an independent reviewer.
 
-- **4 bao mat MUST deu co AC + test.** (a) Server-only key (DEC-LUNAR-150): AC #1 (grep 0 ket qua trong apps/web/) + AC #9 (client khong import key) + test "ANTHROPIC_API_KEY khong xuat hien trong response". (b) Model khong client-overridable (DEC-LUNAR-151): AC #14 + test `lastCallModel() === 'claude-haiku-4-5'`. (c) PII strip (DEC-LUNAR-154): AC #5 + test `sanitizeQuestion` loai bo ten nguoi da mat. (d) cache_control ephemeral (DEC-LUNAR-152): AC #3 + test `SYSTEM_PROMPT_BLOCK.cache_control === { type: "ephemeral" }`.
-- **DEC ids dau day du.** DEC-LUNAR-150..155 tat ca duoc tham chieu trong §1, §4, §5, §11. Khong co clause nao thieu DEC id.
-- **Rate-limit Retry-After header.** §1 #7 xac dinh ro "so nguyen giay den nua dem UTC+7"; §4 AC #4 test 429 sau 20 requests; §5 test `res.headers.get("Retry-After").toBeTruthy()`; §11 giai thich key `genie:rl:{hash}:{date}` theo Asia/Ho_Chi_Minh.
-- **Traceability hoan chinh.** Moi MUST clause §1 #1-#14 co AC tuong ung trong §4 va test trong §5.
+- **All 4 security MUSTs have an AC + test.** (a) Server-only key (DEC-LUNAR-150): AC #1 (grep 0 results in apps/web/) + AC #9 (client does not import the key) + test "ANTHROPIC_API_KEY does not appear in the response". (b) Model not client-overridable (DEC-LUNAR-151): AC #14 + test `lastCallModel() === 'claude-haiku-4-5'`. (c) PII strip (DEC-LUNAR-154): AC #5 + test `sanitizeQuestion` removes the deceased's name. (d) cache_control ephemeral (DEC-LUNAR-152): AC #3 + test `SYSTEM_PROMPT_BLOCK.cache_control === { type: "ephemeral" }`.
+- **DEC ids complete.** DEC-LUNAR-150..155 are all referenced in §1, §4, §5, §11. No clause is missing a DEC id.
+- **Rate-limit Retry-After header.** §1 #7 specifies "integer seconds to UTC+7 midnight"; §4 AC #4 tests 429 after 20 requests; §5 test `res.headers.get("Retry-After").toBeTruthy()`; §11 explains the key `genie:rl:{hash}:{date}` by Asia/Ho_Chi_Minh.
+- **Complete traceability.** Every MUST clause §1 #1-#14 has a matching AC in §4 and a test in §5.
 
-**Verdict: PASS. San sang thuc thi.**
+**Verdict: PASS. Ready for implementation.**
 
-*Het audit FR-LUNAR-015.*
+*End of audit FR-LUNAR-015.*
 
-*Hết audit FR-LUNAR-015.*
+*End of audit FR-LUNAR-015.*

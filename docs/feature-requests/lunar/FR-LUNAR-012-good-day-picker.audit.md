@@ -12,52 +12,52 @@ authoring_md_compliance: 2026-06-27 (rule 36 - 6 ISS minimum; offline + EventKit
 
 ## §1 - Verdict summary
 
-FR-LUNAR-012 đặc tả màn hình "good-day picker" là UI thuần trên `getDayQuality`/`getMonthDayQualities` từ FR-011. Phạm vi: 12 điều khoản BCP-14 trong §1 (3 khu vực UI, 4 loại việc, clamp 90 ngày, filter Hoàng đạo, hiển thị 5 trường + top giờ Hoàng, disclaimer cố định, offline, EventKit là COULD); 6 lý do thiết kế trong §2; 5 kiểu TypeScript và 3 hàm public trong §3; 12 AC trong §4; 5 nhóm test trong §5; bảng 11 hàng failure trong §10. FR map tới PRD FR-E01, FR-E04 (COULD), PRD §13 (đặc thù diễn viên), và NFR-Offline.
+FR-LUNAR-012 specifies the "good-day picker" screen, a pure UI over `getDayQuality`/`getMonthDayQualities` from FR-011. Scope: 12 BCP-14 clauses in §1 (3 UI regions, 4 work types, clamp 90 days, auspicious filter, display 5 fields + top auspicious hours, fixed disclaimer, offline, EventKit is COULD); 6 design rationales in §2; 5 TypeScript types and 3 public functions in §3; 12 ACs in §4; 5 test groups in §5; an 11-row failure table in §10. The FR maps to PRD FR-E01, FR-E04 (COULD), PRD §13 (actor specifics), and NFR-Offline.
 
 ## §2 - Findings (all resolved during authoring)
 
-### ISS-001 - Khoảng ngày không giới hạn có thể gây hiệu năng kém và danh sách không thể dùng
+### ISS-001 - An unbounded date range can cause poor performance and an unusable list
 
-Nếu người dùng chọn 1 năm (365 ngày), có thể 180+ kết quả Hoàng đạo. Resolved: DEC-LUNAR-124 giới hạn 90 ngày; §1 #3 clamp + thông báo; AC #3 test clamp; §11 note edge case tháng 12->1.
+If the user picks 1 year (365 days), there could be 180+ auspicious results. Resolved: DEC-LUNAR-124 caps at 90 days; §1 #3 clamp + notice; AC #3 tests the clamp; §11 note on the December->January edge case.
 
-### ISS-002 - EventKit là SHOULD trong PRD nhưng nếu build bắt buộc thì delay ship
+### ISS-002 - EventKit is SHOULD in the PRD but making it mandatory in the build would delay shipping
 
-FR-E04 trong PRD ghi "tùy chọn". Nếu implement là SHOULD thì tạo áp lực test native Calendar trên iOS trước khi có tính năng cơ bản. Resolved: DEC-LUNAR-122 giảm xuống COULD; §1 #11 lazy permission + flow chính không bị ảnh hưởng; AC #9 test opt-out case; §11 platform check.
+FR-E04 in the PRD says "optional". Implementing it as SHOULD creates pressure to test the native Calendar on iOS before the basic feature exists. Resolved: DEC-LUNAR-122 downgrades to COULD; §1 #11 lazy permission + the main flow is unaffected; AC #9 tests the opt-out case; §11 platform check.
 
-### ISS-003 - Chưa có cơ chế đảm bảo disclaimer hiển thị (khác với disclaimer trong DayQuality)
+### ISS-003 - No mechanism ensures the disclaimer is displayed (different from the disclaimer in DayQuality)
 
-DayQuality có `disclaimer` field nhưng UI có thể không render nó. Resolved: §1 #6 bắt buộc banner disclaimer cố định; AC #6 DOM query test; §11 yêu cầu copy-paste chính xác.
+DayQuality has a `disclaimer` field but the UI may not render it. Resolved: §1 #6 requires a fixed disclaimer banner; AC #6 DOM query test; §11 requires exact copy-paste.
 
-### ISS-004 - Không rõ cách xử lý khoảng ngày qua ranh giới năm mới
+### ISS-004 - Unclear how to handle a date range crossing the new-year boundary
 
-Khoảng 15/12/2025 - 15/02/2026 cần gọi `getMonthDayQualities` cho 3 tháng khác nhau qua 2 năm. Resolved: §6 skeleton ghi rõ loop qua tháng tăng dần với xử lý năm; §11 note edge case tháng 12->1.
+The range 15/12/2025 - 15/02/2026 needs `getMonthDayQualities` for 3 different months across 2 years. Resolved: §6 skeleton states the loop over increasing months with year handling clearly; §11 note on the December->January edge case.
 
-### ISS-005 - Màn hình có thể gọi network nếu làm sai
+### ISS-005 - The screen could call the network if done wrong
 
-FR-010 (app shell) có lớp data-fetching; nếu developer copy pattern thì có thể vô tình thêm network call. Resolved: §1 #7 tường minh cấm network; AC #8 mock fetch; DEC-LUNAR-120 xác nhận "dữ liệu từ amlich-core, không gọi network".
+FR-010 (app shell) has a data-fetching layer; if a developer copies the pattern they could accidentally add a network call. Resolved: §1 #7 explicitly bans the network; AC #8 mocks fetch; DEC-LUNAR-120 confirms "data from amlich-core, no network calls".
 
-### ISS-006 - "Loại việc" chưa được định nghĩa cụ thể là gì
+### ISS-006 - "Work type" is not yet defined concretely
 
-PRD §13 nói đặc thù diễn viên nhưng không liệt kê 4 giá trị cuối. Resolved: §1 #2 liệt kê 4 giá trị cụ thể từ PRD §13 + Persona 1 (Chú Linh) + Persona 3 (Anh Tuấn); §3 `WorkType` union type với 4 giá trị; `WORK_TYPE_OPTIONS` với label tiếng Việt.
+PRD §13 mentions actor specifics but does not list the final 4 values. Resolved: §1 #2 lists 4 concrete values from PRD §13 + Persona 1 (Chu Linh) + Persona 3 (Anh Tuan); §3 `WorkType` union type with 4 values; `WORK_TYPE_OPTIONS` with Vietnamese labels.
 
 ## §3 - Resolution
 
-Sau 6 phát hiện và sửa: khoảng 90 ngày có clamp + test, EventKit giảm xuống COULD với lazy permission, disclaimer có AC DOM test, multi-year boundary được xử lý trong skeleton, network call bị cấm + test, 4 loại việc được định nghĩa cụ thể. **Score = 10/10.** Sẵn sàng transition draft -> ready_to_implement.
+After 6 findings and fixes: the 90-day range has a clamp + test, EventKit is downgraded to COULD with lazy permission, the disclaimer has a DOM AC test, the multi-year boundary is handled in the skeleton, network calls are banned + tested, and the 4 work types are defined concretely. **Score = 10/10.** Ready to transition draft -> ready_to_implement.
 
 ## §4 - Independent adversarial pass (2026-06-27)
 
-Reviewer độc lập xác nhận FR-012 đúng là UI thuần trên FR-011 (DEC-LUNAR-120), clamp 90 ngày, EventKit COULD không block - không có blocker. Một MINOR đã sửa: §3 `good-day.ts` tham chiếu `DayQuality`/`GioInfo` mà không import; đã thêm `import type { DayQuality, GioInfo }` và `import { getMonthDayQualities }` từ `@cyberskill/amlich-core` để contract compile và làm rõ FR-012 tiêu thụ FR-011 (không tự tính). **Score độc lập (pre-fix): 8.5/10.**
+The independent reviewer confirmed FR-012 is genuinely a pure UI over FR-011 (DEC-LUNAR-120), the 90-day clamp, EventKit COULD not blocking - no blocker. One MINOR fixed: §3 `good-day.ts` references `DayQuality`/`GioInfo` without importing them; added `import type { DayQuality, GioInfo }` and `import { getMonthDayQualities }` from `@cyberskill/amlich-core` so the contract compiles and to make clear FR-012 consumes FR-011 (does not compute itself). **Independent score (pre-fix): 8.5/10.**
 
 ## §5 - Readiness pass (2026-06-28)
 
-Pass thu hai do reviewer doc lap.
+A second pass by an independent reviewer.
 
-- **Import khop CONTRACT.md.** §3 `good-day.ts` import `DayQuality`, `GioInfo` (type), va `getMonthDayQualities` dung ten chinh xac tu `@cyberskill/amlich-core`. FR-012 khong tu tinh phong thuy (DEC-LUNAR-120).
-- **AC #13 them moi.** §1 #8 (PHAI khong tu dong tao Reminder) truoc day thieu AC tuong ung. Da them AC #13 va 2 test trong §5 xac nhan `filterGoodDays` va `computeGoodDays` khong goi createReminder hay EventKit write (DEC-LUNAR-123).
-- **Traceability hoan chinh.** Moi MUST clause §1 #1-#8 co AC trong §4 va test trong §5.
+- **Imports match CONTRACT.md.** §3 `good-day.ts` imports `DayQuality`, `GioInfo` (type), and `getMonthDayQualities` with the exact names from `@cyberskill/amlich-core`. FR-012 does not compute geomancy itself (DEC-LUNAR-120).
+- **AC #13 added.** §1 #8 (MUST NOT auto-create a Reminder) previously lacked a matching AC. Added AC #13 and 2 tests in §5 confirming `filterGoodDays` and `computeGoodDays` do not call createReminder or an EventKit write (DEC-LUNAR-123).
+- **Complete traceability.** Every MUST clause §1 #1-#8 has an AC in §4 and a test in §5.
 
-**Verdict: PASS. San sang thuc thi.**
+**Verdict: PASS. Ready for implementation.**
 
-*Het audit FR-LUNAR-012.*
+*End of audit FR-LUNAR-012.*
 
-*Hết audit FR-LUNAR-012.*
+*End of audit FR-LUNAR-012.*

@@ -1,6 +1,6 @@
 ---
 id: FR-LUNAR-019
-title: "PDPL compliance layer - privacy policy tiếng Việt, consent granular, mặc định on-device, tối thiểu hóa dữ liệu, không chuyển xuyên biên giới khi chưa DPIA"
+title: "PDPL compliance layer - Vietnamese privacy policy, granular consent, on-device by default, data minimization, no cross-border transfer before a DPIA"
 module: LUNAR
 priority: MUST
 status: ready_to_implement
@@ -21,12 +21,12 @@ source_pages:
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#Recommendations 6 (PDPL action)"
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#Caveats (PDPL còn điểm chưa rõ)"
 source_decisions:
-  - DEC-LUNAR-190 (Luật Bảo vệ Dữ liệu Cá nhân Law No. 91/2025/QH15 thông qua 26/6/2025, hiệu lực 01/01/2026; Nghị định 356/2025/ND-CP ban hành 31/12/2025 thay thế Decree 13/2023; startup có ân hạn 5 năm cho DPIA/DPO nhưng nghĩa vụ consent áp dụng ngay)
-  - DEC-LUNAR-191 (xử lý dữ liệu cho mục đích cá nhân/gia đình được miễn trừ PDPL - bản MVP cá nhân nằm ngoài phạm vi; bản thương mại (Phase 3+) thu thập dữ liệu ngoài gia đình không được miễn trừ và PHẢI tuân thủ đầy đủ)
-  - DEC-LUNAR-192 (tên người đã mất trong đám giỗ là dữ liệu nhạy cảm văn hóa: KHÔNG ĐƯỢC bán, KHÔNG ĐƯỢC chuyển xuyên biên giới khi chưa có DPIA chính thức; tối thiểu hóa - chỉ thu thập trường cần thiết)
-  - DEC-LUNAR-193 (consentFlags là mô hình granular: mỗi loại xử lý dữ liệu có cờ riêng; thu hồi một consent KHÔNG ảnh hưởng consent khác; lưu timestamp và version chính sách)
-  - DEC-LUNAR-194 (mức phạt PDPL: chuyển dữ liệu xuyên biên giới sai lên đến 5% doanh thu năm trước; mua bán dữ liệu trái phép lên đến 10x lợi bất chính; vi phạm khác trần 3 tỷ VND - đây là ngưỡng pháp lý thiết kế phải nằm dưới)
-  - DEC-LUNAR-195 (privacy policy bằng tiếng Việt, ngôn ngữ đơn giản không pháp lý, hiển thị trước khi bất kỳ thu thập dữ liệu nào xảy ra; cập nhật khi pháp luật thay đổi)
+  - DEC-LUNAR-190 (the Personal Data Protection Law No. 91/2025/QH15 passed on 26/6/2025, effective 01/01/2026; Decree 356/2025/ND-CP issued on 31/12/2025 replaces Decree 13/2023; startups have a 5-year grace period for DPIA/DPO but the consent obligation applies immediately)
+  - DEC-LUNAR-191 (processing data for personal/family purposes is exempt from PDPL - the personal MVP is out of scope; the commercial version (Phase 3+) collecting data beyond the family is not exempt and MUST fully comply)
+  - DEC-LUNAR-192 (the name of the deceased in a gio is culturally sensitive data: MUST NOT be sold, MUST NOT be transferred across borders before an official DPIA; minimize - collect only the necessary fields)
+  - DEC-LUNAR-193 (consentFlags is a granular model: each type of data processing has its own flag; revoking one consent does NOT affect another; store the timestamp and policy version)
+  - DEC-LUNAR-194 (PDPL penalties: incorrect cross-border data transfer up to 5% of the prior year's revenue; illegal data trading up to 10x the illicit gain; other violations capped at 3 billion VND - these are the legal thresholds the design must stay below)
+  - DEC-LUNAR-195 (the privacy policy is in Vietnamese, plain non-legal language, shown before any data collection occurs; updated when the law changes)
 language: typescript 5.x
 service: services/genie-api/
 new_files:
@@ -46,55 +46,55 @@ allowed_tools:
   - file_write: services/genie-api/lib/consent.ts services/genie-api/lib/data-minimization.ts services/genie-api/api/consent.ts services/genie-api/supabase/migrations/0019_consent_log.sql apps/web/components/** apps/web/lib/consent-store.ts
   - bash: cd services/genie-api && pnpm test
 disallowed_tools:
-  - "thu thập dữ liệu ngoài gia đình mà không có consent granular trước (vi phạm DEC-LUNAR-190 / PDPL hiệu lực 01/01/2026)"
-  - "chuyển dữ liệu người đã mất xuyên biên giới khi chưa có DPIA (vi phạm DEC-LUNAR-192 / DEC-LUNAR-194)"
-  - "bán hoặc chia sẻ consentFlags với bên thứ ba (vi phạm DEC-LUNAR-192)"
+  - "collect data beyond the family without granular consent first (violates DEC-LUNAR-190 / PDPL effective 01/01/2026)"
+  - "transfer data of the deceased across borders before a DPIA (violates DEC-LUNAR-192 / DEC-LUNAR-194)"
+  - "sell or share consentFlags with a third party (violates DEC-LUNAR-192)"
 effort_hours: 9
 sub_tasks:
-  - "1.5h: lib/consent.ts - ConsentFlags interface, validateConsent(), revokeConsent(), getConsentVersion(); lưu timestamp + policy_version"
-  - "1h: lib/data-minimization.ts - stripSensitiveFields() cho GIO reminder trước khi log/send to AI; checkCrossBorderTransfer()"
-  - "1.5h: api/consent.ts - POST /api/consent (cấp consent), DELETE /api/consent/:type (thu hồi), GET /api/consent (lấy trạng thái)"
-  - "1h: migration 0018 - bảng consent_log (userId, type, action, policy_version, timestamp, ip_hash)"
-  - "1.5h: apps/web/components/ConsentModal.tsx - UI granular: checkbox riêng cho mỗi loại xử lý, link privacy policy, không có dark pattern"
-  - "1.5h: apps/web/components/PrivacyPolicy.tsx - nội dung tiếng Việt, ngôn ngữ đơn giản, liệt kê rõ loại dữ liệu, mục đích, thời gian lưu, quyền người dùng, thông tin liên hệ CyberSkill"
-  - "1h: apps/web/lib/consent-store.ts - lưu consentFlags on-device (localStorage + sync với cloud khi đã bật), check trước mọi thu thập"
-risk_if_skipped: "PDPL hiệu lực 01/01/2026 áp dụng ngay cho nghĩa vụ consent - bỏ qua FR-019 ở Phase 3 thương mại là kinh doanh trái pháp luật, ngăn FR-018 (cloud sync) hoạt động hợp lệ vì thiếu lớp consent. Mức phạt lên đến 5% doanh thu và 3 tỷ VND là rủi ro kinh doanh nghiêm trọng cho startup. Không có consent granular thì không thể thu hồi riêng từng loại xử lý khi có yêu cầu pháp lý."
+  - "1.5h: lib/consent.ts - ConsentFlags interface, validateConsent(), revokeConsent(), getConsentVersion(); store timestamp + policy_version"
+  - "1h: lib/data-minimization.ts - stripSensitiveFields() for a GIO reminder before log/send to AI; checkCrossBorderTransfer()"
+  - "1.5h: api/consent.ts - POST /api/consent (grant consent), DELETE /api/consent/:type (revoke), GET /api/consent (get status)"
+  - "1h: migration 0018 - the consent_log table (userId, type, action, policy_version, timestamp, ip_hash)"
+  - "1.5h: apps/web/components/ConsentModal.tsx - granular UI: a separate checkbox for each processing type, a link to the privacy policy, no dark pattern"
+  - "1.5h: apps/web/components/PrivacyPolicy.tsx - Vietnamese content, plain language, clearly listing the data types, purpose, retention period, user rights, CyberSkill contact information"
+  - "1h: apps/web/lib/consent-store.ts - store consentFlags on-device (localStorage + sync with the cloud when enabled), check before any collection"
+risk_if_skipped: "PDPL, effective 01/01/2026, applies immediately to the consent obligation - skipping FR-019 at commercial Phase 3 is operating illegally, and prevents FR-018 (cloud sync) from operating lawfully due to the missing consent layer. Penalties of up to 5% of revenue and 3 billion VND are a serious business risk for a startup. Without granular consent, you cannot separately revoke each processing type when a legal request arrives."
 ---
 
 ## §1 - Description (BCP-14 normative)
 
-FR-019 xây dựng lớp tuân thủ PDPL (Law No. 91/2025/QH15, hiệu lực 01/01/2026) cho bản thương mại của "Genie Âm Lịch". Mục tiêu là đảm bảo mọi việc thu thập dữ liệu ngoài phạm vi gia đình đều có consent trước, rõ ràng, granular, và có thể thu hồi được - trong khi bản MVP cá nhân vẫn hoạt động đầy đủ không bị ảnh hưởng.
+FR-019 builds the PDPL compliance layer (Law No. 91/2025/QH15, effective 01/01/2026) for the commercial version of "Genie Am Lich". The goal is to ensure any data collection beyond the family scope has consent first, is clear, granular, and revocable - while the personal MVP still operates fully unaffected.
 
-1. PHẢI nhận biết ngưỡng miễn trừ: bản MVP cá nhân/gia đình thuần túy ĐƯỢC MIỄN TRỪ PDPL (DEC-LUNAR-191); tuy nhiên hệ thống PHẢI thiết kế sẵn khả năng tuân thủ để bản thương mại Phase 3 không cần rewrite cơ bản (PRD NFR-Privacy/PDPL).
-2. PHẢI hiển thị privacy policy bằng **tiếng Việt, ngôn ngữ đơn giản** (không phải văn bản pháp lý khó hiểu) trước khi bất kỳ thu thập dữ liệu nào ở bản thương mại xảy ra; privacy policy PHẢI ghi rõ: loại dữ liệu thu thập, mục đích xử lý, thời gian lưu giữ, quyền của người dùng (truy cập, chỉnh sửa, xóa, thu hồi), thông tin liên hệ của CyberSkill (DEC-LUNAR-195).
-3. PHẢI thực hiện `consentFlags` granular: tối thiểu gồm các cờ `cloudSync`, `genieAI`, `znsReminder`, `analyticsUsage`; mỗi cờ là một toggle độc lập; thu hồi một cờ KHÔNG ĐƯỢC ảnh hưởng cờ khác (DEC-LUNAR-193).
-4. PHẢI lưu từng sự kiện consent (cấp, thu hồi, chính sách version) vào bảng `consent_log` với timestamp và hash của IP - đây là năng lực audit đối với PDPL (DEC-LUNAR-193).
-5. PHẢI cập nhật `consentFlags.cloudSync` về `false` ngay lập tức khi người dùng thu hồi, và FR-LUNAR-018 `SyncClient` PHẢI ngừng push/pull ngay (DEC-LUNAR-180 + DEC-LUNAR-193).
-6. PHẢI áp dụng data minimization cho dữ liệu đám giỗ: `lib/data-minimization.ts` có hàm `stripSensitiveFields()` loại bỏ trường `title` (có thể chứa tên người đã mất) trước khi dữ liệu được gửi đến AI Genie (FR-015) hoặc ghi vào any log (DEC-LUNAR-192).
-7. KHÔNG ĐƯỢC chuyển dữ liệu người đã mất (bất kỳ trường nào của `GIO` reminder, đặc biệt `title`) ra ngoài lãnh thổ Việt Nam khi chưa có DPIA chính thức, kể cả khi hosting ở Singapore (DEC-LUNAR-192, DEC-LUNAR-194).
-8. PHẢI có hàm `checkCrossBorderTransfer(dataType, destination)` trả về `allowed: boolean` - tất cả endpoint gửi dữ liệu ra ngoài PHẢI gọi hàm này trước; nếu `allowed = false`, request PHẢI bị chặn và ghi log (DEC-LUNAR-192).
-9. PHẢI cung cấp endpoint `GET /api/consent` cho người dùng lấy toàn bộ lịch sử consent của họ (quyền truy cập PDPL); `DELETE /api/consent/:type` để thu hồi từng loại.
-10. KHÔNG ĐƯỢC sử dụng "dark pattern" trong ConsentModal: tất cả checkbox PHẢI bắt đầu ở trạng thái unchecked; không có pre-checked bộ, không có ngôn ngữ mơ hồ; nút "Từ chối tất cả" PHẢI dễ tìm và có kích thước tương đương nút "Đồng ý" (DEC-LUNAR-195).
-11. PHẢI lưu `consentFlags` on-device trong `consent-store.ts` (localStorage) và đồng bộ lên cloud consent_log khi người dùng đã bật `cloudSync`; khi offline, check local trước.
-12. NÊN lưu `policy_version` (string semver, ví dụ "1.0.0") cùng với consent để biết khi nào cần yêu cầu lại consent nếu chính sách thay đổi (DEC-LUNAR-195).
-13. KHÔNG ĐƯỢC chia sẻ, bán, hoặc cung cấp `consentFlags` hay dữ liệu xử lý cho bất kỳ bên thứ ba nào - kể cả đối tác phân tích (DEC-LUNAR-192); nếu cần phân tích, chỉ dùng dữ liệu tổng hợp đã loại danh tính.
-14. PHẢI có `PrivacyPolicy.tsx` có thể hiển thị trong app và liên kết truy cập được từ ConsentModal và từ menu Settings; nội dung PHẢI được cập nhật trước khi bất kỳ thay đổi pháp luật PDPL có hiệu lực.
+1. MUST recognize the exemption threshold: the pure personal/family MVP IS EXEMPT from PDPL (DEC-LUNAR-191); however the system MUST be designed for compliance-readiness so the commercial Phase 3 version does not need a fundamental rewrite (PRD NFR-Privacy/PDPL).
+2. MUST display the privacy policy in **Vietnamese, plain language** (not a hard-to-understand legal text) before any data collection in the commercial version occurs; the privacy policy MUST clearly state: the data types collected, the processing purpose, the retention period, the user's rights (access, edit, delete, revoke), and CyberSkill's contact information (DEC-LUNAR-195).
+3. MUST implement granular `consentFlags`: at minimum the flags `cloudSync`, `genieAI`, `znsReminder`, `analyticsUsage`; each flag is an independent toggle; revoking one flag MUST NOT affect another (DEC-LUNAR-193).
+4. MUST store each consent event (grant, revoke, policy version) into the `consent_log` table with the timestamp and a hash of the IP - this is the audit capability for PDPL (DEC-LUNAR-193).
+5. MUST set `consentFlags.cloudSync` to `false` immediately when the user revokes, and the FR-LUNAR-018 `SyncClient` MUST stop pushing/pulling right away (DEC-LUNAR-180 + DEC-LUNAR-193).
+6. MUST apply data minimization for gio data: `lib/data-minimization.ts` has a `stripSensitiveFields()` function that removes the `title` field (which may contain the name of the deceased) before the data is sent to AI Genie (FR-015) or written to any log (DEC-LUNAR-192).
+7. MUST NOT transfer data of the deceased (any field of a `GIO` reminder, especially `title`) outside Vietnamese territory before an official DPIA, even when hosting is in Singapore (DEC-LUNAR-192, DEC-LUNAR-194).
+8. MUST have a `checkCrossBorderTransfer(dataType, destination)` function returning `allowed: boolean` - every endpoint that sends data outside MUST call this function first; if `allowed = false`, the request MUST be blocked and logged (DEC-LUNAR-192).
+9. MUST provide the `GET /api/consent` endpoint for the user to retrieve their entire consent history (the PDPL access right); `DELETE /api/consent/:type` to revoke each type.
+10. MUST NOT use a "dark pattern" in the ConsentModal: all checkboxes MUST start in the unchecked state; no pre-checked boxes, no ambiguous language; the "Reject all" button MUST be easy to find and of equal size to the "Agree" button (DEC-LUNAR-195).
+11. MUST store `consentFlags` on-device in `consent-store.ts` (localStorage) and sync to the cloud consent_log when the user has enabled `cloudSync`; when offline, check local first.
+12. SHOULD store `policy_version` (a semver string, e.g. "1.0.0") alongside consent to know when to re-request consent if the policy changes (DEC-LUNAR-195).
+13. MUST NOT share, sell, or provide `consentFlags` or processed data to any third party - including analytics partners (DEC-LUNAR-192); if analytics is needed, use only aggregated, de-identified data.
+14. MUST have a `PrivacyPolicy.tsx` that can be displayed in-app and linked from the ConsentModal and the Settings menu; the content MUST be updated before any PDPL legal change takes effect.
 
 ---
 
 ## §2 - Why this design (rationale for humans)
 
-**Tại sao phân biệt rõ bản cá nhân (miễn trừ) và bản thương mại (không miễn trừ) (DEC-LUNAR-191)?** PDPL khẳng định rõ "xử lý dữ liệu cho mục đích cá nhân hoặc gia đình" là miễn trừ. Điều này có nghĩa bản MVP (với vợ founder, dùng riêng gia đình) hoàn toàn nằm ngoài phạm vi - FR-019 không cần thiết cho Phase 1 và 2. Nhưng ngay khi có người thứ ba đăng ký (bản thương mại Phase 3), miễn trừ hết hiệu lực. Thiết kế phân biệt này tránh việc "over-engineer" cho bản cá nhân trong khi vẫn có thể tuân thủ khi scale.
+**Why clearly separate the personal version (exempt) and the commercial version (not exempt) (DEC-LUNAR-191)?** PDPL clearly affirms that "processing data for personal or family purposes" is exempt. This means the MVP (with the founder's wife, used within one's own family) is entirely out of scope - FR-019 is not needed for Phase 1 and 2. But as soon as a third party registers (the commercial Phase 3 version), the exemption ends. This separation avoids "over-engineering" for the personal version while still being able to comply at scale.
 
-**Tại sao consent granular (4 cờ) thay vì một "Đồng ý tất cả" (DEC-LUNAR-193)?** PDPL yêu cầu consent phải "cụ thể, rõ ràng, và có thể thu hồi được". Một checkbox "Đồng ý điều khoản dịch vụ" không đủ cụ thể. Người dùng có thể đồng ý nhận ZNS nhưng không muốn dữ liệu được dùng cho analytics. Granular consent cũng đảm bảo khi một cờ bị thu hồi (ví dụ người dùng tắt AI Genie), các tính năng khác (ví dụ cloud sync) vẫn hoạt động bình thường - không có hiệu ứng domino.
+**Why granular consent (4 flags) instead of a single "Agree to all" (DEC-LUNAR-193)?** PDPL requires consent to be "specific, clear, and revocable". A single "Agree to the terms of service" checkbox is not specific enough. A user may agree to receive ZNS but not want the data used for analytics. Granular consent also ensures that when one flag is revoked (for example the user disables AI Genie), the other features (for example cloud sync) still work normally - no domino effect.
 
-**Tại sao tên người đã mất là trường hợp đặc biệt cần data minimization (DEC-LUNAR-192)?** PDPL điều 2 định nghĩa "dữ liệu cá nhân nhạy cảm" gồm dữ liệu liên quan đến "nhân thân, lịch sử cá nhân". Tên và ngày mất của người đã mất là dữ liệu liên quan trực tiếp đến cá nhân khác (người đã mất), và là dữ liệu cố hữu nhất của gia đình Việt Nam. Gửi trường `title` ("Giỗ bà nội Nguyễn Thị X") lên AI Genie là không cần thiết - Genie chỉ cần biết "đây là GIO reminder" để trả lời, không cần tên cụ thể. `stripSensitiveFields()` cắt bỏ trường này ở tầng API trước khi tiếp xuyên với bất kỳ service bên ngoài.
+**Why is the name of the deceased a special case needing data minimization (DEC-LUNAR-192)?** PDPL Article 2 defines "sensitive personal data" as including data related to "identity, personal history". The name and death date of a deceased person are data directly related to another individual (the deceased), and are the most private data of a Vietnamese family. Sending the `title` field ("Gio ba noi Nguyen Thi X") to AI Genie is unnecessary - Genie only needs to know "this is a GIO reminder" to respond, not the specific name. `stripSensitiveFields()` cuts this field at the API layer before any contact with an external service.
 
-**Tại sao `checkCrossBorderTransfer()` là một hàm kiểm tra tường minh (DEC-LUNAR-192, DEC-LUNAR-194)?** Mức phạt 5% doanh thu năm trước cho chuyển dữ liệu xuyên biên giới sai là mức phạt rất lớn ngay cả với startup. Thay vì tin vào tác giả FR sau nhớ quy tắc, một hàm explicit tạo ra một "kiểm tra bắt buộc" mà mọi endpoint mới PHẢI gọi - giống như cổng vào. Log khi `allowed = false` là bằng chứng audit nếu có thanh tra.
+**Why is `checkCrossBorderTransfer()` an explicit check function (DEC-LUNAR-192, DEC-LUNAR-194)?** The penalty of 5% of the prior year's revenue for an incorrect cross-border data transfer is very large even for a startup. Instead of trusting a later FR author to remember the rule, an explicit function creates a "mandatory check" that every new endpoint MUST call - like a gate. Logging when `allowed = false` is audit evidence if there is an inspection.
 
-**Tại sao không dark pattern trong ConsentModal (DEC-LUNAR-195)?** PDPL điều 11 yêu cầu consent phải "tự nguyện" và "có thể từ chối mà không bị thiệt thòi". Pre-checked box hay nút "Đồng ý" nổi bật hơn "Từ chối" là dark pattern vi phạm điều kiện "tự nguyện" này. Ngoài ra, dân ứng dụng Việt Nam ngày càng nhận biết dark pattern sau nhiều vụ scandal dữ liệu - thiết kế sạch sẽ xây dựng lợi tín.
+**Why no dark pattern in the ConsentModal (DEC-LUNAR-195)?** PDPL Article 11 requires consent to be "voluntary" and "refusable without disadvantage". A pre-checked box or an "Agree" button more prominent than "Reject" is a dark pattern violating this "voluntary" condition. Beyond that, Vietnamese app users are increasingly aware of dark patterns after many data scandals - a clean design builds trust.
 
-**Tại sao lưu `policy_version` (DEC-LUNAR-195)?** PDPL và Nghị định 356/2025 vẫn có những điểm chưa rõ và sẽ có sửa đổi. Khi pháp luật thay đổi, cần yêu cầu lại consent với chính sách mới. `policy_version` cho biết ai đã đồng ý với phiên bản nào - tránh phải yêu cầu lại tất cả người dùng khi chỉ có một nửa thay đổi nhỏ.
+**Why store `policy_version` (DEC-LUNAR-195)?** PDPL and Decree 356/2025 still have unclear points and will see amendments. When the law changes, you need to re-request consent with the new policy. `policy_version` records who agreed to which version - avoiding having to re-request all users when only a small part changes.
 
 ---
 
@@ -238,22 +238,22 @@ interface ConsentModalProps {
 
 ## §4 - Acceptance criteria
 
-1. Khi người dùng lần đầu vào bản thương mại, `ConsentModal` hiện ra trước bất kỳ hành động nào thu thập dữ liệu; bỏ qua modal mà không chọn gì vẫn cho phép dùng app ở chế độ on-device (không có cloud, không có AI, không có ZNS).
-2. Tất cả checkbox trong `ConsentModal` bắt đầu ở trạng thái unchecked; không có pre-selected option; nút "Từ chối tất cả" và "Xác nhận lựa chọn" có kích thước ngang nhau - kiểm tra bằng visual snapshot test.
-3. Cấp `cloudSync = true` -> `ConsentStore.setFlag()` lưu localStorage; `SyncClient` bắt đầu push/pull.
-4. Thu hồi `cloudSync` -> `ConsentStore.setFlag()` cập nhật; `SyncClient` ngừng push/pull trong vòng <= 1 request tiếp theo.
-5. Thu hồi `genieAI` KHÔNG ảnh hưởng `cloudSync` - kiểm tra hai flag độc lập nhau trong `ConsentStore`.
-6. Mỗi sự kiện cấp/thu hồi consent được ghi vào bảng `consent_log` với `timestamp`, `policy_version`, và `ip_hash`; `ip_hash` là SHA-256 của IP, không có IP rõ.
-7. `GET /api/consent` trả về lịch sử consent đầy đủ cho user đã xác thực; request không xác thực bị từ chối với HTTP 401.
-8. `DELETE /api/consent/cloudSync` trả về HTTP 200 và `consentFlags.cloudSync` chuyển về `false` trong cả localStorage lẫn cloud.
-9. `stripSensitiveFields()` trên một `GIO` reminder có `title = "Gio ba noi"` trả về object không có trường `title` và có `titleRedacted = true`.
-10. `checkCrossBorderTransfer("gio_reminder", "us-east-1")` khi chưa có DPIA trả về `{ allowed: false, dpiaPending: true }`.
-11. `checkCrossBorderTransfer("analytics_aggregate", "sg-ap-southeast-1")` với dữ liệu tổng hợp đã loại danh tính trả về `{ allowed: true }`.
-12. `api/genie.ts` phải gọi `stripSensitiveFields()` trước khi truyền bất kỳ trường reminder nào vào system prompt của Claude; kiểm tra bằng unit test mock.
-13. `PrivacyPolicy.tsx` hiển thị đầy đủ: loại dữ liệu, mục đích, thời gian lưu, quyền người dùng (truy cập/chỉnh sửa/xóa/thu hồi), thông tin liên hệ CyberSkill; sẵn sàng hiển thị bằng tiếng Việt.
-14. `policy_version` được lưu cùng với consent; khi `CONSENT_POLICY_VERSION` tăng lên (ví dụ "1.1.0"), hệ thống phát hiện người dùng có `policyVersion = "1.0.0"` và hiện lại `ConsentModal`.
-15. Bản MVP cá nhân (Phase 1, 2) chạy đầy đủ không hiện `ConsentModal` - vì mặc định là on-device và miễn trừ PDPL.
-16. `GET /api/consent` và tất cả các endpoint phát ra `consentFlags` hoặc `consent_log` KHÔNG BAO GỜ trả về dữ liệu consent của người dùng khác và KHÔNG bao gồm thông tin `consentFlags` trong response của bất kỳ API bên thứ ba nào - kiểm tra bằng unit test mock trên handler, xác nhận response body không chứa `consentFlags` object trong payload gửi ra ngoài (DEC-LUNAR-192, §1 #13).
+1. When the user first enters the commercial version, `ConsentModal` appears before any data-collecting action; dismissing the modal without choosing anything still lets them use the app in on-device mode (no cloud, no AI, no ZNS).
+2. All checkboxes in `ConsentModal` start in the unchecked state; no pre-selected option; the "Reject all" and "Confirm selection" buttons are of equal size - checked via a visual snapshot test.
+3. Granting `cloudSync = true` -> `ConsentStore.setFlag()` saves to localStorage; `SyncClient` starts pushing/pulling.
+4. Revoking `cloudSync` -> `ConsentStore.setFlag()` updates; `SyncClient` stops pushing/pulling within <= 1 subsequent request.
+5. Revoking `genieAI` does NOT affect `cloudSync` - check that the two flags are independent in `ConsentStore`.
+6. Each consent grant/revoke event is written to the `consent_log` table with `timestamp`, `policy_version`, and `ip_hash`; `ip_hash` is the SHA-256 of the IP, with no plaintext IP.
+7. `GET /api/consent` returns the full consent history for the authenticated user; an unauthenticated request is rejected with HTTP 401.
+8. `DELETE /api/consent/cloudSync` returns HTTP 200 and `consentFlags.cloudSync` turns `false` in both localStorage and the cloud.
+9. `stripSensitiveFields()` on a `GIO` reminder with `title = "Gio ba noi"` returns an object without the `title` field and with `titleRedacted = true`.
+10. `checkCrossBorderTransfer("gio_reminder", "us-east-1")` when there is no DPIA returns `{ allowed: false, dpiaPending: true }`.
+11. `checkCrossBorderTransfer("analytics_aggregate", "sg-ap-southeast-1")` with aggregated, de-identified data returns `{ allowed: true }`.
+12. `api/genie.ts` must call `stripSensitiveFields()` before passing any reminder field into Claude's system prompt; checked via a mocked unit test.
+13. `PrivacyPolicy.tsx` displays fully: the data types, purpose, retention period, user rights (access/edit/delete/revoke), CyberSkill contact information; ready to display in Vietnamese.
+14. `policy_version` is stored alongside consent; when `CONSENT_POLICY_VERSION` bumps (e.g. "1.1.0"), the system detects a user with `policyVersion = "1.0.0"` and shows the `ConsentModal` again.
+15. The personal MVP (Phase 1, 2) runs fully without showing `ConsentModal` - because the default is on-device and PDPL-exempt.
+16. `GET /api/consent` and all endpoints that emit `consentFlags` or `consent_log` NEVER return another user's consent data and do NOT include `consentFlags` information in the response of any third-party API - checked via a mocked unit test on the handler, confirming the response body does not contain a `consentFlags` object in the outbound payload (DEC-LUNAR-192, §1 #13).
 
 ---
 
@@ -361,7 +361,7 @@ describe("consent isolation - khong chia se voi ben thu ba", () => {
 
 ## §6 - Implementation skeleton
 
-API contract ở §3 là xương sống. Hai điểm then chốt:
+The API contract in §3 is the backbone. Two key points:
 
 ```typescript
 // Kiem tra consent truoc moi thu thap du lieu - mau nay ap dung khap noi
@@ -396,11 +396,11 @@ export function checkCrossBorderTransfer(
 
 ## §7 - Dependencies
 
-Upstream: FR-LUNAR-016 (Zalo Mini App) - người dùng Zalo Mini App cần consent riêng cho ZNS; `consentFlags.znsReminder` được set qua luồng này trước khi FR-017 gửi bất kỳ ZNS nào. FR-LUNAR-018 (family sharing cloud sync) - FR-018 `SyncClient` phụ thuộc `consentFlags.cloudSync` từ FR-019 để quyết định có push/pull hay không.
+Upstream: FR-LUNAR-016 (Zalo Mini App) - Zalo Mini App users need a separate consent for ZNS; `consentFlags.znsReminder` is set via this flow before FR-017 sends any ZNS. FR-LUNAR-018 (family sharing cloud sync) - FR-018's `SyncClient` depends on `consentFlags.cloudSync` from FR-019 to decide whether to push/pull.
 
-Downstream: FR-019 không blocks FR nào nhưng là điều kiện tiên quyết để mọi thu thập dữ liệu ở Phase 3 là hợp pháp. Mọi FR Phase 3 gửi dữ liệu ra ngoài thiết bị (016, 017, 018, 020) PHẢI tham chiếu `ConsentStore` trc khi hành động.
+Downstream: FR-019 blocks no FR but is a precondition for every data collection in Phase 3 to be lawful. Every Phase 3 FR that sends data off the device (016, 017, 018, 020) MUST reference `ConsentStore` before acting.
 
-Cross-cutting: FR-LUNAR-015 (AI Genie) PHẢI gọi `stripSensitiveFields()` trước khi truyền reminder content vào Claude prompt. FR-LUNAR-017 (ZNS) PHẢI check `consentFlags.znsReminder` trước khi gửi bất kỳ tin nhắn nào.
+Cross-cutting: FR-LUNAR-015 (AI Genie) MUST call `stripSensitiveFields()` before passing reminder content into the Claude prompt. FR-LUNAR-017 (ZNS) MUST check `consentFlags.znsReminder` before sending any message.
 
 ---
 
@@ -489,17 +489,17 @@ CREATE POLICY "server_insert_only" ON consent_log
 
 ## §9 - Open questions
 
-Đã giải quyết:
-- Miễn trừ cá nhân/gia đình: xác nhận rõ điều kiện (DEC-LUNAR-191) - bản MVP Phase 1, 2 không cần FR-019 hoạt động tích cực; AC #15 kiểm tra điều này.
-- Mức phạt cụ thể: DEC-LUNAR-194 ghi lại 3 mức phạt từ PRD Key Findings 8 - đây là các ngưỡng pháp lý thiết kế phải nằm dưới.
-- granular consent: 4 loại (cloudSync, genieAI, znsReminder, analyticsUsage) là đủ cho Phase 3 ban đầu.
-- Dark pattern: định nghĩa rõ trong §1 #10 và §5 test.
+Resolved:
+- Personal/family exemption: clearly confirmed the conditions (DEC-LUNAR-191) - the Phase 1, 2 MVP does not need FR-019 actively running; AC #15 checks this.
+- Specific penalties: DEC-LUNAR-194 records the 3 penalty tiers from PRD Key Findings 8 - these are the legal thresholds the design must stay below.
+- granular consent: 4 types (cloudSync, genieAI, znsReminder, analyticsUsage) are enough for the initial Phase 3.
+- Dark pattern: clearly defined in §1 #10 and the §5 tests.
 
-Còn hoãn (defer):
-- DPIA chính thức: startup có ân hạn 5 năm (DEC-LUNAR-190), nhưng cần thực hiện trước khi scale xuyên biên giới (DEC-LUNAR-192). Mô tả như điều kiện tiên quyết cho chuyển dữ liệu sang destination ngoài "sg-ap-southeast-1" - tham vấn pháp lý là bước bắt buộc, ngoài phạm vi FR này.
-- DPO (Data Protection Officer): startup có ân hạn 5 năm (DEC-LUNAR-190); chỉ bắt buộc khi xóa bỏ ân hạn. Tích vào lịch trình Phase 4.
-- Consent cho dữ liệu người thứ ba (ví dụ analytics SDK như Firebase/Mixpanel): hiện tại `analyticsUsage` là placeholder; cần xác định rõ các SDK được dùng và khai báo trong privacy policy trước khi bật.
-- Giao diện thu hồi consent phía Zalo Mini App (FR-016): Zalo có API `revokeUserInfo`; cần tích hợp với `ConsentStore` - defer sang FR-016 extension.
+Still deferred:
+- Official DPIA: the startup has a 5-year grace period (DEC-LUNAR-190), but it must be done before scaling across borders (DEC-LUNAR-192). Described as a precondition for transferring data to a destination outside "sg-ap-southeast-1" - a legal consultation is a mandatory step, outside the scope of this FR.
+- DPO (Data Protection Officer): the startup has a 5-year grace period (DEC-LUNAR-190); only mandatory once the grace period is removed. Scheduled into Phase 4.
+- Consent for third-party data (for example an analytics SDK like Firebase/Mixpanel): currently `analyticsUsage` is a placeholder; the SDKs used need to be clearly identified and declared in the privacy policy before enabling.
+- The consent-revocation interface on the Zalo Mini App side (FR-016): Zalo has a `revokeUserInfo` API; it needs integration with `ConsentStore` - deferred to an FR-016 extension.
 
 ---
 
@@ -507,29 +507,29 @@ Còn hoãn (defer):
 
 | Failure | Detection | Outcome | Recovery |
 |---|---|---|---|
-| Thu thập dữ liệu khi chưa có consent | `guardConsent()` throw `ConsentRequiredError` | Request bị chặn trước khi xử lý | Hiện ConsentModal cho người dùng |
-| Dark pattern (pre-checked checkbox) | Snapshot test + accessibility audit | Test fail trước khi ship | Fix component: đặt unchecked làm default |
-| Thu hồi consent nhưng SyncClient vẫn push | Unit test SyncClient sau revoke | Dữ liệu bị gửi trái phép | Fix: SyncClient check cờ trước mỗi push |
-| Chuyển dữ liệu GIO sang nước ngoài khi chưa DPIA | `checkCrossBorderTransfer()` trả `allowed: false` | Request bị block, ghi log | Hiện thông báo lỗi; chờ đến khi có DPIA |
-| `stripSensitiveFields` bị bỏ qua trong genie.ts | Unit test mock genie handler | Tên người đã mất bị gửi đến Claude | Fix: thêm gọi hàm trước khi build prompt |
-| IP rõ trong consent_log | Schema check: cột `ip_hash` TEXT, không có cột `ip` | Log chứa IP rõ (vi phạm PDPL) | Sửa migration: xóa cột `ip` nếu có; chỉ lưu hash |
-| policy_version không tăng khi chính sách thay đổi | CI check so sánh `CONSENT_POLICY_VERSION` trong code vs version mới nhất trong consent_log | Người dùng không được yêu cầu lại consent | Bump `CONSENT_POLICY_VERSION` trong lib/consent.ts |
-| Consent log bị truy cập bởi user khác | RLS policy `user_own_consent_log` | RLS chặn (0 hàng) | Kiểm tra RLS policy trong integration test |
-| Server insert trực tiếp vào consent_log vi phạm | Policy `server_insert_only WITH CHECK FALSE` | Client INSERT bị reject | Chỉ server (service role) insert; đọc bằng API |
-| ConsentModal không hiện khi policy_version tăng | Check `flags.policyVersion < CONSENT_POLICY_VERSION` | Người dùng dùng chính sách cũ | Thêm version check vào `ConsentStore.getFlags()` |
+| Collecting data without consent | `guardConsent()` throws `ConsentRequiredError` | Request blocked before processing | Show the ConsentModal to the user |
+| Dark pattern (pre-checked checkbox) | Snapshot test + accessibility audit | Test fails before shipping | Fix the component: set unchecked as the default |
+| Consent revoked but SyncClient still pushes | Unit test SyncClient after revoke | Data sent without authorization | Fix: SyncClient checks the flag before each push |
+| Transferring GIO data abroad before a DPIA | `checkCrossBorderTransfer()` returns `allowed: false` | Request blocked, logged | Show an error message; wait until there is a DPIA |
+| `stripSensitiveFields` skipped in genie.ts | Unit test mocking the genie handler | The name of the deceased is sent to Claude | Fix: add the function call before building the prompt |
+| Plaintext IP in consent_log | Schema check: the `ip_hash` TEXT column, no `ip` column | Log contains plaintext IP (PDPL violation) | Fix the migration: drop the `ip` column if present; store only the hash |
+| policy_version not bumped when the policy changes | CI check comparing `CONSENT_POLICY_VERSION` in code vs the latest version in consent_log | The user is not re-requested for consent | Bump `CONSENT_POLICY_VERSION` in lib/consent.ts |
+| Consent log accessed by another user | RLS policy `user_own_consent_log` | RLS blocks (0 rows) | Check the RLS policy in the integration test |
+| Server inserting directly into consent_log violates | Policy `server_insert_only WITH CHECK FALSE` | Client INSERT is rejected | Only the server (service role) inserts; read via the API |
+| ConsentModal not shown when policy_version bumps | Check `flags.policyVersion < CONSENT_POLICY_VERSION` | The user is on the old policy | Add a version check to `ConsentStore.getFlags()` |
 
 ---
 
 ## §11 - Implementation notes
 
-- `guardConsent()` phải là hàm đồng bộ (synchronous) để có thể gọi ở bắt đầu bất kỳ async handler nào mà không có overhead. Consent check PHẢI là dòng đầu tiên, trước mọi operation.
-- `stripSensitiveFields()` phải là hàm thuần túy (pure function): đầu vào `RemindersUpsertRow`, đầu ra object không có `title`. Không có logging, không có side effect - dễ test và dễ audit.
-- `ip_hash` trong consent_log: dùng `crypto.createHash('sha256').update(ip + SALT).digest('hex')` với `SALT` là environment variable. Đây là dữ liệu tối thiểu cần để audit ("đồng ý từ địa chỉ nào") mà không lưu IP rõ - giảm rủi ro PDPL.
-- `ConsentModal` nên dùng `role="dialog"` và `aria-modal="true"` để hỗ trợ screen reader; nút "Từ chối tất cả" và "Xác nhận lựa chọn" phải có `aria-label` rõ ràng bằng tiếng Việt.
-- `policy_version` dùng semver (major.minor.patch): tăng major khi có thay đổi cơ bản quyền lợi người dùng (yêu cầu lại consent); tăng minor khi thêm loại xử lý mới; tăng patch cho chính tả/sửa nhỏ.
-- Privacy policy tiếng Việt: tránh sao chép văn bản pháp lý tiếng Anh rồi dịch máy - người dùng Việt Nam cần hiểu được. Test với một người không làm kỹ thuật: nếu họ không hiểu, viết lại.
-- `ConsentStore.syncToCloud()` chỉ gọi khi `consentFlags.cloudSync` ĐÃ là `true` trước đó. Nếu cloudSync là flag đầu tiên được grant, thì sau khi lưu localStorage, mới gọi cloud sync. Logic này cần được test rõ ràng để tránh vô vòng.
-- Bản thương mại cần tham vấn pháp lý trước khi ra mắt chính thức: PDPL và Nghị định 356/2025 còn có điểm "Caveats" (PRD) chưa rõ - especially mối quan hệ với Data Law và định nghĩa dữ liệu nhạy cảm mở rộng.
-- So migration P3 duoc phan phoi de tranh va cham: 0016-0017 danh cho FR-018, 0018 cho FR-017, 0019 cho FR-019, 0020 cho FR-020.
+- `guardConsent()` must be a synchronous function so it can be called at the start of any async handler with no overhead. The consent check MUST be the first line, before any operation.
+- `stripSensitiveFields()` must be a pure function: input `RemindersUpsertRow`, output an object without `title`. No logging, no side effect - easy to test and easy to audit.
+- `ip_hash` in consent_log: use `crypto.createHash('sha256').update(ip + SALT).digest('hex')` with `SALT` as an environment variable. This is the minimum data needed to audit ("consent from which address") without storing the plaintext IP - reducing PDPL risk.
+- `ConsentModal` should use `role="dialog"` and `aria-modal="true"` to support screen readers; the "Reject all" and "Confirm selection" buttons must have a clear `aria-label` in Vietnamese.
+- `policy_version` uses semver (major.minor.patch): bump major on a fundamental change to user rights (requires re-consent); bump minor when adding a new processing type; bump patch for typos/small fixes.
+- Vietnamese privacy policy: avoid copying English legal text and machine-translating it - Vietnamese users need to understand it. Test with a non-technical person: if they do not understand, rewrite it.
+- `ConsentStore.syncToCloud()` is only called when `consentFlags.cloudSync` is ALREADY `true` beforehand. If cloudSync is the first flag granted, then after saving to localStorage, only then call the cloud sync. This logic needs clear testing to avoid a loop.
+- The commercial version needs a legal consultation before the official launch: PDPL and Decree 356/2025 still have "Caveats" (PRD) unclear points - especially the relationship with the Data Law and the expanded definition of sensitive data.
+- The P3 migration numbers are distributed to avoid collisions: 0016-0017 for FR-018, 0018 for FR-017, 0019 for FR-019, 0020 for FR-020.
 
-*Hết FR-LUNAR-019.*
+*End of FR-LUNAR-019.*

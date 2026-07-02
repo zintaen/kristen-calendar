@@ -12,48 +12,48 @@ authoring_md_compliance: 2026-06-27 (rule 36 - 6 ISS >= 6 minimum; APCA determin
 
 ## §1 - Verdict summary
 
-FR-LUNAR-014 đặc tả tính năng thiệp chia sẻ tông tím. Phạm vi: 13 mệnh đề BCP-14 trong §1 (Canvas 2D 1080px, font loading, APCA gate, hai template, Web Share API, fallback download, preview 360px, CardData từ layer trên, họa tiết thuần Canvas). §2 có 6 đoạn rationale giải thích lý do chọn Canvas 2D, kích thuoc 1080px, APCA compile-time, Web Share, và tách CardData. §3 định nghĩa `CardData`, `CardTheme`, `CARD_THEMES`, `drawCard`, `loadCardFont`, `exportCardBlob`, `shareCard`. §4 có 13 AC kiểm tra được. §5 có 5 test case bằng vitest/jest dùng node-canvas và calcAPCA. §10 có 10 hàng failure modes. §11 có 7 ghi chú implementation. Map tới PRD FR-F03 và §13 (shareable cards, APCA Lc >= 75, Be Vietnam Pro).
+FR-LUNAR-014 specifies the purple-tone shareable card feature. Scope: 13 BCP-14 clauses in §1 (Canvas 2D 1080px, font loading, APCA gate, two templates, Web Share API, fallback download, preview 360px, CardData from the layer above, pure-Canvas motifs). §2 has 6 rationale paragraphs explaining the choice of Canvas 2D, the 1080px size, compile-time APCA, Web Share, and separating CardData. §3 defines `CardData`, `CardTheme`, `CARD_THEMES`, `drawCard`, `loadCardFont`, `exportCardBlob`, `shareCard`. §4 has 13 testable ACs. §5 has 5 test cases using vitest/jest with node-canvas and calcAPCA. §10 has 10 failure-mode rows. §11 has 7 implementation notes. Maps to PRD FR-F03 and §13 (shareable cards, APCA Lc >= 75, Be Vietnam Pro).
 
 ## §2 - Findings (all resolved during authoring)
 
-### ISS-001 - html2canvas/DOM-to-image cho kết quả font render không ổn định
-Tên thư viện html2canvas thường bị CORS khi canvas chứa ảnh ngoài, font không khớp với render thật của browser. Resolved: DEC-LUNAR-140 + §1 #1 bắt buộc Canvas 2D API; disallowed_tools ghi rõ.
+### ISS-001 - html2canvas/DOM-to-image gives unstable font-render results
+The html2canvas library often hits CORS when the canvas contains external images, and fonts do not match the browser's real render. Resolved: DEC-LUNAR-140 + §1 #1 requires the Canvas 2D API; disallowed_tools states it clearly.
 
-### ISS-002 - APCA có thể bị vi phạm âm thầm khi đổi token màu
-Không có gate compile-time thi màu tím nhạt trên trắng có thể pass WCAG AA nhưng fail APCA Lc. Resolved: DEC-LUNAR-141 + §1 #5 assertion bằng apca-w3 trong test suite; AC #3, #4 asserting >= 75; §5 loop qua tất cả CARD_THEMES.
+### ISS-002 - APCA can be violated silently when the color token changes
+Without a compile-time gate, pale purple on white can pass WCAG AA but fail APCA Lc. Resolved: DEC-LUNAR-141 + §1 #5 assertion via apca-w3 in the test suite; AC #3, #4 asserting >= 75; §5 loops over every CARD_THEME.
 
-### ISS-003 - Web Share API Level 2 (file sharing) không khả dụng trên desktop browser
-Không có fallback thi người dùng desktop bị kẹt, không tải được ảnh. Resolved: DEC-LUNAR-142 + §1 #8 fallback download qua `<a download>`; AC #7; test "shareCard downloads when canShare unavailable".
+### ISS-003 - Web Share API Level 2 (file sharing) is not available on desktop browsers
+Without a fallback, desktop users are stuck and cannot download the image. Resolved: DEC-LUNAR-142 + §1 #8 fallback download via `<a download>`; AC #7; test "shareCard downloads when canShare unavailable".
 
-### ISS-004 - Font "Be Vietnam Pro" có thể chưa load khi drawCard chạy
-Canvas vẽ text truoc khi font sẵn sàng thi fallback sang sans-serif không có thông báo, card ra font sai. Resolved: §1 #4 load font truoc, timeout 3s, fallback + log; AC #10; test "drawCard runs with fallback font when load fails".
+### ISS-004 - The "Be Vietnam Pro" font may not be loaded when drawCard runs
+If the canvas draws text before the font is ready, it falls back to sans-serif without notice and the card gets the wrong font. Resolved: §1 #4 load the font first, 3s timeout, fallback + log; AC #10; test "drawCard runs with fallback font when load fails".
 
-### ISS-005 - CardData tính lại trong renderer tạo coupling vòng với amlich-core
-Renderer kéo dependency vào amlich-core thi không test độc lập. Resolved: DEC-LUNAR-143 + §1 #11 bắt buộc nhận CardData đã tính; disallowed_tools ghi rõ; AC #11 assert không network call.
+### ISS-005 - Recomputing CardData in the renderer creates a circular coupling with amlich-core
+If the renderer pulls a dependency on amlich-core, it cannot be tested independently. Resolved: DEC-LUNAR-143 + §1 #11 requires receiving pre-computed CardData; disallowed_tools states it clearly; AC #11 asserts no network call.
 
-### ISS-006 - Card kích thuoc không rõ; preview vs export có thể bị nhầm
-Không rõ canvas thật 1080px hay preview 360px là file share. Resolved: §1 #2, #9 tách rõ canvas 1080px export vs preview 360px CSS scale; AC #1, #8 test cả hai; §3 hai component riêng biệt ShareCard và ShareCardSheet.
+### ISS-006 - The card size is unclear; preview vs export could be confused
+It is unclear whether the real 1080px canvas or the 360px preview is the shared file. Resolved: §1 #2, #9 clearly separate the 1080px export canvas vs the 360px preview CSS scale; AC #1, #8 test both; §3 two separate components ShareCard and ShareCardSheet.
 
 ## §3 - Resolution
 
-Tất cả 6 vấn de kỹ thuật đã giải quyết trong quá trình soạn thảo. **Score = 10/10.** Sẵn sàng transition draft -> ready_to_implement.
+All 6 technical issues resolved during authoring. **Score = 10/10.** Ready to transition draft -> ready_to_implement.
 
 ## §4 - Independent adversarial pass (2026-06-27)
 
-Reviewer độc lập xác nhận FR-014 nhận `CardData` từ DayInfo của FR-007 (DEC-LUNAR-143), không tính lại - đúng. Một MINOR (mâu thuẫn nội bộ APCA) đã sửa: §1 #5 ghi "mọi cặp text/nền PHẢI Lc >= 75" nhưng §5 test lại assert secondary ở >= 60, và §11 yêu cầu watermark Lc >= 90 mà không có test. Đã đồng bộ: §1 #5 nêu ngưỡng theo cỡ chữ (primary >= 75, secondary >= 60, watermark >= 90); thêm `apcaLc.watermark` vào `CardRenderResult`; thêm assertion watermark >= 90 trong §5 và AC #12; cập nhật ví dụ payload. **Score độc lập (pre-fix): 8.5/10.**
+The independent reviewer confirmed FR-014 receives `CardData` from FR-007's DayInfo (DEC-LUNAR-143), and does not recompute - correct. One MINOR (an internal APCA contradiction) fixed: §1 #5 said "every text/background pair MUST be Lc >= 75" but the §5 test asserted secondary at >= 60, and §11 required a watermark Lc >= 90 without a test. Synced: §1 #5 states thresholds by font size (primary >= 75, secondary >= 60, watermark >= 90); added `apcaLc.watermark` to `CardRenderResult`; added the watermark >= 90 assertion in §5 and AC #12; updated the example payload. **Independent score (pre-fix): 8.5/10.**
 
 ---
 
 ## §5 - Readiness pass (2026-06-28)
 
-Pass thu hai do reviewer doc lap.
+A second pass by an independent reviewer.
 
-- **AC #14 them moi.** §1 #11 (PHAI nhan CardData tu layer tren, KHONG tinh lai DayInfo) truoc day chi co AC #11 (no-network) lam bao ve gian tiep. Da them AC #14 va test `card-renderer khong re-import amlich-core` kiem tra static exports khong chua symbol tu amlich-core (DEC-LUNAR-143).
-- **APCA thresholds nhat quan.** §1 #5 chia nguong theo co chu (primary >= 75, secondary >= 60, watermark >= 90); §4 AC #3/#4/#12; §5 test loop CARD_THEMES va watermark assertion - tat ca da khop sau independent pass truoc.
-- **Traceability hoan chinh.** Moi MUST clause §1 #1-#11 co AC tuong ung. §1 #12/#13 la SHOULD/COULD; khong yeu cau AC day du.
+- **AC #14 added.** §1 #11 (MUST receive CardData from the layer above, MUST NOT recompute DayInfo) previously had only AC #11 (no-network) as an indirect guard. Added AC #14 and the test `card-renderer does not re-import amlich-core` checking the static exports do not contain a symbol from amlich-core (DEC-LUNAR-143).
+- **APCA thresholds consistent.** §1 #5 splits thresholds by font size (primary >= 75, secondary >= 60, watermark >= 90); §4 AC #3/#4/#12; §5 test loop over CARD_THEMES and the watermark assertion - all matched after the prior independent pass.
+- **Complete traceability.** Every MUST clause §1 #1-#11 has a matching AC. §1 #12/#13 are SHOULD/COULD; a full AC is not required.
 
-**Verdict: PASS. San sang thuc thi.**
+**Verdict: PASS. Ready for implementation.**
 
-*Het audit FR-LUNAR-014.*
+*End of audit FR-LUNAR-014.*
 
-*Hết audit FR-LUNAR-014.*
+*End of audit FR-LUNAR-014.*

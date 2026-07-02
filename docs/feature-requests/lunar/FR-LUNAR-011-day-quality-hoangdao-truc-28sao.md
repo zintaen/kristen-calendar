@@ -1,6 +1,6 @@
 ---
 id: FR-LUNAR-011
-title: "Day quality - Hoàng đạo/Hắc đạo, 12 Trực, Nhị thập bát tú (28 sao), giờ Hoàng đạo, tính từ can-chi ngày + tiết khí, nhãn phong thủy dân gian"
+title: "Day quality - Hoang dao/Hac dao, 12 Truc, 28 lunar mansions (28 sao), auspicious hours, computed from can-chi of the day + solar term, with a folk feng shui label"
 module: LUNAR
 priority: MUST
 status: ready_to_implement
@@ -19,12 +19,12 @@ source_pages:
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#4 (FR-E02, FR-E03)"
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#8 (Hoàng đạo/Trực/28 sao)"
 source_decisions:
-  - DEC-LUNAR-110 (tất cả tính chất ngày - Hoàng đạo/Hắc đạo, Trực, 28 sao, giờ Hoàng đạo - được tính hoàn toàn từ can-chi ngày và tiết khí; không phụ thuộc múi giờ, không gọi network)
-  - DEC-LUNAR-111 (bảng tra 12 thần trực nhật được hardcode theo địa chi ngày × tháng âm; đây là dữ liệu phong thủy dân gian, không phải thiên văn - gắn nhãn "tham khảo phong thủy dân gian" ở mọi nơi hiển thị)
-  - DEC-LUNAR-112 (can-chi ngày PHẢI lấy trực tiếp từ canChiDay(jdn) của FR-LUNAR-002 - can = (jdn + 9) mod 10, ĐỊA CHI = (jdn + 1) mod 12 - để đồng nhất tuyệt đối với amlich-core; KHÔNG tự suy địa chi bằng (jdn + 9) mod 60 rồi mod 12 vì cho địa chi lệch 8 so với core; KHÔNG import thư viện thứ ba)
-  - DEC-LUNAR-113 (12 Trực tính theo tiết khí + địa chi ngày: mỗi tiết mới, Trực bắt đầu lại từ Kiến; công thức (chiSo_diaChiNgay - chiSo_diaChiDauTiet + 12) mod 12 cho index Trực)
-  - DEC-LUNAR-114 (28 sao tra theo vòng lặp tuần hoàn bắt đầu từ Giác; index = (JDN - baseJDN_Giac) mod 28; baseJDN_Giac được xác định bằng fixture test)
-  - DEC-LUNAR-115 (giờ Hoàng đạo tra theo bảng 6-giờ-theo-địa-chi-ngày; mỗi địa chi ngày ứng 6 giờ Hoàng và 6 giờ Hắc trong 12 canh; bảng này là hằng số, không có công thức thiên văn)
+  - DEC-LUNAR-110 (all day properties - Hoang dao/Hac dao, Truc, 28 sao, auspicious hours - are computed entirely from the can-chi of the day and the solar term; timezone-independent, no network calls)
+  - DEC-LUNAR-111 (the table of the 12 daily officer deities is hardcoded by the day's earthly branch x lunar month; this is folk feng shui data, not astronomy - label it "folk feng shui reference" everywhere it is displayed)
+  - DEC-LUNAR-112 (the can-chi of the day MUST be taken directly from canChiDay(jdn) of FR-LUNAR-002 - can = (jdn + 9) mod 10, EARTHLY BRANCH = (jdn + 1) mod 12 - to be exactly consistent with amlich-core; do NOT derive the earthly branch by (jdn + 9) mod 60 then mod 12 because it yields a branch that is off by 8 relative to core; do NOT import a third-party library)
+  - DEC-LUNAR-113 (the 12 Truc are computed from the solar term + the day's earthly branch: at each new term, Truc restarts from Kien; the formula (chiSo_diaChiNgay - chiSo_diaChiDauTiet + 12) mod 12 gives the Truc index)
+  - DEC-LUNAR-114 (the 28 sao are looked up by a repeating cycle starting from Giac; index = (JDN - baseJDN_Giac) mod 28; baseJDN_Giac is pinned by a test fixture)
+  - DEC-LUNAR-115 (auspicious hours are looked up by a 6-hours-per-day-earthly-branch table; each day's earthly branch maps to 6 auspicious and 6 inauspicious hours among the 12 gio; this table is a constant, there is no astronomical formula)
 language: typescript 5.x
 service: packages/amlich-core/
 new_files:
@@ -39,59 +39,59 @@ allowed_tools:
   - file_write: packages/amlich-core/src/dayquality*.ts, packages/amlich-core/test/dayquality*
   - bash: cd packages/amlich-core && pnpm test
 disallowed_tools:
-  - "gọi network để tra bảng Hoàng đạo/Hắc đạo (vi phạm DEC-LUNAR-110 / NFR-Offline)"
-  - "import lunar-typescript hoặc lunar-javascript làm nguồn chính cho can-chi ngày (vi phạm DEC-LUNAR-112 - chỉ dùng để đối chiếu, không dùng runtime)"
+  - "call the network to look up the Hoang dao/Hac dao table (violates DEC-LUNAR-110 / NFR-Offline)"
+  - "import lunar-typescript or lunar-javascript as the primary source for the day's can-chi (violates DEC-LUNAR-112 - use only for cross-checking, not at runtime)"
 effort_hours: 12
 sub_tasks:
-  - "1h: định nghĩa kiểu DayQuality, GioHoangDao, TrucInfo, Sao28Info trong dayquality.ts"
-  - "2h: dayquality-tables.ts - hardcode bảng 12 thần trực nhật (địa chi × tháng âm -> thần), bảng giờ Hoàng đạo (địa chi ngày -> [6 canh Hoàng, 6 canh Hắc]), bảng 28 sao (tên + tốt/xấu + notes)"
-  - "2h: hàm hoangDaoHacDao(canChiNgay, thangAm) dựa trên bảng DEC-LUNAR-111"
-  - "1.5h: hàm truc(jdn, tietKhiIndex) theo DEC-LUNAR-113; xác định tiết khí hiện hành từ FR-LUNAR-002"
-  - "1.5h: hàm sao28(jdn) theo DEC-LUNAR-114; xác định baseJDN_Giac bằng fixture"
-  - "1h: hàm gioHoangDao(diaChiNgay) tra bảng DEC-LUNAR-115, trả về 12 canh với flag isHoang"
-  - "1h: hàm getDayQuality(solarDate) kết hợp tất cả, trả DayQuality; export từ index.ts"
-  - "2h: test/dayquality.test.ts - fixture 20+ ngày cụ thể (bao gồm ngày có giờ Hoàng đạo đã xác nhận)"
-risk_if_skipped: "FR-LUNAR-012 (good-day picker) hoàn toàn không thể build vì nó chỉ là UI trên DayQuality. FR-LUNAR-013 (widget) sẽ thiếu dữ liệu giờ Hoàng đạo - một trong hai trường thông tin quan trọng nhất của widget. Người dùng là diễn viên và người kinh doanh - những persona chính cần xem ngày tốt - sẽ không có tính năng này."
+  - "1h: define the types DayQuality, GioHoangDao, TrucInfo, Sao28Info in dayquality.ts"
+  - "2h: dayquality-tables.ts - hardcode the table of the 12 daily officer deities (earthly branch x lunar month -> deity), the auspicious-hours table (day's earthly branch -> [6 auspicious gio, 6 inauspicious gio]), the 28 sao table (name + auspicious/inauspicious + notes)"
+  - "2h: function hoangDaoHacDao(canChiNgay, thangAm) based on the DEC-LUNAR-111 table"
+  - "1.5h: function truc(jdn, tietKhiIndex) per DEC-LUNAR-113; determine the current solar term from FR-LUNAR-002"
+  - "1.5h: function sao28(jdn) per DEC-LUNAR-114; determine baseJDN_Giac with a fixture"
+  - "1h: function gioHoangDao(diaChiNgay) looks up the DEC-LUNAR-115 table, returns 12 gio with an isHoang flag"
+  - "1h: function getDayQuality(solarDate) combines everything, returns DayQuality; export from index.ts"
+  - "2h: test/dayquality.test.ts - a fixture of 20+ specific days (including days with confirmed auspicious hours)"
+risk_if_skipped: "FR-LUNAR-012 (good-day picker) cannot be built at all because it is only UI over DayQuality. FR-LUNAR-013 (widget) will lack the auspicious-hours data - one of the two most important information fields of the widget. The users are actors and business owners - the main personas who need to view good days - and they would not have this feature."
 ---
 
 ## §1 - Description (BCP-14 normative)
 
-Module `dayquality` PHẢI tính đầy đủ chất lượng ngày theo phong thủy dân gian Việt Nam từ can-chi ngày và tiết khí, không phụ thuộc mạng. Không có giao dịch network nào được phép. Toàn bộ contract được định nghĩa theo các điều dưới đây.
+The `dayquality` module MUST fully compute the quality of a day according to Vietnamese folk feng shui from the day's can-chi and the solar term, without depending on the network. No network transactions are permitted. The entire contract is defined by the clauses below.
 
-1. PHẢI định nghĩa kiểu `DayQuality` bao gồm: `date` (ISO date string), `canChiNgay` (string, e.g. "Giap Ty"), `diaChiNgay` (DiaChi enum 0..11), `hoangDao` (boolean), `thanTrucNhat` (ThanTrucNhat enum), `truc` (Truc enum, 12 giá trị), `sao28` (Sao28 enum, 28 giá trị), `isHoangDao` (boolean alias cho `hoangDao`), `gioHoangDao` (GioHoangDao[12]), `label` ("Hoàng đạo" | "Hắc đạo"), và `disclaimer` ("Tham khảo phong thủy dân gian") (DEC-LUNAR-111).
-2. PHẢI tính `thần trực nhật` (một trong 12 vị thần) cho ngày bằng cách tra bảng `THAN_TRUC_NHAT_TABLE[diaChiNgay][thangAmIndex]`, trong đó 6 thần thiện là Thanh Long, Minh Đường, Kim Quỹ, Bảo Quang, Ngọc Đường, Tư Mệnh → Hoàng đạo; 6 thần ác là Bạch Hổ, Thiên Hình, Chu Tước, Thiên Lao, Nguyên Vũ, Câu Trận → Hắc đạo (DEC-LUNAR-111, PRD §8).
-3. PHẢI tính `Trực` (một trong 12 Trực: Kiến, Trừ, Mãn, Bình, Định, Chấp, Phá, Nguy, Thành, Thu, Khai, Bế) bằng công thức `(diaChiSoNgay - diaChiSoDauTiet + 12) mod 12`, trong đó `diaChiSoDauTiet = tietKhiStartDiaChi(jdn, tz?)` (CONTRACT.md: `export function tietKhiStartDiaChi(jdn: number, tz?: number): number`) là địa chi (0..11) ngày đầu của tiết khí hiện hành; `diaChiSoNgay = canChiDay(jdn).chiIndex` (DEC-LUNAR-112/113, PRD §8).
-4. PHẢI tính `28 sao` (Giác, Cang, Đê, Phòng, Tâm, Tinh, Vũ, Quỹ, Lưu, Tinh, Trương, I, Chẩn, Tụy, Bí, Tất, Truy, Shen, Jing, Kui, Lou, Wei, Mao, Bí, Zi, Shen - theo tên Việt hóa) bằng công thức `(jdn - BASE_JDN_GIAC) mod 28`; `BASE_JDN_GIAC` được xác định và kiểm tra bằng fixture ngày đã biết (DEC-LUNAR-114, PRD §8).
-5. PHẢI tính `gioHoangDao` cho 12 canh giờ trong ngày bằng tra bảng `GIO_HOANG_DAO_TABLE[diaChiNgay]`, trả về mảng 12 `GioInfo { canh: string, tuGio: string, denGio: string, isHoang: boolean }` (DEC-LUNAR-115, PRD §8, FR-E03).
-6. PHẢI export hàm chính `getDayQuality(solarDate: Date): DayQuality` lấy `canChiNgay` và JDN từ amlich-core (FR-LUNAR-002), tính toán tất cả các trường, và gán `disclaimer = "Tham khảo phong thủy dân gian"` ở cấp root của kết quả (DEC-LUNAR-110).
-7. PHẢI lấy can-chi ngày và `diaChiNgay` bằng cách gọi `canChiDay(jdn)` của FR-LUNAR-002 (với `jdn` từ `jdFromDate` của FR-LUNAR-001), dùng `canChiDay(jdn).chiIndex = (jdn + 1) mod 12` làm `diaChiSoNgay` và `canChiDay(jdn).label` làm `canChiNgay`; KHÔNG ĐƯỢC tự suy địa chi bằng `(jdn + 9) mod 60` rồi `mod 12` (cho ra `(jdn + 9) mod 12`, lệch 8 so với core) và KHÔNG import thư viện thứ ba để tính lại (DEC-LUNAR-112). PHẢI tính `diaChiSoDauTiet` (địa chi ngày đầu tiết khí hiện hành) bằng cách gọi `tietKhiStartDiaChi(jdn, tz?)` của FR-LUNAR-002 (CONTRACT.md P2/P3 surface); công thức Trực đầy đủ là `(canChiDay(jdn).chiIndex - tietKhiStartDiaChi(jdn) + 12) % 12` cho index trong `TRUC_NAMES` (DEC-LUNAR-113). Vì `THAN_TRUC_NHAT_TABLE`, Trực, và giờ Hoàng đạo đều khóa theo địa chi ngày, địa chi sai sẽ làm sai toàn bộ kết quả day quality và lệch với can-chi hiển thị trong lịch (FR-LUNAR-007 qua FR-LUNAR-002).
-8. PHẢI tính `thangAmIndex` (0..11) từ tháng âm do FR-LUNAR-001 trả về, để lập chỉ mục vào `THAN_TRUC_NHAT_TABLE` - index là (thangAm - 1) mod 12 (DEC-LUNAR-111).
-9. PHẢI đảm bảo toàn bộ tính toán là pure function và deterministic: cùng một `solarDate` luôn trả cùng một `DayQuality`, không có side effect (DEC-LUNAR-110).
-10. KHÔNG ĐƯỢC gọi network ở bất kỳ bước nào; KHÔNG ĐƯỢC cache kết quả ra IndexedDB hay localStorage (các bước này là trách nhiệm của FR-LUNAR-010); module này chỉ là pure compute (DEC-LUNAR-110).
-11. PHẢI export toàn bộ enum và kiểu từ `packages/amlich-core/src/index.ts` để các FR khác (FR-LUNAR-007, FR-LUNAR-012, FR-LUNAR-013) có thể import trực tiếp.
-12. NÊN thêm trường `trucSuitableFor: string[]` và `trucAvoidFor: string[]` trong `TrucInfo` mô tả loại việc hợp/kỵ với từng Trực - đây là dữ liệu phong thủy, gắn nhãn "tham khảo" (DEC-LUNAR-111).
-13. NÊN thêm trường `sao28Rating: "tot" | "xau" | "binh"` và `sao28Notes: string` cho từng sao (DEC-LUNAR-111).
-14. CÓ THỂ export hàm `getMonthDayQualities(year: number, month: number): readonly DayQuality[]` tính nhanh toàn bộ tháng - dùng cho FR-LUNAR-012 list ngày Hoàng đạo trong khoảng (DEC-LUNAR-110).
+1. MUST define the type `DayQuality` including: `date` (ISO date string), `canChiNgay` (string, e.g. "Giap Ty"), `diaChiNgay` (DiaChi enum 0..11), `hoangDao` (boolean), `thanTrucNhat` (ThanTrucNhat enum), `truc` (Truc enum, 12 values), `sao28` (Sao28 enum, 28 values), `isHoangDao` (boolean alias for `hoangDao`), `gioHoangDao` (GioHoangDao[12]), `label` ("Hoang dao" | "Hac dao"), and `disclaimer` ("Tham khao phong thuy dan gian") (DEC-LUNAR-111).
+2. MUST compute the `daily officer deity` (one of the 12 deities) for the day by looking up `THAN_TRUC_NHAT_TABLE[diaChiNgay][thangAmIndex]`, where the 6 benevolent deities are Thanh Long, Minh Duong, Kim Quy, Bao Quang, Ngoc Duong, Tu Menh -> Hoang dao; the 6 malevolent deities are Bach Ho, Thien Hinh, Chu Tuoc, Thien Lao, Nguyen Vu, Cau Tran -> Hac dao (DEC-LUNAR-111, PRD §8).
+3. MUST compute `Truc` (one of the 12 Truc: Kien, Tru, Man, Binh, Dinh, Chap, Pha, Nguy, Thanh, Thu, Khai, Be) using the formula `(diaChiSoNgay - diaChiSoDauTiet + 12) mod 12`, where `diaChiSoDauTiet = tietKhiStartDiaChi(jdn, tz?)` (CONTRACT.md: `export function tietKhiStartDiaChi(jdn: number, tz?: number): number`) is the earthly branch (0..11) of the first day of the current solar term; `diaChiSoNgay = canChiDay(jdn).chiIndex` (DEC-LUNAR-112/113, PRD §8).
+4. MUST compute the `28 sao` (Giac, Cang, De, Phong, Tam, Tinh, Vu, Quy, Luu, Tinh, Truong, I, Chan, Tuy, Bi, Tat, Truy, Shen, Jing, Kui, Lou, Wei, Mao, Bi, Zi, Shen - per the Vietnamized names) using the formula `(jdn - BASE_JDN_GIAC) mod 28`; `BASE_JDN_GIAC` is determined and checked against a known-day fixture (DEC-LUNAR-114, PRD §8).
+5. MUST compute `gioHoangDao` for the 12 gio of the day by looking up `GIO_HOANG_DAO_TABLE[diaChiNgay]`, returning an array of 12 `GioInfo { canh: string, tuGio: string, denGio: string, isHoang: boolean }` (DEC-LUNAR-115, PRD §8, FR-E03).
+6. MUST export the main function `getDayQuality(solarDate: Date): DayQuality`, which takes `canChiNgay` and the JDN from amlich-core (FR-LUNAR-002), computes all fields, and sets `disclaimer = "Tham khao phong thuy dan gian"` at the root level of the result (DEC-LUNAR-110).
+7. MUST obtain the day's can-chi and `diaChiNgay` by calling `canChiDay(jdn)` of FR-LUNAR-002 (with `jdn` from `jdFromDate` of FR-LUNAR-001), using `canChiDay(jdn).chiIndex = (jdn + 1) mod 12` as `diaChiSoNgay` and `canChiDay(jdn).label` as `canChiNgay`; MUST NOT derive the earthly branch by `(jdn + 9) mod 60` then `mod 12` (which yields `(jdn + 9) mod 12`, off by 8 relative to core) and MUST NOT import a third-party library to recompute it (DEC-LUNAR-112). MUST compute `diaChiSoDauTiet` (the earthly branch of the first day of the current solar term) by calling `tietKhiStartDiaChi(jdn, tz?)` of FR-LUNAR-002 (CONTRACT.md P2/P3 surface); the full Truc formula is `(canChiDay(jdn).chiIndex - tietKhiStartDiaChi(jdn) + 12) % 12` for the index into `TRUC_NAMES` (DEC-LUNAR-113). Because `THAN_TRUC_NHAT_TABLE`, Truc, and the auspicious hours are all keyed on the day's earthly branch, a wrong earthly branch corrupts the entire day-quality result and diverges from the can-chi displayed in the calendar (FR-LUNAR-007 via FR-LUNAR-002).
+8. MUST compute `thangAmIndex` (0..11) from the lunar month returned by FR-LUNAR-001, to index into `THAN_TRUC_NHAT_TABLE` - the index is (thangAm - 1) mod 12 (DEC-LUNAR-111).
+9. MUST ensure the entire computation is a pure function and deterministic: the same `solarDate` always returns the same `DayQuality`, with no side effects (DEC-LUNAR-110).
+10. MUST NOT call the network at any step; MUST NOT cache results to IndexedDB or localStorage (those steps are the responsibility of FR-LUNAR-010); this module is pure compute only (DEC-LUNAR-110).
+11. MUST export all enums and types from `packages/amlich-core/src/index.ts` so that other FRs (FR-LUNAR-007, FR-LUNAR-012, FR-LUNAR-013) can import them directly.
+12. SHOULD add the fields `trucSuitableFor: string[]` and `trucAvoidFor: string[]` in `TrucInfo` describing the kinds of activities that suit or conflict with each Truc - this is feng shui data, labeled "reference" (DEC-LUNAR-111).
+13. SHOULD add the fields `sao28Rating: "tot" | "xau" | "binh"` and `sao28Notes: string` for each sao (DEC-LUNAR-111).
+14. MAY export the function `getMonthDayQualities(year: number, month: number): readonly DayQuality[]` to quickly compute the whole month - used by FR-LUNAR-012 to list Hoang dao days within a range (DEC-LUNAR-110).
 
 ---
 
 ## §2 - Why this design (rationale for humans)
 
-**Tại sao tính hoàn toàn offline từ bảng tra (DEC-LUNAR-110)?** Hoàng đạo/Hắc đạo, Trực, và 28 sao là hệ thống phong thủy dân gian cố định - không phải kết quả của thiên văn học cập nhật. Bản thân PRD §8 nói rõ đây là "bảng tra cố định theo địa chi ngày × tháng". Gọi mạng để tra kết quả này vừa tốn chi phí vừa vi phạm NFR-Offline và không mang lại độ chính xác gì thêm.
+**Why compute entirely offline from a lookup table (DEC-LUNAR-110)?** Hoang dao/Hac dao, Truc, and the 28 sao are a fixed folk feng shui system - not the result of ongoing astronomy. The PRD §8 itself states plainly that this is a "fixed lookup table by the day's earthly branch x month." Calling the network to look up this result would both cost money and violate NFR-Offline while adding no accuracy.
 
-**Tại sao hardcode bảng `THAN_TRUC_NHAT_TABLE` thay vì tính công thức (DEC-LUNAR-111)?** Các thần trực nhật không có công thức thiên văn nào - chúng là quy ước phong thủy lưu truyền qua nhiều thế kỷ. Dùng bảng 12×12 là cách cẩn thận nhất: nguồn dữ liệu có thể đối chiếu với nhiều sách phong thủy cổ điển và trang xem ngày VN, và mọi chỉnh sửa sau này chỉ cần sửa 1 dòng trong bảng thay vì debug logic.
+**Why hardcode the `THAN_TRUC_NHAT_TABLE` instead of computing a formula (DEC-LUNAR-111)?** The daily officer deities have no astronomical formula - they are feng shui conventions passed down over centuries. Using a 12x12 table is the most careful approach: the data source can be cross-checked against several classical feng shui books and VN day-picking sites, and any later correction only needs a single line edited in the table instead of debugging logic.
 
-**Tại sao gọi thẳng `canChiDay` của core thay vì tự suy từ JDN (DEC-LUNAR-112)?** FR-LUNAR-002 đã định nghĩa `canChiDay(jdn)` với `can = (jdn + 9) mod 10` và `chi = (jdn + 1) mod 12`; đây là source of truth duy nhất cho can-chi ngày. Một cám dỗ là "rút gọn" thành `(jdn + 9) mod 60` rồi `mod 12` để ra địa chi - NHƯNG `(jdn + 9) mod 12` lệch đúng 8 so với `(jdn + 1) mod 12` của core, nên địa chi sẽ sai và mọi tra bảng theo địa chi (thần trực nhật, Trực, giờ Hoàng đạo) đều sai. Quan trọng hơn, lưới lịch FR-LUNAR-007 hiển thị `canChiDay` từ chính FR-LUNAR-002; nếu day quality dùng địa chi khác thì màn xem ngày tốt sẽ mâu thuẫn với can-chi ngay trong ô lịch. Vì vậy `getDayQuality` PHẢI gọi `canChiDay(jdn)` và đọc `chiIndex`/`label` từ đó, không tự tính lại.
+**Why call core's `canChiDay` directly instead of deriving it from the JDN (DEC-LUNAR-112)?** FR-LUNAR-002 already defines `canChiDay(jdn)` with `can = (jdn + 9) mod 10` and `chi = (jdn + 1) mod 12`; this is the single source of truth for the day's can-chi. One temptation is to "shorten" this to `(jdn + 9) mod 60` then `mod 12` to get the earthly branch - BUT `(jdn + 9) mod 12` is off by exactly 8 from core's `(jdn + 1) mod 12`, so the earthly branch would be wrong and every table lookup keyed on the earthly branch (daily officer deity, Truc, auspicious hours) would be wrong. More importantly, the FR-LUNAR-007 calendar grid displays `canChiDay` from FR-LUNAR-002 itself; if day quality used a different earthly branch, the good-day screen would contradict the can-chi shown in the calendar cell. Therefore `getDayQuality` MUST call `canChiDay(jdn)` and read `chiIndex`/`label` from it, not recompute it.
 
-**Tại sao Trực tính theo tiết khí + địa chi ngày (DEC-LUNAR-113)?** PRD §8 nói rõ "tra theo tiết khí + địa chi ngày; mỗi Trực hợp/kỵ loại việc". Đây là cách tính chuẩn trong phong thủy Việt - mỗi tiết mới Trực bắt đầu lại từ Kiến. Cách này chỉ cần biết địa chi ngày đầu tiết (đã có sẵn từ FR-LUNAR-002) và địa chi ngày hiện tại - không cần bảng tra 365 dòng.
+**Why compute Truc from the solar term + the day's earthly branch (DEC-LUNAR-113)?** PRD §8 states plainly to "look it up by solar term + the day's earthly branch; each Truc suits or conflicts with certain activities." This is the standard method in Vietnamese feng shui - at each new term Truc restarts from Kien. This method only needs the earthly branch of the first day of the term (already available from FR-LUNAR-002) and the current day's earthly branch - no 365-row lookup table.
 
-**Tại sao xác định `BASE_JDN_GIAC` bằng fixture thay vì từ sách (DEC-LUNAR-114)?** Có nhiều nguồn đưa ra giá trị khác nhau cho vòng 28 sao vì hệ thống này có nhiều cách tính. Cách an toàn nhất là: chọn một ngày đã biết chắc sao gì (đối chiếu nhiều trang xem ngày VN uy tín), tính ngược ra BASE_JDN_GIAC, và lock giá trị đó vào fixture test. Mỗi lần BUILD chạy lại test, nếu ai thay BASE_JDN_GIAC test sẽ fail - cơ chế phát hiện ngoài ý muốn.
+**Why determine `BASE_JDN_GIAC` with a fixture instead of from a book (DEC-LUNAR-114)?** Several sources give different values for the 28-sao cycle because this system has multiple ways of being computed. The safest approach is: choose a day whose sao is known for certain (cross-checked against several reputable VN day-picking sites), compute BASE_JDN_GIAC backward from it, and lock that value into the test fixture. Each time BUILD reruns the tests, if anyone changes BASE_JDN_GIAC the test fails - a mechanism to catch unintended changes.
 
-**Tại sao giờ Hoàng đạo cũng là bảng tra (DEC-LUNAR-115)?** 12 canh giờ phân thành 6 Hoàng/6 Hắc theo địa chi ngày là quy ước phong thủy - mỗi địa chi ngày (Tý, Sửu, Dần...) ứng một "giờ cực" cố định. Đây là bảng 12×12. Không có công thức thiên văn nào ở đây cả; bảng tra là biểu diễn đúng nhất.
+**Why are the auspicious hours also a lookup table (DEC-LUNAR-115)?** The 12 gio split into 6 auspicious / 6 inauspicious by the day's earthly branch is a feng shui convention - each day's earthly branch (Ty, Suu, Dan...) maps to a fixed "peak hour." This is a 12x12 table. There is no astronomical formula here at all; the lookup table is the most accurate representation.
 
-**Tại sao cần trường `disclaimer` ở cấp root (DEC-LUNAR-111)?** PRD §8 và Caveats nói rõ phải "gắn nhãn tham khảo phong thủy dân gian" và "tránh khẳng định tuyệt đối". Nếu để disclaimer là optional hay ở nested UI sẽ dễ bị bỏ sót khi render. Khi disclaimer nằm trong chính kết quả DayQuality, mọi component render dữ liệu này đều có sẵn chú thích ngay bên cạnh dữ liệu.
+**Why is a `disclaimer` field needed at the root level (DEC-LUNAR-111)?** PRD §8 and the Caveats state plainly to "label it as a folk feng shui reference" and to "avoid absolute assertions." If the disclaimer were optional or in a nested UI, it would be easy to drop during rendering. When the disclaimer sits inside the DayQuality result itself, every component that renders this data has the note available right next to the data.
 
-**Tại sao export `getMonthDayQualities` (DEC-LUNAR-110)?** FR-LUNAR-012 cần listat ngày Hoàng đạo trong một khoảng (ví dụ tháng 7/2026). Nếu FR-012 gọi `getDayQuality` từng ngày trong vòng lặp, dù hiệu quả hơn gọi network nhưng vẫn là ~30 lần tính. Hàm `getMonthDayQualities` gom vào một chỗ, cho phép tối ưu trong tương lai nếu cần (e.g. batch JDN lookup), và làm contract FR-012 đơn giản hơn.
+**Why export `getMonthDayQualities` (DEC-LUNAR-110)?** FR-LUNAR-012 needs to list Hoang dao days within a range (for example July 2026). If FR-012 called `getDayQuality` day by day in a loop, although more efficient than calling the network it is still ~30 computations. The `getMonthDayQualities` function gathers this in one place, allows future optimization if needed (e.g. batch JDN lookup), and makes the FR-012 contract simpler.
 
 ---
 
@@ -196,23 +196,23 @@ export const GIO_HOANG_DAO_TABLE: readonly GioInfo[][] = [ /* 12 × 12 table */ 
 
 ## §4 - Acceptance criteria
 
-1. `getDayQuality(new Date("2025-01-29"))` (Tết 2025, ngày 1/1/Ất Tỵ) trả về `canChiNgay` khớp với fixture, `hoangDao` và `thanTrucNhat` khớp với kết quả trang xem ngày uy tín VN cho ngày đó.
-2. `getDayQuality` với bất kỳ ngày nào trả về đúng số 12 `gioHoangDao`, trong đó đúng 6 có `isHoang: true` và 6 có `isHoang: false`.
-3. `getDayQuality` trả về `disclaimer === "Tham khao phong thuy dan gian"` cho tất cả ngày.
-4. `truc.name` có giá trị hợp lệ nằm trong `TRUC_NAMES` cho mọi ngày trong tháng 1/2025 (31 ngày, 31 kết quả khác nhau trong chu kỳ 12).
-5. `sao28` có giá trị hợp lệ nằm trong `SAO_28`; chuỗi 28 ngày liên tiếp bắt đầu từ ngày có sao "Giac" xác nhận (fixture) cho ra tất cả 28 sao theo thứ tự đúng.
-6. `getMonthDayQualities(2025, 1)` trả về đúng 31 kết quả, mỗi kết quả có `date` đúng và `hoangDao` khớp với 31 lần gọi riêng lẻ `getDayQuality`.
-7. Hàm là pure: gọi `getDayQuality` 100 lần với cùng một `solarDate` luôn cho cùng kết quả.
-8. `THAN_TRUC_NHAT_TABLE` có đúng 12 hàng, mỗi hàng 12 phần tử, tổng 144 phần tử; mỗi phần tử là giá trị hợp lệ trong `THAN_TRUC_NHAT`.
-9. Kết quả `isHoangDao` luôn bằng `hoangDao` (alias nhất quán).
-10. `getDayQuality` không gọi `fetch`, `XMLHttpRequest`, hoặc bất kỳ API mạng nào (verified bằng mock trong test).
-11. `getMonthDayQualities(2025, 1)` chạy trong vòng < 50ms (NFR-Performance).
-12. Tất cả enum và kiểu được re-export từ `packages/amlich-core/src/index.ts`.
-13. `truc.suitableFor` và `truc.avoidFor` là array string không rỗng cho mọi 12 Trực.
-14. `sao28.rating` là một trong ba giá trị "tot"/"xau"/"binh" cho tất cả 28 sao.
-15. Test fixture `dayquality-fixtures.json` có ít nhất 20 ngày có thể kiểm tra, mỗi ngày có đủ trường: solarDate, expectedThanTrucNhat, expectedIsHoangDao, expectedTruc, expectedSao28.
-16. `diaChiNgay` của `getDayQuality` PHẢI bằng địa chi của `canChiDay(jdn)` (FR-LUNAR-002) cho mọi ngày trong một quét nhiều ngày (>= 60 ngày liên tiếp): với mỗi ngày, `DiaChi` index của `q.diaChiNgay` === `canChiDay(jdFromDate(d,m,y)).chiIndex` và `q.canChiNgay` === `canChiDay(...).label`. (Bắt lỗi địa chi lệch 8 do `(jdn+9)%60` - DEC-LUNAR-112.)
-17. Với fixture Tết 2025 (29/01/2025), `diaChiNgay` của `getDayQuality` khớp chi của `canChiDay` cho ngày đó (KHÔNG được lệch); đây là cùng giá trị mà ô lịch FR-LUNAR-007 hiển thị.
+1. `getDayQuality(new Date("2025-01-29"))` (Tet 2025, day 1/1 of Year At Ty) returns a `canChiNgay` matching the fixture, and `hoangDao` and `thanTrucNhat` matching the result of a reputable VN day-picking site for that day.
+2. `getDayQuality` for any day returns exactly 12 `gioHoangDao`, of which exactly 6 have `isHoang: true` and 6 have `isHoang: false`.
+3. `getDayQuality` returns `disclaimer === "Tham khao phong thuy dan gian"` for all days.
+4. `truc.name` has a valid value within `TRUC_NAMES` for every day in January 2025 (31 days, 31 different results across the cycle of 12).
+5. `sao28` has a valid value within `SAO_28`; a run of 28 consecutive days starting from a day with confirmed sao "Giac" (fixture) yields all 28 sao in the correct order.
+6. `getMonthDayQualities(2025, 1)` returns exactly 31 results, each with the correct `date` and `hoangDao` matching 31 individual calls to `getDayQuality`.
+7. The function is pure: calling `getDayQuality` 100 times with the same `solarDate` always yields the same result.
+8. `THAN_TRUC_NHAT_TABLE` has exactly 12 rows, each with 12 elements, 144 elements total; each element is a valid value in `THAN_TRUC_NHAT`.
+9. The `isHoangDao` result always equals `hoangDao` (consistent alias).
+10. `getDayQuality` does not call `fetch`, `XMLHttpRequest`, or any network API (verified with a mock in the test).
+11. `getMonthDayQualities(2025, 1)` runs in < 50ms (NFR-Performance).
+12. All enums and types are re-exported from `packages/amlich-core/src/index.ts`.
+13. `truc.suitableFor` and `truc.avoidFor` are non-empty string arrays for all 12 Truc.
+14. `sao28.rating` is one of the three values "tot"/"xau"/"binh" for all 28 sao.
+15. The test fixture `dayquality-fixtures.json` has at least 20 checkable days, each with all fields: solarDate, expectedThanTrucNhat, expectedIsHoangDao, expectedTruc, expectedSao28.
+16. The `diaChiNgay` of `getDayQuality` MUST equal the earthly branch of `canChiDay(jdn)` (FR-LUNAR-002) for every day across a multi-day scan (>= 60 consecutive days): for each day, the `DiaChi` index of `q.diaChiNgay` === `canChiDay(jdFromDate(d,m,y)).chiIndex` and `q.canChiNgay` === `canChiDay(...).label`. (Catches the earthly-branch off-by-8 caused by `(jdn+9)%60` - DEC-LUNAR-112.)
+17. For the Tet 2025 fixture (2025-01-29), the `diaChiNgay` of `getDayQuality` matches the earthly branch of `canChiDay` for that day (MUST NOT be off); this is the same value the FR-LUNAR-007 calendar cell displays.
 
 ---
 
@@ -359,17 +359,17 @@ describe("getDayQuality - dia chi nhat quan voi canChiDay (FR-002)", () => {
 
 ## §6 - Implementation skeleton
 
-API contract trong §3 là skeleton chính. Điểm mấu chốt cần ghi rõ: hàm `getDayQuality` gọi `jdFromDate` từ FR-LUNAR-001, sau đó gọi `canChiDay(jdn)` của FR-LUNAR-002 và lấy `const cc = canChiDay(jdn); const diaChiIndex = cc.chiIndex; // = (jdn + 1) % 12; canChiNgay = cc.label`. TUYỆT ĐỐI KHÔNG suy địa chi bằng `(jdn + 9) % 60` rồi `% 12` (cho `(jdn + 9) % 12`, lệch 8 so với core). Lập chỉ mục vào `THAN_TRUC_NHAT_TABLE[diaChiIndex][thangAmIndex]`. Trực tính qua `tietKhiStartDiaChiIndex` lấy từ hàm `tietKhiStartDiaChi(jdn, tz?)` của FR-LUNAR-002 (CONTRACT.md: `export function tietKhiStartDiaChi(jdn: number, tz?: number): number`), sau đó `(diaChiIndex - tietKhiStartDiaChiIndex + 12) % 12` cho index trong `TRUC_NAMES` (DEC-LUNAR-113). Sao 28 tính `(jdn - BASE_JDN_GIAC + 2800) % 28`. Vì cả ba bảng (thần trực nhật, Trực, giờ Hoàng đạo) đều khóa theo `diaChiIndex`, lấy địa chi nhất quán với core là bất biến quan trọng nhất của module này.
+The API contract in §3 is the main skeleton. The key point to state clearly: the `getDayQuality` function calls `jdFromDate` from FR-LUNAR-001, then calls `canChiDay(jdn)` of FR-LUNAR-002 and takes `const cc = canChiDay(jdn); const diaChiIndex = cc.chiIndex; // = (jdn + 1) % 12; canChiNgay = cc.label`. NEVER derive the earthly branch by `(jdn + 9) % 60` then `% 12` (which gives `(jdn + 9) % 12`, off by 8 relative to core). Index into `THAN_TRUC_NHAT_TABLE[diaChiIndex][thangAmIndex]`. Truc is computed via `tietKhiStartDiaChiIndex` taken from the `tietKhiStartDiaChi(jdn, tz?)` function of FR-LUNAR-002 (CONTRACT.md: `export function tietKhiStartDiaChi(jdn: number, tz?: number): number`), then `(diaChiIndex - tietKhiStartDiaChiIndex + 12) % 12` gives the index into `TRUC_NAMES` (DEC-LUNAR-113). The 28 sao are computed as `(jdn - BASE_JDN_GIAC + 2800) % 28`. Because all three tables (daily officer deity, Truc, auspicious hours) are keyed on `diaChiIndex`, taking the earthly branch consistently with core is the single most important invariant of this module.
 
 ---
 
 ## §7 - Dependencies
 
-Upstream: FR-LUNAR-002 là phụ thuộc bắt buộc. `getDayQuality` cần `jdFromDate` (FR-LUNAR-001, re-exported qua FR-LUNAR-002), `canChiDay` (FR-LUNAR-002), và `tietKhiStartDiaChi(jdn, tz?)` (FR-LUNAR-002, CONTRACT.md P2/P3 surface) để xác định `diaChiSoDauTiet` cho tính Trực theo công thức `(canChiDay(jdn).chiIndex - tietKhiStartDiaChi(jdn) + 12) % 12` (DEC-LUNAR-113). Tất cả hàm này đã có sẵn khi FR-LUNAR-002 hoàn thành.
+Upstream: FR-LUNAR-002 is a required dependency. `getDayQuality` needs `jdFromDate` (FR-LUNAR-001, re-exported via FR-LUNAR-002), `canChiDay` (FR-LUNAR-002), and `tietKhiStartDiaChi(jdn, tz?)` (FR-LUNAR-002, CONTRACT.md P2/P3 surface) to determine `diaChiSoDauTiet` for computing Truc by the formula `(canChiDay(jdn).chiIndex - tietKhiStartDiaChi(jdn) + 12) % 12` (DEC-LUNAR-113). All of these functions are available once FR-LUNAR-002 is complete.
 
-Downstream: FR-LUNAR-012 (good-day picker) phụ thuộc hoàn toàn vào `getDayQuality` và `getMonthDayQualities`. FR-LUNAR-013 (widget) dùng `getDayQuality` để hiển thị `canChiNgay`, `label` (Hoàng/Hắc đạo), và `gioHoangDao`. FR-LUNAR-007 (month grid) dùng `isHoangDao` và `truc.name` để hiển thị trong ô ngày.
+Downstream: FR-LUNAR-012 (good-day picker) depends entirely on `getDayQuality` and `getMonthDayQualities`. FR-LUNAR-013 (widget) uses `getDayQuality` to display `canChiNgay`, `label` (Hoang dao/Hac dao), and `gioHoangDao`. FR-LUNAR-007 (month grid) uses `isHoangDao` and `truc.name` to display in the day cell.
 
-Cross-cutting: `disclaimer` field đảm bảo nhãn "tham khảo phong thủy dân gian" được truyền xuống mọi lớp UI từ root data, không cần FR-007/012/013 tự thêm nhãn.
+Cross-cutting: the `disclaimer` field ensures the "folk feng shui reference" label is passed down to every UI layer from the root data, without FR-007/012/013 needing to add the label themselves.
 
 ---
 
@@ -416,15 +416,15 @@ Cross-cutting: `disclaimer` field đảm bảo nhãn "tham khảo phong thủy d
 
 ## §9 - Open questions
 
-Đã giải quyết:
-- "Dùng can-chi từ core hay từ thư viện thứ ba?" -> DEC-LUNAR-112: luôn từ core, đồng nhất.
-- "Đặt disclaimer ở đâu?" -> DEC-LUNAR-111: ở cấp root DayQuality.
-- "BASE_JDN_GIAC xác định bằng gì?" -> DEC-LUNAR-114: bằng fixture đã đối chiếu từ nhiều nguồn VN.
+Resolved:
+- "Use can-chi from core or from a third-party library?" -> DEC-LUNAR-112: always from core, consistent.
+- "Where to put the disclaimer?" -> DEC-LUNAR-111: at the root level of DayQuality.
+- "How is BASE_JDN_GIAC determined?" -> DEC-LUNAR-114: by a fixture cross-checked against several VN sources.
 
-Còn tồn tại (defer):
-- Một số trang xem ngày VN có thêm cột "Ngày ký/Ngày phụ" (phụ giờ tốt thay thế khi giờ Hoàng đạo bị trùng giờ xấu). PRD chưa yêu cầu này - defer sang v2.
-- Hệ thống "Thần sát" (như Kim Lâu, Hoàng Ốc, etc.) liên quan đến tuổi người chủ hôn. PRD không yêu cầu - defer.
-- Cross-check thủ công `THAN_TRUC_NHAT_TABLE` với 3 nguồn sách phong thủy khác nhau trước khi ship (editorial task, không phải code task).
+Still open (defer):
+- Some VN day-picking sites add a "signing day / alternate day" column (a substitute good hour used when an auspicious hour coincides with a bad hour). The PRD does not require this yet - defer to v2.
+- The "Than sat" system (such as Kim Lau, Hoang Oc, etc.) relates to the age of the person presiding over the wedding. The PRD does not require it - defer.
+- Manually cross-check `THAN_TRUC_NHAT_TABLE` against 3 different feng shui source books before shipping (editorial task, not a code task).
 
 ---
 
@@ -432,34 +432,34 @@ Còn tồn tại (defer):
 
 | Failure | Detection | Outcome | Recovery |
 |---|---|---|---|
-| `THAN_TRUC_NHAT_TABLE` thiếu hàng (< 12) | Unit test AC #8 | Test fail, build block | Thêm hàng còn thiếu |
-| `BASE_JDN_GIAC` sai giá trị | Fixture test AC #5 chuỗi 28 sao | Test fail, build block | Đối chiếu lại nguồn, cập nhật hằng số |
-| JDN từ FR-LUNAR-001 sai 1 đơn vị | Test AC #1 fixture (tet 2025) fail | Sao/Trực/DiaChi lệch 1 | Fix FR-001 trước, ko fix đây |
-| `thangAmIndex` bị off-by-one | Fixture test AC #1 | ThanTrucNhat sai | Kiểm tra lại `(thangAm - 1) mod 12` |
-| Địa chi lấy bằng `(jdn+9)%60 % 12` (lệch 8 so với core) | AC #16/#17 cross-check với `canChiDay` | Thần trực nhật + Trực + giờ Hoàng đạo đều sai, lệch can-chi trong lịch | Gọi `canChiDay(jdn)` và dùng `chiIndex` (DEC-LUNAR-112) |
-| `getDayQuality` gọi fetch | Test AC #10 mock | Test fail | Xóa code gọi mạng |
-| `getMonthDayQualities` chậm > 50ms | Test AC #11 | Test fail | Profile + cache jdn batch |
-| `disclaimer` không có trong kết quả | Test AC #3 | Test fail | Thêm vào return object |
-| enum mới không re-export từ index.ts | FR-012/013 build fail | Import error | Thêm vào index.ts export |
-| `isHoangDao` khác `hoangDao` | Test AC #9 | Inconsistency UI | Đặt `isHoangDao = hoangDao` trong return |
-| Trực index vượt quá 11 | `mod 12` bảo vệ | Không thể | Design-level đảm bảo |
-| `gioHoangDao` chỉ có < 12 phần tử | Test AC #2 | Widget/UI thiếu canh | Kiểm tra vòng lặp 12 |
-| Sao28 trả về index 28 (out of range) | `mod 28` bảo vệ | Không thể | Design-level |
-| FR-LUNAR-002 chưa sẵn (build order sai) | TypeScript compile error | Build fail | Build FR-002 trước |
-| `TrucInfo.suitableFor` rỗng | Test AC #13 | Biểu tượng trống UI | Thêm nội dung phong thủy |
-| Tables có ký tự Unicode sai | Fixture snapshot test | Visual mismatch | Dùng literal string đúng |
+| `THAN_TRUC_NHAT_TABLE` missing a row (< 12) | Unit test AC #8 | Test fails, build blocked | Add the missing row |
+| `BASE_JDN_GIAC` has a wrong value | Fixture test AC #5 the 28-sao run | Test fails, build blocked | Re-check the source, update the constant |
+| JDN from FR-LUNAR-001 off by 1 | Test AC #1 fixture (tet 2025) fails | Sao/Truc/DiaChi off by 1 | Fix FR-001 first, do not fix here |
+| `thangAmIndex` off-by-one | Fixture test AC #1 | Wrong ThanTrucNhat | Re-check `(thangAm - 1) mod 12` |
+| Earthly branch taken as `(jdn+9)%60 % 12` (off by 8 relative to core) | AC #16/#17 cross-check with `canChiDay` | Daily officer deity + Truc + auspicious hours all wrong, off from can-chi in the calendar | Call `canChiDay(jdn)` and use `chiIndex` (DEC-LUNAR-112) |
+| `getDayQuality` calls fetch | Test AC #10 mock | Test fails | Remove the network-calling code |
+| `getMonthDayQualities` slow > 50ms | Test AC #11 | Test fails | Profile + cache jdn batch |
+| `disclaimer` missing from the result | Test AC #3 | Test fails | Add it to the return object |
+| A new enum not re-exported from index.ts | FR-012/013 build fails | Import error | Add it to the index.ts export |
+| `isHoangDao` differs from `hoangDao` | Test AC #9 | UI inconsistency | Set `isHoangDao = hoangDao` in the return |
+| Truc index exceeds 11 | `mod 12` guards | Impossible | Guaranteed at the design level |
+| `gioHoangDao` has < 12 elements | Test AC #2 | Widget/UI missing a gio | Check the loop over 12 |
+| Sao28 returns index 28 (out of range) | `mod 28` guards | Impossible | Design level |
+| FR-LUNAR-002 not ready (wrong build order) | TypeScript compile error | Build fails | Build FR-002 first |
+| `TrucInfo.suitableFor` empty | Test AC #13 | Empty symbol in UI | Add feng shui content |
+| Tables have wrong Unicode characters | Fixture snapshot test | Visual mismatch | Use the correct literal string |
 
 ---
 
 ## §11 - Implementation notes
 
-- Tất cả 3 bảng (THAN_TRUC_NHAT_TABLE, GIO_HOANG_DAO_TABLE, dữ liệu 28 sao) cần được cross-check với ít nhất 2 nguồn sách phong thủy hoặc trang xem ngày VN uy tín trước khi commit. Đây là editorial work, không phải coding; nên làm song song với code.
-- `BASE_JDN_GIAC` là hằng số nhạy cảm nhất: thay đổi nó làm lệch tất cả 28 sao cho mọi ngày trong 1900-2199. Lock nó vào `dayquality-fixtures.json` và comment rõ "đã đối chiếu với trang X ngày Y".
-- `getMonthDayQualities` có thể gọi `getDayQuality` từng ngày trong vòng lặp đơn giản - không cần tối ưu trước. Chỉ refactor sang batch JDN nếu profiling cho thấy cần (có thể với hàng nghìn ngày).
-- `disclaimer` là `readonly` literal type `"Tham khao phong thuy dan gian"` - kiểu TypeScript đảm bảo không ai nhầm lấy tổ về không có disclaimer.
-- Trực chu kỳ 12 sẽ tập trung: trong 1 tháng 30 ngày, mỗi Trực xuất hiện 2-3 lần. Người dùng nhìn thấy "Khai" nhiều lần - điều này đúng, không phải bug.
-- Giờ Hoàng đạo tính theo giờ "canh" Việt Nam (mỗi canh 2 tiếng, 12 canh là 24 giờ). Các hằng số `tuGio`/`denGio` trong GIO_HOANG_DAO_TABLE là string literal ("23:00") để render đơn giản - không phải Date object.
-- Cần chú ý: một số nguồn online tính giờ Hoàng đạo theo "giờ dương" (solar hours) thay vì giờ chuẩn. PRD không yêu cầu độ chính xác này; dùng giờ clock chuẩn là đủ.
-- Module này không có phụ thuộc npm nào ngoài amlich-core nội bộ - đúng nghĩa zero-dependency có nghĩa là zero third-party.
+- All 3 tables (THAN_TRUC_NHAT_TABLE, GIO_HOANG_DAO_TABLE, the 28-sao data) must be cross-checked against at least 2 reputable feng shui source books or VN day-picking sites before commit. This is editorial work, not coding; it should proceed in parallel with the code.
+- `BASE_JDN_GIAC` is the most sensitive constant: changing it shifts all 28 sao for every day in 1900-2199. Lock it into `dayquality-fixtures.json` and comment clearly "cross-checked against site X on day Y."
+- `getMonthDayQualities` can call `getDayQuality` day by day in a simple loop - no need to optimize upfront. Only refactor to a batch JDN if profiling shows it is needed (potentially with thousands of days).
+- `disclaimer` is a `readonly` literal type `"Tham khao phong thuy dan gian"` - the TypeScript type ensures no one accidentally returns a result with no disclaimer.
+- The 12-day Truc cycle will cluster: in a 30-day month, each Truc appears 2-3 times. Users seeing "Khai" several times is correct, not a bug.
+- The auspicious hours are computed by the Vietnamese "canh" hours (each canh is 2 hours, 12 canh make 24 hours). The `tuGio`/`denGio` constants in GIO_HOANG_DAO_TABLE are string literals ("23:00") for simple rendering - not Date objects.
+- Note: some online sources compute the auspicious hours by "solar hours" instead of standard clock hours. The PRD does not require this precision; using standard clock hours is sufficient.
+- This module has no npm dependency other than the internal amlich-core - truly zero-dependency, meaning zero third-party.
 
-*Hết FR-LUNAR-011.*
+*End of FR-LUNAR-011.*

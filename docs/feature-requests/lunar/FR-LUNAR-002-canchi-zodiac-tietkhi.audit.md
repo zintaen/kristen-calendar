@@ -12,54 +12,54 @@ authoring_md_compliance: 2026-06-27 (rule 36 - 6 ISS minimum; determinism + veri
 
 ## §1 - Verdict summary
 
-FR-LUNAR-002 đặc tả can-chi, zodiac Việt Nam, và 24 tiết khí. Phạm vi: 15 điều khoản normative ở §1 (can-chi ngày từ JDN, can-chi năm, can-chi tháng, zodiac VN Mèo/Trâu, zodiacOf, tiết khí qua getSunLongitude độ phân giải 15 độ, bảng 24 tiết với 12 Trung khí, nhất quán Đông chí với getLunarMonth11, pure offline, tietKhiAt, cross-check chỉ độc lập múi giờ, export type, tiếng Việt có dấu, freeze bảng). 6 đoạn §2 rationale. §3 có canChiDay/Year/Month, ZODIAC_VN + zodiacOf, TIET_KHI + tietKhiAt với công thức cụ thể. 14 acceptance criteria. §5 có 2 file test (canchi.test.ts, tietkhi.test.ts) gồm 5 fixture can-chi năm, zodiac VN, chu kỳ liên tục JDN, bound tiết khí, Đông chí. §10 có 12 dòng failure. §11 có 7 note. Map tới PRD FR-A03, FR-A04, 6.3, #8.
+FR-LUNAR-002 specifies can-chi, the Vietnamese zodiac, and the 24 tiet khi. Scope: 15 normative clauses in §1 (day can-chi from JDN, year can-chi, month can-chi, VN zodiac Meo/Trau, zodiacOf, tiet khi via getSunLongitude at 15-degree resolution, table of 24 tiet with 12 Trung khi, Dong chi consistent with getLunarMonth11, pure offline, tietKhiAt, cross-check only timezone-independent, export type, Vietnamese with diacritics, freeze the table). 6 §2 rationale paragraphs. §3 has canChiDay/Year/Month, ZODIAC_VN + zodiacOf, TIET_KHI + tietKhiAt with concrete formulas. 14 acceptance criteria. §5 has 2 test files (canchi.test.ts, tietkhi.test.ts) covering 5 year can-chi fixtures, VN zodiac, continuous JDN cycle, tiet khi bound, Dong chi. §10 has 12 failure lines. §11 has 7 notes. Maps to PRD FR-A03, FR-A04, 6.3, #8.
 
 ## §2 - Findings (all resolved during authoring)
 
-### ISS-001 - Can-chi tính từ lunarDay sẽ sai qua ranh tháng
-Resolved: §1 #1/#2, DEC-LUNAR-020 tính từ JDN, AC #6 chu kỳ liên tục, §10 dòng 1, §11 note 1.
+### ISS-001 - Can-chi computed from lunarDay is wrong across the month boundary
+Resolved: §1 #1/#2, DEC-LUNAR-020 computes from JDN, AC #6 continuous cycle, §10 line 1, §11 note 1.
 
-### ISS-002 - Dùng con giáp TQ thay vì VN
-Thỏ/Bò sai với Mèo/Trâu; Tết 2023 phải là Mèo. Resolved: §1 #5, DEC-LUNAR-021, bảng ZODIAC_VN, AC #4/#5, §10 dòng 2.
+### ISS-002 - Using the Chinese zodiac instead of the VN one
+Tho/Bo is wrong versus Meo/Trau; Tet 2023 must be Meo. Resolved: §1 #5, DEC-LUNAR-021, ZODIAC_VN table, AC #4/#5, §10 line 2.
 
-### ISS-003 - Tiết khí có thể chia sai độ phân giải
-Chia 6 cho 12 giá trị thay vì 24. Resolved: §1 #7, DEC-LUNAR-024 chia 12, AC #8/#10, §10 dòng 4.
+### ISS-003 - Tiet khi may be split at the wrong resolution
+Dividing by 6 for 12 values instead of 24. Resolved: §1 #7, DEC-LUNAR-024 divide by 12, AC #8/#10, §10 line 4.
 
-### ISS-004 - Đông chí có thể lệch với core
-Bảng tiết khí và getLunarMonth11 phải đồng nhất về Đông chí. Resolved: §1 #9, AC #11, §6, §11 note 3, dùng chung SunLongitude.
+### ISS-004 - Dong chi may drift from the core
+The tiet khi table and getLunarMonth11 must agree on Dong chi. Resolved: §1 #9, AC #11, §6, §11 note 3, shared SunLongitude.
 
-### ISS-005 - Nguy cơ dùng lunar-typescript chốt giá trị phụ thuộc múi giờ
-Resolved: §1 #12, DEC-LUNAR-025, chỉ cross-check can-chi/Trực độc lập múi giờ, disallowed_tools, §10 dòng 7.
+### ISS-005 - Risk of using lunar-typescript to fix timezone-dependent values
+Resolved: §1 #12, DEC-LUNAR-025, cross-check only can-chi/Truc that are timezone-independent, disallowed_tools, §10 line 7.
 
-### ISS-006 - Can-chi tháng không xoay theo can năm
-Can tháng sai làm đầu vào FR-011 sai. Resolved: §1 #4, DEC-LUNAR-022, AC #7, §11 note 5.
+### ISS-006 - Month can-chi does not rotate with the year can
+A wrong month can makes the FR-011 input wrong. Resolved: §1 #4, DEC-LUNAR-022, AC #7, §11 note 5.
 
 ## §3 - Resolution
 
-Sau ISS-001..006 đã xử lý: can-chi từ JDN, zodiac VN riêng, tiết khí độ phân giải 15 độ nhất quán với core, Đông chí đồng bộ getLunarMonth11, lunar-typescript chỉ cross-check độc lập múi giờ, can-chi tháng xoay theo can năm. Các bảng tiếng Việt có dấu, freeze. **Score = 10/10.** Sẵn sàng transition draft -> ready_to_implement.
+After ISS-001..006 are handled: can-chi from JDN, a separate VN zodiac, tiet khi at 15-degree resolution consistent with the core, Dong chi synced with getLunarMonth11, lunar-typescript only cross-checking timezone-independent values, month can-chi rotating with the year can. The tables are in Vietnamese with diacritics and frozen. **Score = 10/10.** Ready to transition draft -> ready_to_implement.
 
 ## §4 - Readiness pass (2026-06-28, contract alignment + tietKhiStartDiaChi)
 
-Đợt này là TASK A + TASK B: dong bo CONTRACT.md va bo sung ham FR-011 can. Cac thay doi:
-- `CanChi` interface trong §3 da loai bo truong `can`/`chi` string (khong co trong CONTRACT.md va scaffold `types.ts`); chi giu `{ canIndex, chiIndex, label }`. Ham canChiDay/Year/Month cap nhat theo.
-- Bo sung `canChiLabel(canIndex, chiIndex): string` vao §3 (CONTRACT.md pure helper; da co trong scaffold `src/canchi.ts`). Them §1 #6a, AC #5a, test group "canChiLabel".
-- `zodiacOf` sua chu ky: `zodiacOf(chiIndex: number): string` (CONTRACT.md va scaffold). Truoc do FR ghi `zodiacOf(lunarYear)` sai chu ky; cac AC va test da cap nhat dung `(lunarYear + 8) % 12` lam chiIndex.
-- Bo sung `tietKhiStartDiaChi(jdn, tz?): number` vao §3 voi spec clause §1 #11a, AC #15-17, va test group "tietKhiStartDiaChi" trong §5 (TASK A: CONTRACT.md da co; scaffold da co stub; FR-011 can de tinh Truc).
-- AC #7 va test "thang Gieng": doi tu `.chi === "Dan"` sang `.chiIndex === 2` (phu hop interface moi).
-- Test file imports sua: `VN_TIMEZONE` -> `VN_TZ`; import them `tietKhiStartDiaChi` va `canChiLabel`.
-- effort_hours: 10 -> 10.5 (bo sung 0.5h cho tietKhiStartDiaChi).
-- Sub-task them 1 dong moi cho tietKhiStartDiaChi.
+This pass is TASK A + TASK B: sync CONTRACT.md and add the function FR-011 needs. Changes:
+- The `CanChi` interface in §3 dropped the `can`/`chi` string fields (not in CONTRACT.md or the scaffold `types.ts`); it keeps only `{ canIndex, chiIndex, label }`. canChiDay/Year/Month updated accordingly.
+- Added `canChiLabel(canIndex, chiIndex): string` to §3 (CONTRACT.md pure helper; already in the scaffold `src/canchi.ts`). Added §1 #6a, AC #5a, "canChiLabel" test group.
+- `zodiacOf` signature fixed: `zodiacOf(chiIndex: number): string` (CONTRACT.md and scaffold). The FR previously wrote `zodiacOf(lunarYear)` with the wrong signature; the ACs and tests now use `(lunarYear + 8) % 12` as the chiIndex correctly.
+- Added `tietKhiStartDiaChi(jdn, tz?): number` to §3 with spec clause §1 #11a, AC #15-17, and the "tietKhiStartDiaChi" test group in §5 (TASK A: CONTRACT.md already has it; the scaffold has a stub; FR-011 needs it to compute Truc).
+- AC #7 and the "thang Gieng" test: change from `.chi === "Dan"` to `.chiIndex === 2` (matches the new interface).
+- Test file imports fixed: `VN_TIMEZONE` -> `VN_TZ`; also import `tietKhiStartDiaChi` and `canChiLabel`.
+- effort_hours: 10 -> 10.5 (added 0.5h for tietKhiStartDiaChi).
+- Added a new sub-task line for tietKhiStartDiaChi.
 
 ---
 
-## §4 - Independent adversarial pass (2026-06-27, reviewer khác tác giả)
+## §4 - Independent adversarial pass (2026-06-27, reviewer other than the author)
 
-Kiểm bằng tính toán: can-chi năm `(y+6)%10,(y+8)%12` đúng (2025 Ất Tỵ, 2023 Quý Mão, 1984 Giáp Tý, 1985 Ất Sửu, 2021 Tân Sửu); zodiac VN đúng (2023 Mèo, 2021 Trâu); can-chi tháng CAN `(yearCan*2+lunarMonth+1)%10` đúng (Giáp niên tháng Giêng = Bính Dần, tức ngũ hổ độn); chi tháng `(lunarMonth+1)%12` -> tháng 1 = Dần; bảng TIET_KHI khớp longitude (idx 0 Xuân phân, 6 Hạ chí, 12 Thu phân, 18 Đông chí, 21 Lập xuân); §8 payload JD 2460667 = 22/12/2024, tietKhiAt idx 18 = Đông chí isTrungKhi true - đúng. Phần số học SẠCH.
+Checked by calculation: year can-chi `(y+6)%10,(y+8)%12` is correct (2025 At Ty, 2023 Quy Mao, 1984 Giap Ty, 1985 At Suu, 2021 Tan Suu); VN zodiac is correct (2023 Meo, 2021 Trau); month can-chi CAN `(yearCan*2+lunarMonth+1)%10` is correct (Giap year, first month = Binh Dan, i.e. the ngu ho don rule); month chi `(lunarMonth+1)%12` -> month 1 = Dan; the TIET_KHI table matches longitude (idx 0 Xuan phan, 6 Ha chi, 12 Thu phan, 18 Dong chi, 21 Lap xuan); §8 payload JD 2460667 = 22/12/2024, tietKhiAt idx 18 = Dong chi isTrungKhi true - correct. The arithmetic is CLEAN.
 
-- NIT (Defect D, đã sửa): sub_task ghi `tietKhiAt ... trả ... cung 30 độ` nhưng interface `TietKhi` chỉ có `{index, name, isTrungKhi}` và độ phân giải ở đây là 15 độ (24 tiết), không phải 30 độ. Fix: sửa sub_task sang "trả index 0-23 + tên + cờ isTrungKhi (độ phân giải 15 độ)".
+- NIT (Defect D, fixed): sub_task wrote `tietKhiAt ... returns ... a 30-degree cung` but the `TietKhi` interface has only `{index, name, isTrungKhi}` and the resolution here is 15 degrees (24 tiet), not 30 degrees. Fix: change sub_task to "returns index 0-23 + name + isTrungKhi flag (15-degree resolution)".
 
-Pre-fix score (độc lập): 9/10. Sau fix: 10/10.
+Pre-fix score (independent): 9/10. After fix: 10/10.
 
 ---
 
-*Hết audit FR-LUNAR-002.*
+*End of audit FR-LUNAR-002.*

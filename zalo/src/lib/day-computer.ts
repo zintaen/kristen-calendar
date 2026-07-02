@@ -11,6 +11,7 @@ import {
   canChiYear,
   todayInHCM,
   jdFromDate,
+  jdToDate,
   isInvalidSolar,
   VN_TZ,
   type LunarDate,
@@ -106,8 +107,10 @@ function addOccurrence(
 ): void {
   const [gd, gm, gy] = solar;
   const dateStr = `${gy}-${String(gm).padStart(2, "0")}-${String(gd).padStart(2, "0")}`;
-  const eventMs = new Date(`${dateStr}T00:00:00+07:00`).getTime();
-  const diffDays = Math.round((eventMs - todayMs) / 86_400_000);
+  // Tinh chenh lech ngay bang JD (TZ-independent), khong dung Date-ms de tranh lech quanh nua dem VN.
+  const eventJd = jdFromDate(gd, gm, gy);
+  const todayJdn = jdFromDate(...(todayInHCM()));
+  const diffDays = eventJd - todayJdn;
 
   if (diffDays < 0 || diffDays > daysAhead) return;
 
@@ -121,9 +124,9 @@ function addOccurrence(
     if (leadDiff < 0) continue; // Lead date is in the past.
 
     const titleSuffix = lead > 0 ? ` (trước ${lead} ngày)` : "";
-    const leadDateMs = eventMs - lead * 86_400_000;
-    const leadDate = new Date(leadDateMs);
-    const leadDateStr = `${leadDate.getFullYear()}-${String(leadDate.getMonth() + 1).padStart(2, "0")}-${String(leadDate.getDate()).padStart(2, "0")}`;
+    // Lui `lead` ngay trong khong gian JD roi format (khong doc getDate() theo TZ thiet bi).
+    const [ld2, lm2, ly2] = jdToDate(eventJd - lead);
+    const leadDateStr = `${ly2}-${String(lm2).padStart(2, "0")}-${String(ld2).padStart(2, "0")}`;
 
     results.push({
       reminderId: reminder.id,

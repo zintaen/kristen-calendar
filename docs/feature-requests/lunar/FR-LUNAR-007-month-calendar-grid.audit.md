@@ -12,51 +12,51 @@ authoring_md_compliance: 2026-06-27 (rule 36 - 6 ISS >= 6 minimum; DEC-LUNAR-070
 
 ## §1 - Verdict summary
 
-FR-LUNAR-007 đặc tả thành phần lưới lịch tháng hai hệ thống (dương + âm) là màn hình chính của MVP Phase 1 slice 3. Phạm vi: 16 mệnh đề BCP-14 trong §1 (buildMonthGrid một lần, useMemo, header lunar, padding, highlight hôm nay, tap detail, placeholder FR-011, offline, swipe). 7 đoạn rationale §2 giải thích DEC-LUNAR-070..074 và các quyết định kiến trúc. §3 có 4 TypeScript interface và function signature đầy đủ cho CalendarGrid, DayCell, DayDetailPanel, buildMonthGrid, computeReminderDatesForMonth. 15 AC kiểm tra được trong §4 bao gồm edge case tháng nhuận 1985, tiết khí, hôm nay, padding, offline. §5 có 7 unit test cụ thể với fixture tháng 1/2025 Tết Ất Tỵ và spy đếm lần gọi. §10 liệt kê 12 hàng failure mode bao gồm timezone SSR/client, clip portal, debounce swipe. Ánh xạ tới FR-A05 (grid), NFR-Performance (< 100ms), §13 (lịch tháng).
+FR-LUNAR-007 specifies the dual-system month calendar grid component (solar + lunar), the main screen of MVP Phase 1 slice 3. Scope: 16 BCP-14 clauses in §1 (buildMonthGrid once, useMemo, lunar header, padding, highlight today, tap detail, FR-011 placeholder, offline, swipe). 7 rationale paragraphs in §2 explaining DEC-LUNAR-070..074 and the architectural decisions. §3 has 4 TypeScript interfaces and full function signatures for CalendarGrid, DayCell, DayDetailPanel, buildMonthGrid, computeReminderDatesForMonth. 15 testable ACs in §4 including the 1985 leap month edge case, tiet khi, today, padding, offline. §5 has 7 concrete unit tests with a January 2025 fixture (Tet At Ty) and a spy counting call counts. §10 lists 12 failure-mode rows including SSR/client timezone, portal clip, swipe debounce. Maps to FR-A05 (grid), NFR-Performance (< 100ms), §13 (month calendar).
 
 ## §2 - Findings (all resolved during authoring)
 
-### ISS-001 - Gọi convertSolar2Lunar từng ô trong vòng lặp render vi phạm NFR-Performance
-Nếu gọi 31 lần đồng bộ trong render cycle, tổng thời gian có thể vượt 100ms. Resolved: §1 #6 + DEC-LUNAR-070 + hàm buildMonthGrid tính một lần; AC #3 + §5 test spy đếm số lần gọi.
+### ISS-001 - Calling convertSolar2Lunar per cell in the render loop violates NFR-Performance
+If called 31 times synchronously in the render cycle, the total time can exceed 100ms. Resolved: §1 #6 + DEC-LUNAR-070 + buildMonthGrid computed once; AC #3 + §5 spy test counting calls.
 
-### ISS-002 - useMemo bị bỏ qua, buildMonthGrid tính lại mỗi re-render
-Deps không ổn định (object mới mỗi render) khiến useMemo vô hiệu hóa. Resolved: §1 #7 + DEC-LUNAR-071 + §5 test mock đếm số lần gọi; §11 note về key stability.
+### ISS-002 - useMemo skipped, buildMonthGrid recomputes on every re-render
+Unstable deps (a new object each render) disable useMemo. Resolved: §1 #7 + DEC-LUNAR-071 + §5 mock test counting calls; §11 note on key stability.
 
-### ISS-003 - Không có placeholder cho FR-LUNAR-011, block Phase 2
-Nếu DayDetailPanel layout gắn cứng với Hoàng đạo/Trực/28 sao sẽ block FR-007 ship trong slice 3. Resolved: §1 #14 + DEC-LUNAR-072 + fields hoangDao/truc/sao28 kiểu null trong DayCellData; §8 example payload có comment "(Phase 2 - chưa có)".
+### ISS-003 - No placeholder for FR-LUNAR-011, blocking Phase 2
+If the DayDetailPanel layout is hard-wired to Hoang dao/Truc/28 sao it blocks FR-007 shipping in slice 3. Resolved: §1 #14 + DEC-LUNAR-072 + hoangDao/truc/sao28 fields typed null in DayCellData; §8 example payload has the comment "(Phase 2 - not yet)".
 
-### ISS-004 - Timezone SSR vs client làm sai startPadding
-`new Date(year, month-1, 1).getDay()` trong SSR Next.js chạy UTC, lệch 7 giờ so với Asia/Ho_Chi_Minh. Resolved: §11 note thứ 2 về Intl + timeZone Asia/Ho_Chi_Minh; §10 failure row "Padding sai".
+### ISS-004 - SSR vs client timezone makes startPadding wrong
+`new Date(year, month-1, 1).getDay()` in Next.js SSR runs UTC, off by 7 hours from Asia/Ho_Chi_Minh. Resolved: §11 second note on Intl + timeZone Asia/Ho_Chi_Minh; §10 failure row "Wrong padding".
 
-### ISS-005 - DayDetailPanel bị clip bởi overflow:hidden của grid container
-Panel slide-up render trong container grid sẽ bị cắt. Resolved: §11 note "createPortal gắn vào document.body"; §10 failure row "DayDetailPanel re-render grid" có nguyên nhân tương tự.
+### ISS-005 - DayDetailPanel clipped by the grid container's overflow:hidden
+A slide-up panel rendered inside the grid container will be clipped. Resolved: §11 note "createPortal attached to document.body"; §10 failure row "DayDetailPanel re-render grid" has the same cause.
 
-### ISS-006 - Không có test covers trường hợp tháng nhuận và offline
-Thiếu fixture tháng nhuận 1985 và kiểm tra không có network. Resolved: §5 test "Tháng 3/1985: có tháng nhuận 2" và test "Không có network request trong buildMonthGrid" với fetchSpy.
+### ISS-006 - No test covers the leap-month and offline cases
+Missing the 1985 leap-month fixture and a no-network check. Resolved: §5 test "March 1985: has leap month 2" and test "No network request in buildMonthGrid" with fetchSpy.
 
 ## §3 - Resolution
 
-Sau khi xử lý 6 vấn đề trên, FR-LUNAR-007 có 16 mệnh đề BCP-14, 15 AC, 7 unit test cụ thể, 12 failure rows, 7 implementation notes. Tất cả DEC-LUNAR-070..074 được tạo và tham chiếu đầy đủ. Score sau self-audit = 10/10.
+After handling the 6 issues above, FR-LUNAR-007 has 16 BCP-14 clauses, 15 ACs, 7 concrete unit tests, 12 failure rows, 7 implementation notes. All of DEC-LUNAR-070..074 are created and fully referenced. Score after self-audit = 10/10.
 
 ## §4 - Independent adversarial pass (2026-06-27)
 
-Reviewer doc lap (khong phai tac gia) cham lai voi gia dinh self-audit lac quan. Pre-fix score: **5/10**. Self-audit 10/10 da bo sot ba defect contract-level voi FR-LUNAR-001/002:
+An independent reviewer (not the author) re-scored against the optimistic self-audit assumptions. Pre-fix score: **5/10**. The self-audit 10/10 missed three contract-level defects with FR-LUNAR-001/002:
 
-- **MAJOR (BLOCKER-level) - import sai ham khong ton tai.** §3 line 102 + §6 import `getTietKhi` tu amlich-core, nhung FR-LUNAR-002 export `tietKhiAt(jdn, tz)`, KHONG co `getTietKhi` (PRD §6 cung khong dinh nghia). Build se vo. Fixed: §3 + §6 doi sang `tietKhiAt`; them helper `isTietKhiStart`; §11 note 5 va §10 row sua theo.
-- **MAJOR - tuple vs object + can-chi/zodiac khong bao gio duoc tinh.** §6 lam `const lunar = convertSolar2Lunar(...)` roi `lunarDate: { ...lunar }`. Nhung convertSolar2Lunar tra TUPLE `[day,month,year,leap]`; spread mang vao object cho ra `{0,1,2,3}`, mat het ten truong. can-chi (§1 #2) va zodiac khong he duoc populate du AC #1 yeu cau. canChiDay/tietKhiAt nhan JDN, khong nhan d/m/y. Fixed: §6 destructure tuple, tinh `jdFromDate(d,m,y)` mot lan, goi `canChiDay(jdn)/canChiMonth(lMonth,lYear)/canChiYear(lYear)/zodiacOf(lYear)/tietKhiAt(jdn,tz)` va lap rap DTO; §3 import dung cac symbol nay.
-- **MAJOR - SSR/timezone start-padding bug ship trong skeleton.** §6 dung `firstDay.getDay()` (lay theo timezone runtime; static-export prerender chay UTC -> lech ngay bat dau tuan), du §11 va §10 da canh bao bang prose. Spec mo ta bug nhung VAN ship code loi. Fixed: §6 thay bang `startPaddingFor()` (Intl + timeZone Asia/Ho_Chi_Minh tren `Date.UTC(...,12)`), `daysInMonth` dung `getUTCDate()`; §10 row + §11 note 2 cap nhat sang code da-ship.
+- **MAJOR (BLOCKER-level) - imports a nonexistent function.** §3 line 102 + §6 import `getTietKhi` from amlich-core, but FR-LUNAR-002 exports `tietKhiAt(jdn, tz)`, NOT `getTietKhi` (PRD §6 also does not define it). The build breaks. Fixed: §3 + §6 changed to `tietKhiAt`; added the helper `isTietKhiStart`; §11 note 5 and the §10 row updated accordingly.
+- **MAJOR - tuple vs object + can-chi/zodiac never computed.** §6 does `const lunar = convertSolar2Lunar(...)` then `lunarDate: { ...lunar }`. But convertSolar2Lunar returns a TUPLE `[day,month,year,leap]`; spreading an array into an object yields `{0,1,2,3}`, losing every field name. can-chi (§1 #2) and zodiac are never populated even though AC #1 requires them. canChiDay/tietKhiAt take a JDN, not d/m/y. Fixed: §6 destructures the tuple, computes `jdFromDate(d,m,y)` once, calls `canChiDay(jdn)/canChiMonth(lMonth,lYear)/canChiYear(lYear)/zodiacOf(lYear)/tietKhiAt(jdn,tz)` and assembles the DTO; §3 imports the correct symbols.
+- **MAJOR - SSR/timezone start-padding bug shipped in the skeleton.** §6 uses `firstDay.getDay()` (reads the runtime timezone; static-export prerender runs UTC -> off week-start day), even though §11 and §10 already warned in prose. The spec describes the bug but STILL ships the broken code. Fixed: §6 replaced with `startPaddingFor()` (Intl + timeZone Asia/Ho_Chi_Minh over `Date.UTC(...,12)`), `daysInMonth` uses `getUTCDate()`; the §10 row + §11 note 2 updated to the shipped code.
 
-Cac muc da-resolved trong self-audit (placeholder FR-011, portal clip, fixture 1985/offline, useMemo) van dung. Sau fix: NFR-Performance render < 100ms van duoc xu ly (§1 #12, AC #3/#4); cac fixture test khong doi ket qua (Jan 2025 van 3 o padding, Tet 29/01 van mung 1). **Post-fix score = 9/10** (deferred Web Worker + 6-row layout van la implementation-time, khong phai contract defect).
+The items already-resolved in the self-audit (FR-011 placeholder, portal clip, 1985/offline fixture, useMemo) still hold. After fix: NFR-Performance render < 100ms is still handled (§1 #12, AC #3/#4); the fixture tests do not change results (Jan 2025 still 3 padding cells, Tet 29/01 still day 1). **Post-fix score = 9/10** (deferred Web Worker + 6-row layout are still implementation-time, not contract defects).
 
 ## §5 - Contract-alignment pass (2026-06-28)
 
 Readiness pass against CONTRACT.md and task-B traceability:
 
-- **VN_TIMEZONE -> VN_TZ**: `VN_TIMEZONE` khong ton tai trong CONTRACT.md; `VN_TZ = 7.0` moi la export dung. Da sua import va tat ca diem dung trong §3, §6. Tat ca 4 ocurrence thay the thanh cong.
-- **zodiacOf signature**: CONTRACT khai bao `zodiacOf(chiIndex: number)`, KHONG phai `zodiacOf(lunarYear)`. Da sua comment §3 (chiIndex), skeleton §6 (`zodiacOf(canChiYear(lYear).chiIndex)`), va comment prose trong §6. Ghi chu am trong §7 ("KHONG phai getTietKhi") giu nguyen - dung.
-- **getTietKhi**: Khong co import nao thuc te; chi xuat hien trong van ban am-prose (chap nhan). Khong co code nao goi `getTietKhi`. PASS.
-- **Traceability Task B**: 16 menh de BCP-14 trong §1, 15 AC trong §4, 7 test trong §5. Tat ca PHAI deu co AC tuong ung va test. DEC-LUNAR-070..074 ton tai va duoc tham chieu day du.
+- **VN_TIMEZONE -> VN_TZ**: `VN_TIMEZONE` does not exist in CONTRACT.md; `VN_TZ = 7.0` is the correct export. Fixed the import and every use point in §3, §6. All 4 occurrences replaced successfully.
+- **zodiacOf signature**: CONTRACT declares `zodiacOf(chiIndex: number)`, NOT `zodiacOf(lunarYear)`. Fixed the §3 comment (chiIndex), the §6 skeleton (`zodiacOf(canChiYear(lYear).chiIndex)`), and the prose comment in §6. The negative note in §7 ("NOT getTietKhi") kept - correct.
+- **getTietKhi**: No actual import; it appears only in negative-prose text (accepted). No code calls `getTietKhi`. PASS.
+- **Traceability Task B**: 16 BCP-14 clauses in §1, 15 ACs in §4, 7 tests in §5. Every MUST has a matching AC and test. DEC-LUNAR-070..074 exist and are fully referenced.
 
 **Post-alignment score: READY.**
 
-*Hết audit FR-LUNAR-007.*
+*End of audit FR-LUNAR-007.*

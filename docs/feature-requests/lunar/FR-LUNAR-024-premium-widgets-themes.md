@@ -18,7 +18,7 @@ blocks: []
 source_pages:
   - BACKLOG.md
 source_decisions:
-  - DEC-024 (Triển khai IAP để bán Themes và Widgets cao cấp, tối đa hóa LTV)
+  - DEC-024 (Implement IAP to sell premium Themes and Widgets, maximizing LTV)
 language: typescript
 service: apps/mobile-app
 new_files:
@@ -34,12 +34,12 @@ disallowed_tools:
   - Custom IAP receipt validation (must use RevenueCat)
 effort_hours: 20
 sub_tasks:
-  - "3h: Setup RevenueCat project và Apple/Google credentials"
-  - "4h: Tích hợp RevenueCat SDK vào ứng dụng Capacitor"
-  - "4h: Xây dựng StorePage UI hiển thị danh sách Themes/Widgets"
-  - "5h: Implement logic khóa/mở khóa Theme dựa trên Entitlements"
-  - "4h: Tích hợp Supabase webhook từ RevenueCat để đồng bộ trạng thái Premium"
-risk_if_skipped: "Bỏ qua một kênh doanh thu trực tiếp mạnh mẽ. Người dùng sẵn sàng trả tiền cho cá nhân hóa giao diện (đặc biệt là tệp người dùng tâm linh/phong thủy)."
+  - "3h: Set up the RevenueCat project and Apple/Google credentials"
+  - "4h: Integrate the RevenueCat SDK into the Capacitor app"
+  - "4h: Build the StorePage UI showing the list of Themes/Widgets"
+  - "5h: Implement lock/unlock logic for Themes based on Entitlements"
+  - "4h: Integrate the Supabase webhook from RevenueCat to sync Premium status"
+risk_if_skipped: "Skipping a strong direct revenue channel. Users are willing to pay for interface personalization (especially the spiritual/feng shui user segment)."
 ---
 
 # Feature Request
@@ -48,20 +48,20 @@ risk_if_skipped: "Bỏ qua một kênh doanh thu trực tiếp mạnh mẽ. Ngư
 
 ## Summary
 
-Triển khai hệ thống In-App Purchase (IAP) thông qua RevenueCat để bán các gói Premium (Theme phong thủy, Widget độc quyền). Người dùng có thể mua lẻ từng theme hoặc mua gói Subscription (Genie+). Hệ thống sẽ quản lý entitlements và đồng bộ trạng thái mua hàng về cơ sở dữ liệu Supabase.
+Implement an In-App Purchase (IAP) system through RevenueCat to sell Premium packages (feng shui Themes, exclusive Widgets). Users can buy individual themes or a Subscription package (Genie+). The system manages entitlements and syncs purchase status back to the Supabase database.
 
 ## Problem
 
-Ứng dụng hiện tại hoàn toàn miễn phí. Mặc dù Affiliate (FR-LUNAR-022) tạo ra dòng tiền, nhưng IAP (bán hàng trực tiếp) vẫn là mô hình monetization ổn định và dễ scale nhất cho các ứng dụng tiện ích (Calendar/Widget). Người dùng có nhu cầu cá nhân hóa cao (đổi màu app theo mệnh phong thủy) nhưng chưa có cách nào để trả tiền cho tính năng đó.
+The app is currently entirely free. Although Affiliate (FR-LUNAR-022) generates cash flow, IAP (direct sales) is still the most stable and scalable monetization model for utility apps (Calendar/Widget). Users have a high demand for personalization (changing the app color to match their feng shui element) but have no way to pay for that feature.
 
 ## Customer Quotes
 
-<untrusted_content source="user-interview"> "Mình mệnh Hỏa, muốn cái app nó màu đỏ hoặc cam cho hợp phong thủy. App có bán theme không mình mua?" </untrusted_content>
+<untrusted_content source="user-interview"> "My element is Fire. I want the app to be red or orange to match feng shui. Does the app sell themes so I can buy one?" </untrusted_content>
 
-## §1 — Description (Normative Clauses)
+## §1 - Description (Normative Clauses)
 
 1. **MUST** integrate RevenueCat SDK to handle App Store and Google Play billing securely.
-2. **MUST** create a `StorePage` UI showcasing available premium items: "Phong Thủy Themes" and "Advanced Widgets".
+2. **MUST** create a `StorePage` UI showcasing available premium items: "Feng Shui Themes" and "Advanced Widgets".
 3. **MUST** lock premium themes in the `ThemeSelector` component if the user does not have the required RevenueCat Entitlement.
 4. **MUST** set up a RevenueCat Webhook targeting a Supabase Edge Function to sync subscription/purchase states to the `user_settings.premium_tier` column.
 5. **MUST** support offline entitlement checking (using RevenueCat's cached entitlements) so users don't lose access to their themes when offline.
@@ -69,7 +69,7 @@ Triển khai hệ thống In-App Purchase (IAP) thông qua RevenueCat để bán
 7. **SHOULD** implement a promotional introductory offer (e.g., "7 days free trial" for Genie+).
 8. **MUST** log all successful purchase events to `genie.action_log` with `event_kind=monetization.purchase_success`.
 
-## §2 — Why this design
+## §2 - Why this design
 
 **Why RevenueCat instead of native IAP (§1 #1)?** 
 Implementing Apple StoreKit and Google Play Billing directly, along with secure backend receipt validation, is extremely complex and error-prone. RevenueCat abstracts this into a single SDK and provides a unified dashboard for metrics.
@@ -77,7 +77,7 @@ Implementing Apple StoreKit and Google Play Billing directly, along with secure 
 **Why sync to Supabase via Webhook (§1 #4)?**
 While RevenueCat holds the source of truth, we need the `premium_tier` in our database to gate server-side features in the future (e.g., unlimited Claude requests) without querying RevenueCat's API on every request.
 
-## §3 — API contract
+## §3 - API contract
 
 ```typescript
 // Supabase Webhook Endpoint (receives from RevenueCat)
@@ -101,15 +101,15 @@ export interface IAPService {
 }
 ```
 
-## §4 — Acceptance criteria
+## §4 - Acceptance criteria
 
-1. **Store Display** — When a user opens the StorePage, it successfully fetches and displays the active offerings from RevenueCat.
-2. **Purchase Flow** — When a user taps "Buy", the native IAP sheet appears. Upon successful sandbox purchase, the Theme is immediately unlocked locally.
-3. **Webhook Sync** — When a purchase occurs, RevenueCat fires a webhook to Supabase, updating the user's `premium_tier` to `true` within 5 seconds.
-4. **Restore Purchases** — When a user uninstalls and reinstalls on a new device, tapping "Restore Purchases" unlocks their previously bought themes without double-charging.
-5. **Offline Access** — When the app is launched without internet, previously unlocked themes remain unlocked based on cached entitlements.
+1. **Store Display** - When a user opens the StorePage, it successfully fetches and displays the active offerings from RevenueCat.
+2. **Purchase Flow** - When a user taps "Buy", the native IAP sheet appears. Upon successful sandbox purchase, the Theme is immediately unlocked locally.
+3. **Webhook Sync** - When a purchase occurs, RevenueCat fires a webhook to Supabase, updating the user's `premium_tier` to `true` within 5 seconds.
+4. **Restore Purchases** - When a user uninstalls and reinstalls on a new device, tapping "Restore Purchases" unlocks their previously bought themes without double-charging.
+5. **Offline Access** - When the app is launched without internet, previously unlocked themes remain unlocked based on cached entitlements.
 
-## §5 — Verification
+## §5 - Verification
 
 ```typescript
 // test/monetization/webhook.test.ts
@@ -136,7 +136,7 @@ describe('RevenueCat Webhook', () => {
 });
 ```
 
-## §6 — Implementation skeleton
+## §6 - Implementation skeleton
 
 ```typescript
 // IAPService.ts
@@ -168,12 +168,12 @@ export class IAPServiceImpl implements IAPService {
 }
 ```
 
-## §7 — Dependencies
+## §7 - Dependencies
 
 - **Upstream:** FR-LUNAR-005 (Widget engine - to support premium widget rendering).
 - **Upstream:** FR-LUNAR-020 (Account management - to link purchases to Supabase UUIDs).
 
-## §8 — Example payloads
+## §8 - Example payloads
 
 **Audit Log Row:**
 ```json
@@ -190,11 +190,11 @@ export class IAPServiceImpl implements IAPService {
 }
 ```
 
-## §9 — Open questions
+## §9 - Open questions
 
 - `Resolved` - Should we use RevenueCat's anonymous IDs or require login to buy? Resolution: Require login (FR-020) so purchases can sync cross-platform (iOS to Android).
 
-## §10 — Failure modes inventory
+## §10 - Failure modes inventory
 
 | Failure | Detection | Outcome | Recovery |
 |---|---|---|---|
@@ -209,7 +209,7 @@ export class IAPServiceImpl implements IAPService {
 | Network disconnect during purchase | SDK handles | Purchase queued | Will complete upon reconnect |
 | Sandbox purchase leaks to Prod | Webhook detects `environment: "SANDBOX"` | Prod metrics skewed | Ensure Supabase webhook filters out sandbox events in production DB |
 
-## §11 — Implementation notes
+## §11 - Implementation notes
 
 - **Apple Guidelines:** Apple is extremely strict about IAP. The StorePage MUST display a link to the Terms of Service, Privacy Policy, and clearly state the exact price, duration (if subscription), and how to cancel. Missing any of these guarantees an App Review rejection.
 - **Login Lifecycle:** If a user logs out, we must call `Purchases.logOut()` to prevent the next user on the same device from inheriting their purchases.
@@ -217,7 +217,7 @@ export class IAPServiceImpl implements IAPService {
 ## AI Authorship Disclosure
 
 - **Tools used:** LLM agent acting as feature-request-author
-- **Scope:** Toàn bộ nội dung FR.
-- **Human review:** Được operator review sau khi sinh.
+- **Scope:** The entire FR content.
+- **Human review:** Reviewed by the operator after generation.
 
 *End of FR-LUNAR-024.*

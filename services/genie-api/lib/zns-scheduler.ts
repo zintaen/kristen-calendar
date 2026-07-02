@@ -2,6 +2,7 @@ import {
   convertLunar2Solar,
   convertSolar2Lunar,
   isInvalidSolar,
+  todayInHCM,
   VN_TZ,
   type SolarDate,
 } from "@cyberskill/amlich-core";
@@ -54,16 +55,15 @@ function candidateLunarYears(
   reminder: SchedulerReminder,
   now: Date
 ): Array<{ lunarYear: number; lunarMonth: number }> {
-  const currentYear = now.getFullYear();
+  // Khoa "hom nay" ve gio Viet Nam (DEC-LUNAR-043). Cron chay tren serverless TZ=UTC; dung
+  // now.getFullYear()/getDate() se lay ngay UTC, lech 1 ngay quanh nua dem VN -> quet nham thang am.
+  const [tdD, tdM, tdY] = todayInHCM(now);
+  const currentYear = tdY;
 
   if (reminder.recurrence === "MONTHLY") {
     // For MONTHLY reminders, we need to figure out the current lunar month.
-    // Convert today (solar) to lunar to get the reference lunar month.
-    const dd = now.getDate();
-    // getMonth() is 0-based in JS, amlich-core expects 1-based.
-    const mm = now.getMonth() + 1;
-    const yy = now.getFullYear();
-    const [, currentLunarMonth, currentLunarYear] = convertSolar2Lunar(dd, mm, yy, VN_TZ);
+    // Convert today (solar, VN) to lunar to get the reference lunar month.
+    const [, currentLunarMonth, currentLunarYear] = convertSolar2Lunar(tdD, tdM, tdY, VN_TZ);
 
     const months: Array<{ lunarYear: number; lunarMonth: number }> = [];
 

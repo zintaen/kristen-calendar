@@ -1,6 +1,6 @@
 ---
 id: FR-LUNAR-009
-title: "Purple style pack - sub-brand tim mo rong design-system CyberSkill (override color tokens, giu structure), Be Vietnam Pro, cong tuong phan APCA Lc >= 75"
+title: "Purple style pack - purple sub-brand extending the CyberSkill design system (override color tokens, keep structure), Be Vietnam Pro, APCA contrast gate Lc >= 75"
 module: LUNAR
 priority: MUST
 status: ready_to_implement
@@ -19,11 +19,11 @@ source_pages:
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#5 (NFR-Accessibility, NFR-Localization)"
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#13 (UI/UX purple sub-brand)"
 source_decisions:
-  - DEC-LUNAR-090 (purple style pack la sub-brand extension, KHONG thay the base brand CyberSkill Umber #45210E / Ochre #F4BA17; chi override color tokens, giu nguyen token structure spacing/typography/component)
-  - DEC-LUNAR-091 (moi cap mau chu/nen phai dat APCA Lc >= 75 do bang apca-w3 truoc khi ship; uu tien Lc 90 cho body text >= 18px/400 weight; WCAG 2.x AA 4.5:1 chay song song lam rai an toan phap ly)
-  - DEC-LUNAR-092 (typography duy nhat la Be Vietnam Pro, import tu Google Fonts hoac bundle local; la typeface cua CyberSkill, ho tro day du dau tieng Viet)
-  - DEC-LUNAR-093 (nen kem am (warm cream bg, ~#FDF6EC hoac tuong duong) duoc chon lam nen default thay vi trang thuan #FFFFFF de hoa hop voi DNA "warm earth" CyberSkill; tim dam tren nen kem dat APCA tot hon tim nhat tren trang)
-  - DEC-LUNAR-094 (token mau purple pack duoc to chuc theo 3 lop: primitive (hex raw), semantic (vai tro UI: text, bg, border, accent), component (button-primary-bg v.v.); layer semantic va component override layer primitive cua CyberSkill base)
+  - DEC-LUNAR-090 (the purple style pack is a sub-brand extension, does NOT replace the base CyberSkill brand Umber #45210E / Ochre #F4BA17; it only overrides color tokens, keeping the spacing/typography/component token structure intact)
+  - DEC-LUNAR-091 (every text/background color pair must reach APCA Lc >= 75 measured by apca-w3 before ship; prefer Lc 90 for body text >= 18px/400 weight; WCAG 2.x AA 4.5:1 runs in parallel as a legal-safety net)
+  - DEC-LUNAR-092 (the sole typography is Be Vietnam Pro, imported from Google Fonts or bundled locally; it is the CyberSkill typeface, with full Vietnamese diacritic support)
+  - DEC-LUNAR-093 (a warm background (warm cream bg, ~#FDF6EC or equivalent) is chosen as the default background instead of pure white #FFFFFF to harmonize with the CyberSkill "warm earth" DNA; deep purple on cream reaches a better APCA than light purple on white)
+  - DEC-LUNAR-094 (the purple pack color tokens are organized in 3 layers: primitive (raw hex), semantic (UI role: text, bg, border, accent), component (button-primary-bg etc.); the semantic and component layers override the CyberSkill base primitive layer)
 language: typescript 5.x
 service: packages/ui/
 new_files:
@@ -42,60 +42,60 @@ allowed_tools:
   - file_write: packages/ui/src/**
   - bash: cd packages/ui && pnpm test
 disallowed_tools:
-  - "thay the Umber #45210E hoac Ochre #F4BA17 trong base brand tokens (vi pham DEC-LUNAR-090)"
-  - "dung mau tim nhat (Lc < 75) lam mau text chinh tren nen kem (vi pham DEC-LUNAR-091 / NFR-Accessibility)"
-  - "import font khac Be Vietnam Pro lam typography chinh (vi pham DEC-LUNAR-092)"
+  - "replacing Umber #45210E or Ochre #F4BA17 in the base brand tokens (violates DEC-LUNAR-090)"
+  - "using light purple (Lc < 75) as the main text color on the cream background (violates DEC-LUNAR-091 / NFR-Accessibility)"
+  - "importing a font other than Be Vietnam Pro as the main typography (violates DEC-LUNAR-092)"
 effort_hours: 8
 sub_tasks:
-  - "1.5h: tokens.ts - dinh nghia 3 lop token (primitive, semantic, component) voi gia tri day du"
-  - "1.0h: apca.ts - ham checkApca(fg, bg) bao gom apca-w3, assert Lc >= 75; checkWcag(fg, bg) WCAG AA"
-  - "1.0h: apca.test.ts - kiem tra tung cap text/nen trong palette, assert ca APCA va WCAG"
-  - "1.0h: Typography.tsx - component viet chuan voi Be Vietnam Pro, Dynamic Type scale"
-  - "1.0h: Button.tsx - primary/secondary/ghost voi purple tokens, APCA-safe"
-  - "1.0h: Card.tsx - card co border tim, padding, shadow nhe tren nen kem"
-  - "1.0h: CSS variables / Tailwind config extension cho purple tokens"
-  - "0.5h: index.ts - export tap trung, kiem tra build"
-risk_if_skipped: "Khong co design tokens thi moi component cua FR-010 (app shell), FR-007 (grid), FR-014 (cards) tu chon mau rieng, dan den khong dong nhat. Khong co APCA gate thi UI co the ship voi tuong phan thap, vi pham NFR-Accessibility."
+  - "1.5h: tokens.ts - define the 3 token layers (primitive, semantic, component) with full values"
+  - "1.0h: apca.ts - the checkApca(fg, bg) function including apca-w3, assert Lc >= 75; checkWcag(fg, bg) WCAG AA"
+  - "1.0h: apca.test.ts - check each text/background pair in the palette, assert both APCA and WCAG"
+  - "1.0h: Typography.tsx - standard text component with Be Vietnam Pro, Dynamic Type scale"
+  - "1.0h: Button.tsx - primary/secondary/ghost with purple tokens, APCA-safe"
+  - "1.0h: Card.tsx - a card with a purple border, padding, light shadow on the cream background"
+  - "1.0h: CSS variables / Tailwind config extension for the purple tokens"
+  - "0.5h: index.ts - centralized export, check the build"
+risk_if_skipped: "Without design tokens, every component of FR-010 (app shell), FR-007 (grid), FR-014 (cards) picks its own colors, leading to inconsistency. Without the APCA gate, the UI can ship with low contrast, violating NFR-Accessibility."
 ---
 
 ## §1 - Description (BCP-14 normative)
 
-Module nay PHẢI xây dựng purple style pack là sub-brand extension của CyberSkill design system, đủ để toàn bộ UI của "Genie Âm Lịch" dùng token thống nhất và đạt chuẩn tương phản APCA.
+This module **MUST** build the purple style pack as a sub-brand extension of the CyberSkill design system, sufficient for the entire "Genie Am Lich" UI to use unified tokens and meet the APCA contrast standard.
 
-1. PHẢI tổ chức token theo 3 lớp: primitive (giá trị hex thô), semantic (vai trò UI: text, background, border, accent, error), component (per-component như button-primary-bg, card-border) - cấu trúc này giữ nguyên từ CyberSkill design system, chỉ override giá trị màu (DEC-LUNAR-094).
-2. PHẢI KHÔNG thay thế hoặc ghi đè token base brand CyberSkill `--color-brand-umber: #45210E` và `--color-brand-ochre: #F4BA17`; hai token này được giữ nguyên và có thể được dùng trong footer hoặc logo (DEC-LUNAR-090).
-3. PHẢI định nghĩa palette tím (purple) gồm ít nhất: `purple-900` (tím đậm nhất, dùng cho text chính), `purple-700` (tím trung, dùng cho text thứ cấp và nút), `purple-500` (tím trung sáng, accent), `purple-200` (tím nhạt, border nhẹ), `purple-50` (tím rất nhạt, hover state) dưới dạng CSS variables và TypeScript constants.
-4. PHẢI định nghĩa `--color-bg-default: #FDF6EC` (kem ấm, warm cream) làm màu nền mặc định thay vì `#FFFFFF`, nhằm hài hòa với DNA "warm earth" của CyberSkill và cải thiện APCA trên nền kem so với nền trắng (DEC-LUNAR-093).
-5. PHẢI cung cấp hàm `checkApca(fgHex: string, bgHex: string): number` trả giá trị APCA Lc (có dấu) sử dụng thư viện `apca-w3`; và hàm `assertApca(fgHex, bgHex, minLc: number)` throw Error nếu `|Lc| < minLc` (DEC-LUNAR-091).
-6. PHẢI cung cấp hàm `checkWcag(fgHex: string, bgHex: string): number` trả tỷ lệ tương phản WCAG 2.x; và hàm `assertWcag21AA(fgHex, bgHex)` throw Error nếu ratio < 4.5 (DEC-LUNAR-091).
-7. PHẢI có bộ test tự động kiểm tra từng cặp màu text/nền trong palette, đảm bảo APCA Lc >= 75 cho body text và WCAG AA >= 4.5:1 (DEC-LUNAR-091, NFR-Accessibility).
-8. PHẢI dùng duy nhất **Be Vietnam Pro** làm typeface chính; import từ Google Fonts CDN trong production hoặc bundle local cho PWA offline; định nghĩa scale font: `font-size-xs` (12px), `font-size-sm` (14px), `font-size-base` (16px), `font-size-lg` (18px), `font-size-xl` (20px), `font-size-2xl` (24px), `font-size-3xl` (30px) (DEC-LUNAR-092).
-9. PHẢI hỗ trợ Dynamic Type trên iOS bằng cách dùng `rem` hoặc `em` thay vì `px` cho font-size trong các component; và test rằng component `Typography` không dùng đơn vị `px` hardcode cho font-size (NFR-Accessibility).
-10. PHẢI cung cấp component `Typography` với variants: `heading-1`, `heading-2`, `heading-3`, `body`, `body-small`, `caption`; mỗi variant dùng đúng token font-size và font-weight.
-11. PHẢI cung cấp component `Button` với variants: `primary` (nền tím đậm, chữ kem), `secondary` (viền tím, nền kem), `ghost` (không viền, chữ tím); mỗi variant PHẢI đạt APCA Lc >= 75 giữa chữ và nền.
-12. PHẢI cung cấp component `Card` với style tím nhẹ (viền tím mờ, nền kem, shadow nhẹ), phù hợp để bọc nội dung dịp lễ và nhắc.
-13. PHẢI export tất cả token dưới dạng TypeScript object `PURPLE_TOKENS` để Tailwind config, CSS-in-JS, hoặc `style` prop dùng trực tiếp; đồng thời export dưới dạng CSS custom properties trong một file `.css` để dùng với Tailwind.
-14. KHÔNG ĐƯỢC dùng `!important` để override; thứ tự cascade CSS phải đủ để purple token thắng mà không cần `!important`.
-15. NÊN đảm bảo text body dài (`body` variant, >= 18px/400 weight) đạt APCA Lc >= 90 theo NFR-Accessibility "ưu tiên Lc 90 cho đoạn dài".
-16. NÊN cung cấp màu `--color-error: #B91C1C` (đỏ đậm) đạt APCA Lc >= 75 trên nen kem, để dùng trong validation form.
+1. **MUST** organize tokens in 3 layers: primitive (raw hex values), semantic (UI role: text, background, border, accent, error), component (per-component such as button-primary-bg, card-border) - this structure is kept from the CyberSkill design system, overriding only the color values (DEC-LUNAR-094).
+2. **MUST NOT** replace or override the base CyberSkill brand tokens `--color-brand-umber: #45210E` and `--color-brand-ochre: #F4BA17`; these two tokens are kept intact and may be used in the footer or logo (DEC-LUNAR-090).
+3. **MUST** define the purple palette with at least: `purple-900` (the darkest purple, for main text), `purple-700` (mid purple, for secondary text and buttons), `purple-500` (mid-light purple, accent), `purple-200` (light purple, subtle border), `purple-50` (very light purple, hover state) as CSS variables and TypeScript constants.
+4. **MUST** define `--color-bg-default: #FDF6EC` (warm cream) as the default background instead of `#FFFFFF`, to harmonize with the CyberSkill "warm earth" DNA and improve APCA on cream over white (DEC-LUNAR-093).
+5. **MUST** provide the function `checkApca(fgHex: string, bgHex: string): number` returning the (signed) APCA Lc value using the `apca-w3` library; and the function `assertApca(fgHex, bgHex, minLc: number)` throwing an Error if `|Lc| < minLc` (DEC-LUNAR-091).
+6. **MUST** provide the function `checkWcag(fgHex: string, bgHex: string): number` returning the WCAG 2.x contrast ratio; and the function `assertWcag21AA(fgHex, bgHex)` throwing an Error if ratio < 4.5 (DEC-LUNAR-091).
+7. **MUST** have an automated test suite checking each text/background color pair in the palette, ensuring APCA Lc >= 75 for body text and WCAG AA >= 4.5:1 (DEC-LUNAR-091, NFR-Accessibility).
+8. **MUST** use only **Be Vietnam Pro** as the main typeface; import from the Google Fonts CDN in production or bundle locally for the offline PWA; define the font scale: `font-size-xs` (12px), `font-size-sm` (14px), `font-size-base` (16px), `font-size-lg` (18px), `font-size-xl` (20px), `font-size-2xl` (24px), `font-size-3xl` (30px) (DEC-LUNAR-092).
+9. **MUST** support Dynamic Type on iOS by using `rem` or `em` instead of `px` for font-size in the components; and test that the `Typography` component does not use hardcoded `px` for font-size (NFR-Accessibility).
+10. **MUST** provide a `Typography` component with variants: `heading-1`, `heading-2`, `heading-3`, `body`, `body-small`, `caption`; each variant uses the correct font-size and font-weight token.
+11. **MUST** provide a `Button` component with variants: `primary` (deep purple background, cream text), `secondary` (purple border, cream background), `ghost` (no border, purple text); each variant **MUST** reach APCA Lc >= 75 between the text and background.
+12. **MUST** provide a `Card` component with a soft purple style (faint purple border, cream background, light shadow), suitable for wrapping occasion and reminder content.
+13. **MUST** export all tokens as the TypeScript object `PURPLE_TOKENS` for Tailwind config, CSS-in-JS, or a `style` prop to use directly; and also export them as CSS custom properties in a `.css` file for use with Tailwind.
+14. **MUST NOT** use `!important` to override; the CSS cascade order must be enough for the purple tokens to win without `!important`.
+15. **SHOULD** ensure long body text (`body` variant, >= 18px/400 weight) reaches APCA Lc >= 90 per NFR-Accessibility "prefer Lc 90 for long passages".
+16. **SHOULD** provide the color `--color-error: #B91C1C` (deep red) reaching APCA Lc >= 75 on the cream background, for use in form validation.
 
 ---
 
 ## §2 - Why this design (rationale for humans)
 
-**Tại sao sub-brand extension, không phải theme riêng (DEC-LUNAR-090)?** Nếu tạo một design system hoàn toàn riêng cho "Genie Âm Lịch", sau này khi CyberSkill cập nhật spacing, component API, hay typography scale thì phải sync hai hệ thống song song. Giữ nguyên cấu trúc token và chỉ override giá trị màu cho phép "Genie Âm Lịch" thừa hưởng mọi update về spacing và component từ base design system tự động.
+**Why a sub-brand extension, not a separate theme (DEC-LUNAR-090)?** If we create a wholly separate design system for "Genie Am Lich", then later when CyberSkill updates spacing, component APIs, or the typography scale, we would have to sync two systems in parallel. Keeping the token structure intact and overriding only the color values lets "Genie Am Lich" inherit every spacing and component update from the base design system automatically.
 
-**Tại sao giữ Umber #45210E và Ochre #F4BA17 (DEC-LUNAR-090)?** Hai màu này là brand identity của CyberSkill - được dùng trong logo và tài liệu thương hiệu chính thức. Xóa chúng khỏi token sẽ làm mất khả năng hiển thị logo CyberSkill đúng màu trong footer hoặc about screen. Purple pack là sub-brand của một sản phẩm cụ thể, không phải thay thế toàn bộ brand.
+**Why keep Umber #45210E and Ochre #F4BA17 (DEC-LUNAR-090)?** These two colors are the CyberSkill brand identity - used in the logo and official brand materials. Removing them from the tokens would break the ability to render the CyberSkill logo in the correct color in the footer or about screen. The purple pack is the sub-brand of a specific product, not a replacement for the whole brand.
 
-**Tại sao APCA Lc >= 75 thay vì chỉ WCAG AA (DEC-LUNAR-091)?** WCAG 2.x dùng công thức tương phản không tuyến tính và cho kết quả không tốt với màu tím trung. PRD §5 và §13 chỉ định APCA Lc >= 75 vì APCA phản ánh đúng hơn khả năng đọc thực tế. WCAG AA (4.5:1) vẫn chạy song song để đáp ứng yêu cầu pháp lý (nhiều tổ chức vẫn yêu cầu WCAG 2.x).
+**Why APCA Lc >= 75 instead of just WCAG AA (DEC-LUNAR-091)?** WCAG 2.x uses a non-linear contrast formula and gives poor results with mid-tone purple. PRD §5 and §13 specify APCA Lc >= 75 because APCA reflects real readability more accurately. WCAG AA (4.5:1) still runs in parallel to meet the legal requirement (many organizations still require WCAG 2.x).
 
-**Tại sao nền kem `#FDF6EC` thay vì trắng (DEC-LUNAR-093)?** Tím đậm trên nền kem đạt APCA cao hơn tím đậm trên trắng thuần vì nền kem có luminance thấp hơn trắng, làm tăng độ tương phản. Quan trọng hơn, kem ấm phù hợp với "warm earth" DNA của CyberSkill và tạo cảm giác ấm cúng, gần gũi với tông cúng lễ - phù hợp với persona Chị Linh.
+**Why the cream background `#FDF6EC` instead of white (DEC-LUNAR-093)?** Deep purple on cream reaches a higher APCA than deep purple on pure white because cream has a lower luminance than white, increasing the contrast. More importantly, warm cream fits the CyberSkill "warm earth" DNA and creates a warm, intimate feeling close to the tone of rituals - fitting the persona of Chi Linh.
 
-**Tại sao 3 lớp token (DEC-LUNAR-094)?** Lớp primitive là giá trị thô (hex). Lớp semantic là ý nghĩa (text-primary, bg-default). Lớp component là binding cụ thể (button-primary-bg = semantic text-primary, card-border = semantic border-subtle). Lớp semantic là lớp quan trọng nhất - khi cần đổi màu button, chỉ thay một token semantic, tất cả component dùng token đó tự cập nhật.
+**Why 3 token layers (DEC-LUNAR-094)?** The primitive layer is the raw value (hex). The semantic layer is meaning (text-primary, bg-default). The component layer is a specific binding (button-primary-bg = semantic text-primary, card-border = semantic border-subtle). The semantic layer is the most important - when the button color needs to change, only one semantic token changes and every component using that token updates automatically.
 
-**Tại sao Be Vietnam Pro (DEC-LUNAR-092)?** Đây là typeface chính thức của CyberSkill, hỗ trợ đầy đủ Unicode cho tiếng Việt (bao gồm dấu hỏi/ngã/huyền/sắc/nặng ở cả chữ hoa và thường). Dùng Be Vietnam Pro đảm bảo ngày âm lịch như "Mùng Một tháng Giêng" hiển thị đúng dấu trên mọi thiết bị, không phụ thuộc font hệ thống.
+**Why Be Vietnam Pro (DEC-LUNAR-092)?** This is the official CyberSkill typeface, with full Unicode support for Vietnamese (including the hoi/nga/huyen/sac/nang tone marks on both uppercase and lowercase). Using Be Vietnam Pro ensures lunar dates such as "Mung Mot thang Gieng" display with correct diacritics on every device, independent of the system font.
 
-**Tại sao cần `apca-w3` thay vì tính tay?** Công thức APCA không đơn giản - sử dụng gamma correction và S-curve nonlinear. Thư viện `apca-w3` là implementation chính thức từ W3C/APCA, giảm rủi ro tính sai. Gate tự động trong CI ngăn chặn ship màu tương phản thấp.
+**Why `apca-w3` instead of computing by hand?** The APCA formula is not simple - it uses gamma correction and an S-curve nonlinearity. The `apca-w3` library is the official implementation from W3C/APCA, reducing the risk of miscomputation. An automated gate in CI blocks shipping low-contrast colors.
 
 ---
 
@@ -343,21 +343,21 @@ export function Button({ variant = "primary", children, style, ...props }: Butto
 
 ## §4 - Acceptance criteria
 
-1. `PURPLE_TOKENS` export ra object có đủ 3 lớp: primitive (ít nhất 9 giá trị purple, 2 cream), semantic (ít nhất text-primary, bg-default, border-default, accent-primary, brand-umber, brand-ochre), component (ít nhất button-primary-bg, card-border, day-cell-today-ring).
-2. `PRIMITIVE["brand-umber"]` === `"#45210E"` và `PRIMITIVE["brand-ochre"]` === `"#F4BA17"` - hai giá trị này KHÔNG được thay đổi (DEC-LUNAR-090).
-3. `SEMANTIC["bg-default"]` trả về giá trị kem ấm (không phải `"#FFFFFF"`); cụ thể là `PRIMITIVE["cream-50"]` = `"#FDF6EC"` hoặc tương đương (DEC-LUNAR-093).
-4. `checkApca(SEMANTIC["text-primary"], SEMANTIC["bg-default"])` trả |Lc| >= 75 (body text tím đậm trên nền kem).
-5. `checkApca(COMPONENT["button-primary-text"], COMPONENT["button-primary-bg"])` trả |Lc| >= 75 (chữ kem trên nút tím đậm).
-6. `checkWcag(SEMANTIC["text-primary"], SEMANTIC["bg-default"])` trả ratio >= 4.5 (WCAG AA).
-7. `checkWcag(COMPONENT["button-primary-text"], COMPONENT["button-primary-bg"])` trả ratio >= 4.5.
-8. `assertApca(PRIMITIVE["purple-400"], SEMANTIC["bg-default"], 75)` PHẢI throw Error (tím nhạt không đủ tương phản trên kem - xác nhận gate hoạt động đúng).
-9. `TYPOGRAPHY.fontFamily` chứa `"Be Vietnam Pro"` là family đầu tiên trong chuỗi font stack.
-10. Component `Typography` với variant "body" không dùng đơn vị `px` cho `fontSize` trong style output (kiểm bằng inspect style object).
-11. Component `Button` variant "primary" render với `backgroundColor` = `COMPONENT["button-primary-bg"]` và `color` = `COMPONENT["button-primary-text"]`.
-12. Tất cả cặp màu text/nền trong SEMANTIC layer được kiểm tra trong `apca.test.ts` và đều pass Lc >= 75 (trừ text-disabled theo thiết kế).
-13. `SEMANTIC["text-primary"]` trên `SEMANTIC["bg-default"]` đạt |Lc| >= 90 (NFR-Accessibility ưu tiên Lc 90 cho body text).
-14. Build `packages/ui` không có TypeScript error và không dùng `!important` trong CSS output.
-15. Package chỉ có một external dependency là `apca-w3`; không import React Native hay Capacitor-specific code trong `tokens.ts` và `apca.ts`.
+1. `PURPLE_TOKENS` exports an object with all 3 layers: primitive (at least 9 purple values, 2 cream), semantic (at least text-primary, bg-default, border-default, accent-primary, brand-umber, brand-ochre), component (at least button-primary-bg, card-border, day-cell-today-ring).
+2. `PRIMITIVE["brand-umber"]` === `"#45210E"` and `PRIMITIVE["brand-ochre"]` === `"#F4BA17"` - these two values MUST NOT be changed (DEC-LUNAR-090).
+3. `SEMANTIC["bg-default"]` returns a warm cream value (not `"#FFFFFF"`); specifically `PRIMITIVE["cream-50"]` = `"#FDF6EC"` or equivalent (DEC-LUNAR-093).
+4. `checkApca(SEMANTIC["text-primary"], SEMANTIC["bg-default"])` returns |Lc| >= 75 (deep purple body text on the cream background).
+5. `checkApca(COMPONENT["button-primary-text"], COMPONENT["button-primary-bg"])` returns |Lc| >= 75 (cream text on the deep purple button).
+6. `checkWcag(SEMANTIC["text-primary"], SEMANTIC["bg-default"])` returns ratio >= 4.5 (WCAG AA).
+7. `checkWcag(COMPONENT["button-primary-text"], COMPONENT["button-primary-bg"])` returns ratio >= 4.5.
+8. `assertApca(PRIMITIVE["purple-400"], SEMANTIC["bg-default"], 75)` **MUST** throw an Error (light purple does not have enough contrast on cream - confirming the gate works correctly).
+9. `TYPOGRAPHY.fontFamily` contains `"Be Vietnam Pro"` as the first family in the font stack.
+10. The `Typography` component with the "body" variant does not use the `px` unit for `fontSize` in the style output (checked by inspecting the style object).
+11. The `Button` component "primary" variant renders with `backgroundColor` = `COMPONENT["button-primary-bg"]` and `color` = `COMPONENT["button-primary-text"]`.
+12. All text/background color pairs in the SEMANTIC layer are checked in `apca.test.ts` and all pass Lc >= 75 (except text-disabled by design).
+13. `SEMANTIC["text-primary"]` on `SEMANTIC["bg-default"]` reaches |Lc| >= 90 (NFR-Accessibility prefers Lc 90 for body text).
+14. Building `packages/ui` has no TypeScript error and does not use `!important` in the CSS output.
+15. The package has only one external dependency, `apca-w3`; does not import React Native or Capacitor-specific code in `tokens.ts` and `apca.ts`.
 
 ---
 
@@ -437,7 +437,7 @@ describe("Typography", () => {
 
 ## §6 - Implementation skeleton
 
-API contract ở §3 là skeleton đầy đủ. Một điểm cần ghim: `sRGBtoY` trong `apca-w3` nhận mảng `[r, g, b]` theo dạng `Uint8ClampedArray` hoặc `number[]` (0-255), không phải hex string. Hàm `hexToRgbArray` trong `apca.ts` phải convert đúng trước khi truyền vào.
+The API contract in §3 is a full skeleton. One point to pin down: `sRGBtoY` in `apca-w3` takes an `[r, g, b]` array as a `Uint8ClampedArray` or `number[]` (0-255), not a hex string. The `hexToRgbArray` function in `apca.ts` must convert correctly before passing it in.
 
 ```typescript
 // Cach dung apca-w3 dung (khong phai APCAcontrast(hex, hex)):
@@ -452,11 +452,11 @@ const lc = APCAcontrast(sRGBtoY(fg as any), sRGBtoY(bg as any));
 
 ## §7 - Dependencies
 
-Upstream: FR-LUNAR-009 không có depends_on - đây là lớp nền, có thể build độc lập. External dependency duy nhất là `apca-w3` (npm package, MIT license).
+Upstream: FR-LUNAR-009 has no depends_on - it is a foundation layer, buildable independently. The only external dependency is `apca-w3` (npm package, MIT license).
 
-Downstream: `FR-LUNAR-010` (app shell) import token và component từ `packages/ui` để áp dụng theme toàn cục; `FR-LUNAR-014` (shareable cards) dùng `COMPONENT["day-cell-festival-dot"]` và palette tím để render thiệp export; `FR-LUNAR-016` (Zalo Mini App) dùng `PURPLE_TOKENS` làm design token.
+Downstream: `FR-LUNAR-010` (app shell) imports tokens and components from `packages/ui` to apply the theme globally; `FR-LUNAR-014` (shareable cards) uses `COMPONENT["day-cell-festival-dot"]` and the purple palette to render exported cards; `FR-LUNAR-016` (Zalo Mini App) uses `PURPLE_TOKENS` as design tokens.
 
-Cross-cutting: `FR-LUNAR-007` (CalendarGrid) dùng `COMPONENT["day-cell-today-ring"]`, `"day-cell-festival-dot"`, `"day-cell-reminder-dot"` để tô màu ô ngày. Mọi component UI trong toàn bộ project phải import token từ package này thay vì hardcode hex.
+Cross-cutting: `FR-LUNAR-007` (CalendarGrid) uses `COMPONENT["day-cell-today-ring"]`, `"day-cell-festival-dot"`, `"day-cell-reminder-dot"` to color the day cells. Every UI component across the whole project must import tokens from this package instead of hardcoding hex.
 
 ---
 
@@ -504,15 +504,15 @@ export default {
 
 ## §9 - Open questions
 
-Đã giải quyết:
-- Cách tổ chức 3 lớp token: primitive / semantic / component (DEC-LUNAR-094).
-- Giá trị nền: `#FDF6EC` kem ấm (DEC-LUNAR-093).
-- Gate APCA: dùng `apca-w3`, ngưỡng Lc >= 75 / 90 (DEC-LUNAR-091).
+Resolved:
+- How to organize the 3 token layers: primitive / semantic / component (DEC-LUNAR-094).
+- Background value: `#FDF6EC` warm cream (DEC-LUNAR-093).
+- APCA gate: use `apca-w3`, threshold Lc >= 75 / 90 (DEC-LUNAR-091).
 
-Còn deferred:
-- Dark mode: PRD §13 không yêu cầu tường minh nhưng FR-LUNAR-007 §4 AC #15 có đề cập. Deferred - cần thiết kế palette tím dark riêng; không block Phase 1.
-- CSS custom properties file: cần tạo `purple-tokens.css` từ `PURPLE_TOKENS` object để dùng với Tailwind v4 hoặc vanilla CSS. Deferred - implement khi wiring vào FR-LUNAR-010.
-- Be Vietnam Pro offline bundle: trong PWA offline, cần bundle font vào `public/fonts/`. Deferred sang FR-LUNAR-010 (app shell handles service worker và font caching).
+Still deferred:
+- Dark mode: PRD §13 does not require it explicitly but FR-LUNAR-007 §4 AC #15 mentions it. Deferred - a separate dark purple palette needs designing; does not block Phase 1.
+- CSS custom properties file: a `purple-tokens.css` generated from the `PURPLE_TOKENS` object is needed for use with Tailwind v4 or vanilla CSS. Deferred - implemented when wiring into FR-LUNAR-010.
+- Be Vietnam Pro offline bundle: in the offline PWA, the font needs bundling into `public/fonts/`. Deferred to FR-LUNAR-010 (the app shell handles the service worker and font caching).
 
 ---
 
@@ -520,26 +520,26 @@ Còn deferred:
 
 | Failure | Detection | Outcome | Recovery |
 |---|---|---|---|
-| Tim nhat (purple-400) lam text chinh, tuong phan thap | `assertApca` gate trong CI | APCA fail throw | Doi sang purple-700 hoac purple-900 |
-| brand-umber/ochre bi ghi de | Unit test primitive brand values | Brand vi pham DEC-LUNAR-090 | Revert token, them lint rule cam ghi de |
-| Be Vietnam Pro khong load (CDN loi) | Fallback font-stack | Hien system-ui, van doc duoc | Bundle font local trong PWA (FR-010) |
-| sRGBtoY nhan sai type, checkApca tra NaN | Test assert typeof === number | Gate khong hoat dong | Fix hexToRgbArray, them type assertion |
-| Component Button dung !important | CSS output lint | Cascade break | Xoa !important, tang specificity selector |
-| font-size px trong Typography | Unit test regex /rem$/ | Dynamic Type khong hoat dong tren iOS | Doi sang rem/em |
-| PURPLE_TOKENS khong export duoc vi circular import | Build error | App shell khong import duoc | Tach primitives, semantics, components thanh 3 file |
-| apca-w3 version moi thay doi API | pnpm audit / type error | checkApca loi runtime | Pin version, test sau moi update |
-| Nen cream khong match DNA "warm earth" sau khi thiet ke | Design review thuc te | Sub-brand sai vibe | Dieu chinh hex trong cream-50 sau A/B test |
-| Text-disabled dat APCA >= 75 (lai qua ro) | Visual review | Disabled look giong enabled | Cho phep text-disabled duoi 75 (theo APCA spec: disabled khong can dat threshold) |
+| Light purple (purple-400) used as main text, low contrast | `assertApca` gate in CI | APCA fail throws | Switch to purple-700 or purple-900 |
+| brand-umber/ochre overwritten | Unit test on the primitive brand values | Brand violates DEC-LUNAR-090 | Revert the token, add a lint rule forbidding the overwrite |
+| Be Vietnam Pro does not load (CDN error) | Fallback font-stack | Shows system-ui, still readable | Bundle the font locally in the PWA (FR-010) |
+| sRGBtoY gets the wrong type, checkApca returns NaN | Test asserting typeof === number | Gate does not work | Fix hexToRgbArray, add a type assertion |
+| The Button component uses !important | CSS output lint | Cascade break | Remove !important, increase selector specificity |
+| px font-size in Typography | Unit test regex /rem$/ | Dynamic Type does not work on iOS | Switch to rem/em |
+| PURPLE_TOKENS cannot be exported due to a circular import | Build error | The app shell cannot import it | Split primitives, semantics, components into 3 files |
+| A new apca-w3 version changes the API | pnpm audit / type error | checkApca errors at runtime | Pin the version, test after each update |
+| The cream background does not match the "warm earth" DNA after design | Real design review | Wrong sub-brand vibe | Adjust the hex in cream-50 after an A/B test |
+| Text-disabled reaches APCA >= 75 (too clear) | Visual review | Disabled looks like enabled | Allow text-disabled below 75 (per the APCA spec: disabled need not meet the threshold) |
 
 ---
 
 ## §11 - Implementation notes
 
-- Gia tri `#FDF6EC` cho nen kem la diem xuat phat; nen review tren man hinh thuc te (OLED vs LCD hien thi kem khac nhau). Neu kem qua vang, dieu chinh L(lightness) tang len mot chut bang color picker, sau do chay lai APCA test.
-- `APCAcontrast` tu `apca-w3` tra gia tri am khi text toi tren nen sang (dark-on-light) va duong khi text sang tren nen toi. Thi code phai dung `Math.abs(lc)` khi so sanh voi nguong 75/90.
-- 3 lop token (primitive / semantic / component) nen nam trong 3 const rieng biet (khong phai 1 object phang) de TypeScript infer type chinh xac va IDE autocomplete hoat dong tot.
-- `apca-w3` phai la devDependency va runtime dependency cua `packages/ui`; khong can la dependency cua `apps/web` truc tiep - import tu `@cyberskill/genie-ui`.
-- Khi Tailwind v4 duoc dung (thay vi v3), config extension theo `@theme` block, khong phai `theme.extend`. FR-010 chon phien ban Tailwind; FR-009 chi export tokens, khong ket hop Tailwind cu the.
-- `Button` component trong §3 dung inline `style` prop cho demo; trong thuc te production, nen dung Tailwind class hoac CSS module de CSS purge hoat dong tot hon. Day la quyet dinh FR-010 de ra.
+- The value `#FDF6EC` for the cream background is a starting point; it should be reviewed on a real screen (OLED vs LCD display cream differently). If the cream is too yellow, adjust the L (lightness) up a little with a color picker, then rerun the APCA test.
+- `APCAcontrast` from `apca-w3` returns a negative value when text is dark on a light background (dark-on-light) and positive when text is light on a dark background. So the code must use `Math.abs(lc)` when comparing against the 75/90 threshold.
+- The 3 token layers (primitive / semantic / component) should live in 3 separate consts (not 1 flat object) so TypeScript infers the type accurately and IDE autocomplete works well.
+- `apca-w3` must be both a devDependency and a runtime dependency of `packages/ui`; it need not be a direct dependency of `apps/web` - import from `@cyberskill/genie-ui`.
+- When Tailwind v4 is used (instead of v3), the config extension follows the `@theme` block, not `theme.extend`. FR-010 chooses the Tailwind version; FR-009 only exports tokens, without coupling to a specific Tailwind version.
+- The `Button` component in §3 uses an inline `style` prop for the demo; in real production, use a Tailwind class or CSS module so that CSS purge works better. This is a decision for FR-010 to make.
 
-*Hết FR-LUNAR-009.*
+*End of FR-LUNAR-009.*

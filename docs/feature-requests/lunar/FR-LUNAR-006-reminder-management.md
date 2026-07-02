@@ -1,6 +1,6 @@
 ---
 id: FR-LUNAR-006
-title: "Reminder management - Ram/Mung Mot hang thang bat/tat rieng, nhap gio, custom lunar reminder, lead-time + gio nhac, danh sach sap toi kem ngay duong"
+title: "Reminder management - monthly Ram/Mung Mot on/off toggles, gio entry, custom lunar reminder, lead-time + reminder time, upcoming list with solar date"
 module: LUNAR
 priority: MUST
 status: ready_to_implement
@@ -18,15 +18,15 @@ blocks: []
 source_pages:
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#4 (FR-B01, FR-B03, FR-B04, FR-B07)"
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#4F (FR-F05 personalized tone)"
-  - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#13 (UI/UX, danh sach sap toi)"
+  - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#13 (UI/UX, upcoming list)"
 source_decisions:
-  - DEC-LUNAR-060 (Rằm=15 và Mùng Một=1 là hai toggle hằng tháng độc lập, bật/tắt riêng; bật -> tạo Reminder type RAM/MUNG_MOT recurrence MONTHLY)
-  - DEC-LUNAR-061 (form nhập giỗ/custom nhận ngày ÂM là nguồn, hiển ngày dương tính ra bên cạnh để tham chiếu; user không nhập ngày dương)
-  - DEC-LUNAR-062 (lead-time là tập con của {0=đúng ngày, 1=trước 1 ngày, 3=trước 3 ngày, 7=trước 1 tuần}; notifyTime mặc định 07:00; chọn nhiều lead-time cùng lúc)
-  - DEC-LUNAR-063 (danh sách sắp tới sort theo ngày dương tính từ FR-LUNAR-004, mỗi dòng hiển cả ngày dương + nhãn âm + lead-time)
-  - DEC-LUNAR-064 (mỗi thay đổi CRUD/toggle gọi reschedule() của FR-LUNAR-005 trong cùng một luồng để pending luôn đồng bộ với dữ liệu)
-  - DEC-LUNAR-065 (fold FR-F05: mỗi Reminder có notificationStyle{tone, emoji, imageId?} chọn trước; tone dùng để định hình body thông báo - mặc định template tĩnh, KHÔNG gọi AI ở Phase 1)
-  - DEC-LUNAR-066 (ngày dương hiển thị tính on-device, đọc từ OccurrenceCache nếu còn hạn theo engineVersion, ngược lại tính lại)
+  - DEC-LUNAR-060 (Ram=15 and Mung Mot=1 are two independent monthly toggles, switched on/off separately; on -> create a Reminder of type RAM/MUNG_MOT with MONTHLY recurrence)
+  - DEC-LUNAR-061 (the gio/custom entry form takes the LUNAR date as the source, shows the computed solar date alongside for reference; the user does not enter a solar date)
+  - DEC-LUNAR-062 (lead-time is a subset of {0=on the day, 1=1 day before, 3=3 days before, 7=1 week before}; notifyTime defaults to 07:00; multiple lead-times can be selected at once)
+  - DEC-LUNAR-063 (the upcoming list is sorted by the solar date computed from FR-LUNAR-004; each row shows both the solar date + the lunar label + the lead-time)
+  - DEC-LUNAR-064 (every CRUD/toggle change calls reschedule() from FR-LUNAR-005 in the same flow so pending notifications always stay in sync with the data)
+  - DEC-LUNAR-065 (fold FR-F05: each Reminder has a preselected notificationStyle{tone, emoji, imageId?}; tone is used to shape the notification body - by default a static template, does NOT call AI in Phase 1)
+  - DEC-LUNAR-066 (the displayed solar date is computed on-device, read from OccurrenceCache if still valid for the engineVersion, otherwise recomputed)
 language: typescript 5.x
 service: apps/web/
 new_files:
@@ -44,62 +44,62 @@ allowed_tools:
   - file_write: apps/web/{components/reminders,lib/reminders,test}/**
   - bash: cd apps/web && pnpm test reminders
 disallowed_tools:
-  - cho user nhập trực tiếp ngày dương làm nguồn của giỗ (vi phạm DEC-LUNAR-061 - ngày âm là nguồn)
-  - gọi AI để sinh body thông báo ở Phase 1 (vi phạm DEC-LUNAR-065 - template tĩnh, AI để FR-LUNAR-015 Phase 2)
-  - thay đổi Reminder mà không gọi reschedule() (vi phạm DEC-LUNAR-064 - pending phải đồng bộ)
+  - letting the user enter a solar date directly as the source of a gio (violates DEC-LUNAR-061 - the lunar date is the source)
+  - calling AI to generate the notification body in Phase 1 (violates DEC-LUNAR-065 - static template, AI belongs to FR-LUNAR-015 Phase 2)
+  - changing a Reminder without calling reschedule() (violates DEC-LUNAR-064 - pending must stay in sync)
 effort_hours: 10
 sub_tasks:
-  - "1.5h: MonthlyToggles.tsx - hai switch Rằm(15)/Mùng Một(1) độc lập; bật tạo Reminder MONTHLY, tắt xóa và reschedule"
-  - "2.0h: ReminderForm.tsx - nhập giỗ/custom bằng ngày âm (day/month + cờ tháng nhuận), hiển ngày dương tính ra bên cạnh, chọn recurrence"
-  - "1.5h: lead-time + notifyTime UI - multi-select {đúng ngày/1/3/7 ngày} + time picker mặc định 07:00"
-  - "1.5h: UpcomingList.tsx - danh sách sắp tới sort theo ngày dương, mỗi dòng: ngày dương + nhãn âm + lead-time + nút sửa/xóa"
-  - "1.0h: NotificationStylePicker.tsx (FR-F05) - chọn tone/emoji/ảnh cho thông báo, lưu vào notificationStyle"
-  - "1.0h: tone.ts - render body thông báo từ template theo tone đã chọn (warm/neutral/formal), KHÔNG AI"
-  - "0.5h: store.ts - CRUD Reminder + gọi reschedule() sau mỗi thay đổi; đọc/ghi qua storage.ts"
-  - "1.0h: reminders.store.test.ts - toggle Rằm/Mùng Một, validate form, upcoming sort, tone render, reschedule được gọi sau CRUD"
-risk_if_skipped: "Đây là bề mặt mà người dùng thực sự chạm vào - không có nó thì FR-LUNAR-004 (model) và FR-LUNAR-005 (scheduler) không có cách nhập liệu, sản phẩm vô dụng với người dùng cuối. Nếu toggle Rằm/Mùng Một không gọi reschedule, bật nhắc xong vẫn không reo. Nếu cho nhập ngày dương, giỗ sẽ sai sang năm (vi phạm nguyên tắc lưu ngày âm của FR-LUNAR-004). Đây là FR khép lại lối MVP cá nhân theo mục tiêu G1 của PRD."
+  - "1.5h: MonthlyToggles.tsx - two independent Ram(15)/Mung Mot(1) switches; on creates a MONTHLY Reminder, off deletes it and reschedules"
+  - "2.0h: ReminderForm.tsx - enter gio/custom by lunar date (day/month + leap-month flag), show the computed solar date alongside, choose recurrence"
+  - "1.5h: lead-time + notifyTime UI - multi-select {on the day/1/3/7 days} + time picker defaulting to 07:00"
+  - "1.5h: UpcomingList.tsx - upcoming list sorted by solar date, each row: solar date + lunar label + lead-time + edit/delete button"
+  - "1.0h: NotificationStylePicker.tsx (FR-F05) - choose tone/emoji/image for the notification, save into notificationStyle"
+  - "1.0h: tone.ts - render the notification body from a template based on the chosen tone (warm/neutral/formal), NO AI"
+  - "0.5h: store.ts - Reminder CRUD + call reschedule() after each change; read/write via storage.ts"
+  - "1.0h: reminders.store.test.ts - toggle Ram/Mung Mot, validate form, upcoming sort, tone render, reschedule is called after CRUD"
+risk_if_skipped: "This is the surface the user actually touches - without it, FR-LUNAR-004 (model) and FR-LUNAR-005 (scheduler) have no way to take input, and the product is useless to the end user. If the Ram/Mung Mot toggle does not call reschedule, turning a reminder on still leaves it silent. If solar-date entry is allowed, the gio will drift wrong next year (violating FR-LUNAR-004's principle of storing the lunar date). This is the FR that closes the personal MVP path toward the PRD's G1 goal."
 ---
 
 ## §1 - Description (BCP-14 normative)
 
-Module này là lớp quản lý nhắc: toggle Rằm/Mùng Một hằng tháng, form nhập giỗ/custom bằng ngày âm, chọn lead-time và giờ nhắc, danh sách sắp tới kèm ngày dương, và chọn tông giọng thông báo (FR-F05). Đây là contract:
+This module is the reminder management layer: monthly Ram/Mung Mot toggles, a form for entering gio/custom reminders by lunar date, choosing lead-time and reminder time, an upcoming list with solar dates, and choosing the notification tone (FR-F05). This is the contract:
 
-1. PHẢI cung cấp hai toggle độc lập "Nhắc Rằm (15 ÂL)" và "Nhắc Mùng Một (1 ÂL)" hằng tháng; bật mỗi toggle tạo một `Reminder` `type` `RAM`/`MUNG_MOT` `recurrence` `MONTHLY`, tắt thì xóa và lập lại lịch (DEC-LUNAR-060, FR-B01).
-2. PHẢI cho nhập đám giỗ (`type` `GIO`) bằng ngày ÂM: `lunarDay` + `lunarMonth` + cờ `isLeapMonth`; nhập một lần, app tự tái diễn mỗi năm (FR-B02 đã hiện thực ở FR-LUNAR-004; ở đây là UI nhập). Khi `isLeapMonth = true`, form PHẢI hiện và cho chọn `leapFallback` (`REGULAR` / `SKIP` / `ASK`, mặc định `REGULAR`) - đây là lựa chọn mà model FR-LUNAR-004 §1 #5/#6 expose; nếu UI không surface, model phơi một quyết định mà người dùng không bao giờ thấy (DEC-LUNAR-042).
-3. PHẢI cho tạo nhắc âm lịch tùy biến (`type` `CUSTOM`), ví dụ "ngày vía Thần Tài mùng 10 tháng Giêng" (`lunarDay:10, lunarMonth:1`) (FR-B03).
-4. PHẢI lấy ngày ÂM làm nguồn nhập; UI PHẢI hiển ngày dương tính ra bên cạnh để tham chiếu, và KHÔNG ĐƯỢC cho user nhập trực tiếp ngày dương làm nguồn của giỗ (DEC-LUNAR-061, FR-B02).
-5. PHẢI cho mỗi nhắc chọn lead-time là tập con của `{0 = đúng ngày, 1 = trước 1 ngày, 3 = trước 3 ngày, 7 = trước 1 tuần}` (chọn nhiều cùng lúc) và một `notifyTime` (mặc định "07:00") (DEC-LUNAR-062, FR-B04).
-6. PHẢI hiển danh sách các nhắc sắp tới sort theo ngày dương tính từ FR-LUNAR-004; mỗi dòng PHẢI hiển ngày dương, nhãn âm (ví dụ "16/2 ÂL"), và lead-time (DEC-LUNAR-063, FR-B07). Dòng nào ứng với occurrence có `fellBack = true` PHẢI hiển nhãn "đã chuyển sang tháng thường" và occurrence `pendingUserChoice = true` (leapFallback = ASK) PHẢI hiển nhắc "cần chọn tháng cúng" - đây là nơi UI surface cờ mà model FR-LUNAR-004 emit và FR-LUNAR-005 mang trong userInfo (DEC-LUNAR-042).
-7. PHẢI gọi `reschedule()` của FR-LUNAR-005 trong cùng luồng sau mỗi thao tác CRUD hoặc toggle, để tập pending trên iOS luôn đồng bộ với dữ liệu (DEC-LUNAR-064).
-8. PHẢI validate form qua `validateReminder` của FR-LUNAR-004 trước khi lưu và hiển lỗi cụ thể (RAM_DAY_MISMATCH, ONCE_NEEDS_YEAR...); KHÔNG ĐƯỢC lưu Reminder không hợp lệ.
-9. PHẢI fold FR-F05: ghi `notificationStyle { tone, emoji, imageId? }` vào trường optional `Reminder.notificationStyle` (type `NotificationStyle` do FR-LUNAR-004 sở hữu trong amlich-core, KHÔNG redeclare ở đây); user chọn trước tông giọng và emoji cho thông báo của nhắc đó (FR-F05, DEC-LUNAR-065).
-10. PHẢI render body thông báo từ template tĩnh theo `tone` (`warm` / `neutral` / `formal`) qua `tone.ts`, và KHÔNG ĐƯỢC gọi AI ở Phase 1; AI sinh lời nhắc để cho FR-LUNAR-015 ở Phase 2 (DEC-LUNAR-065).
-11. PHẢI cho sửa và xóa mỗi nhắc; xóa gọi `reschedule()` ngay; sửa chạy lại `validateReminder` trước khi lưu.
-12. PHẢI hiển ngày dương dùng giá trị tính on-device: đọc từ `OccurrenceCache` nếu còn hạn theo `engineVersion`, ngược lại tính lại bằng FR-LUNAR-004 (DEC-LUNAR-066, NFR-Offline).
-13. PHẢI cho phép bật/tắt từng nhắc (`enabled`) mà không xóa; tắt -> loại khỏi reschedule nhưng giữ dữ liệu.
-14. PHẢI link nhắc tới trang nội dung dịp qua `linkedContentId` khi có (ví dụ giỗ -> trang đám giỗ, Rằm -> trang Rằm); UI hiển liên kết "xem nghi lễ" (FR-D02, chuẩn bị cho FR-LUNAR-008).
-15. PHẢI hoạt động offline: nhập, sửa, xem danh sách sắp tới không cần mạng; chỉ các kênh ngoài (ZNS ở bản thương mại) mới cần mạng (NFR-Offline).
-16. NÊN cảnh báo khi tổng số nhắc sinh nhiều điểm nhắc vượt ngân sách 64 (dùng `getPlanDiagnostics` của FR-LUNAR-005): hiển "bạn có nhiều nhắc, một số sẽ được lập khi đến gần" thay vì âm thầm cắt.
+1. **MUST** provide two independent monthly toggles "Remind Ram (15 lunar)" and "Remind Mung Mot (1 lunar)"; turning each toggle on creates a `Reminder` with `type` `RAM`/`MUNG_MOT` and `recurrence` `MONTHLY`, turning it off deletes it and reschedules (DEC-LUNAR-060, FR-B01).
+2. **MUST** allow entering a death anniversary (`type` `GIO`) by LUNAR date: `lunarDay` + `lunarMonth` + the `isLeapMonth` flag; entered once, the app recurs it every year automatically (FR-B02 was implemented in FR-LUNAR-004; here it is the entry UI). When `isLeapMonth = true`, the form **MUST** show and allow choosing `leapFallback` (`REGULAR` / `SKIP` / `ASK`, default `REGULAR`) - this is the choice the FR-LUNAR-004 §1 #5/#6 model exposes; if the UI does not surface it, the model exposes a decision the user never sees (DEC-LUNAR-042).
+3. **MUST** allow creating a custom lunar reminder (`type` `CUSTOM`), for example "the God of Wealth day, 10th of the first lunar month" (`lunarDay:10, lunarMonth:1`) (FR-B03).
+4. **MUST** take the LUNAR date as the input source; the UI **MUST** show the computed solar date alongside for reference, and **MUST NOT** let the user enter a solar date directly as the source of a gio (DEC-LUNAR-061, FR-B02).
+5. **MUST** let each reminder choose a lead-time that is a subset of `{0 = on the day, 1 = 1 day before, 3 = 3 days before, 7 = 1 week before}` (multiple selected at once) and one `notifyTime` (default "07:00") (DEC-LUNAR-062, FR-B04).
+6. **MUST** show the list of upcoming reminders sorted by the solar date computed from FR-LUNAR-004; each row **MUST** show the solar date, the lunar label (for example "16/2 lunar"), and the lead-time (DEC-LUNAR-063, FR-B07). Any row that maps to an occurrence with `fellBack = true` **MUST** show a "moved to the regular month" label, and an occurrence with `pendingUserChoice = true` (leapFallback = ASK) **MUST** show a "needs a month to observe" prompt - this is where the UI surfaces the flags the FR-LUNAR-004 model emits and FR-LUNAR-005 carries in userInfo (DEC-LUNAR-042).
+7. **MUST** call `reschedule()` from FR-LUNAR-005 in the same flow after each CRUD or toggle action, so the pending set on iOS always stays in sync with the data (DEC-LUNAR-064).
+8. **MUST** validate the form via `validateReminder` from FR-LUNAR-004 before saving and show specific errors (RAM_DAY_MISMATCH, ONCE_NEEDS_YEAR...); **MUST NOT** save an invalid Reminder.
+9. **MUST** fold FR-F05: write `notificationStyle { tone, emoji, imageId? }` into the optional field `Reminder.notificationStyle` (type `NotificationStyle` owned by FR-LUNAR-004 in amlich-core, do NOT redeclare it here); the user preselects the tone and emoji for that reminder's notification (FR-F05, DEC-LUNAR-065).
+10. **MUST** render the notification body from a static template based on `tone` (`warm` / `neutral` / `formal`) via `tone.ts`, and **MUST NOT** call AI in Phase 1; AI-generated reminders belong to FR-LUNAR-015 in Phase 2 (DEC-LUNAR-065).
+11. **MUST** allow editing and deleting each reminder; deleting calls `reschedule()` immediately; editing runs `validateReminder` again before saving.
+12. **MUST** display the solar date using the value computed on-device: read from `OccurrenceCache` if still valid for the `engineVersion`, otherwise recompute with FR-LUNAR-004 (DEC-LUNAR-066, NFR-Offline).
+13. **MUST** allow enabling/disabling each reminder (`enabled`) without deleting it; disabling -> excludes it from reschedule but keeps the data.
+14. **MUST** link the reminder to the occasion content page via `linkedContentId` when available (for example gio -> the death-anniversary page, Ram -> the Ram page); the UI shows a "view ritual" link (FR-D02, preparing for FR-LUNAR-008).
+15. **MUST** work offline: entering, editing, and viewing the upcoming list require no network; only external channels (ZNS in the commercial edition) need the network (NFR-Offline).
+16. **SHOULD** warn when the total number of reminders generates more reminder points than the budget of 64 (using `getPlanDiagnostics` from FR-LUNAR-005): show "you have many reminders, some will be scheduled as they get closer" rather than silently dropping.
 
 ---
 
 ## §2 - Why this design (rationale for humans)
 
-**Tại sao Rằm và Mùng Một là hai toggle riêng (§1 #1, DEC-LUNAR-060)?** Nhiều người cúng cả Rằm lẫn Mùng Một, nhưng cũng có người chỉ cúng một trong hai. Hai switch độc lập cho đúng mức kiểm soát mà PRD FR-B01 mô tả, và mỗi toggle ánh xạ thẳng sang một `Reminder` `MONTHLY` - không cần màn hình nhập riêng cho hai dịp phổ biến nhất.
+**Why are Ram and Mung Mot two separate toggles (§1 #1, DEC-LUNAR-060)?** Many people observe both Ram and Mung Mot, but some observe only one of the two. Two independent switches give exactly the level of control the PRD FR-B01 describes, and each toggle maps straight to a `MONTHLY` `Reminder` - no separate entry screen is needed for the two most common occasions.
 
-**Tại sao ngày âm là nguồn, ngày dương chỉ hiển bên cạnh (§1 #4, DEC-LUNAR-061)?** Người dùng nhớ "giỗ bà ngày 16 tháng 2 âm", không nhớ ngày dương - vì ngày dương đổi mỗi năm. Bắt user nhập ngày dương sẽ sai sang năm và phá vỡ nguyên tắc lưu ngày âm của FR-LUNAR-004. Hiển ngày dương tính ra bên cạnh giúp họ yên tâm đã nhập đúng, mà không biến nó thành nguồn dữ liệu.
+**Why is the lunar date the source and the solar date shown only alongside (§1 #4, DEC-LUNAR-061)?** The user remembers "grandma's gio on the 16th of the second lunar month", not the solar date - because the solar date changes every year. Forcing the user to enter a solar date would drift wrong next year and break FR-LUNAR-004's principle of storing the lunar date. Showing the computed solar date alongside reassures them they entered it correctly without turning it into the data source.
 
-**Tại sao gọi reschedule sau mỗi thay đổi (§1 #7, DEC-LUNAR-064)?** Tập notification pending trên iOS phải phản ánh đúng dữ liệu hiện tại. Nếu user bật nhắc Rằm mà không reschedule, máy sẽ không reo đúng dịp. Gọi `reschedule()` trong cùng luồng CRUD/toggle đảm bảo pending luôn khớp - đây là điểm nối quan trọng nhất giữa lớp quản lý và scheduler.
+**Why call reschedule after each change (§1 #7, DEC-LUNAR-064)?** The set of pending notifications on iOS must reflect the current data exactly. If the user turns on the Ram reminder without a reschedule, the device will not ring on the right occasion. Calling `reschedule()` in the same CRUD/toggle flow ensures pending always matches - this is the most important join point between the management layer and the scheduler.
 
-**Tại sao lead-time là multi-select cố định (§1 #5, DEC-LUNAR-062)?** PRD liệt kê đúng bốn mức: đúng ngày / trước 1 / 3 ngày / 1 tuần. Cho chọn nhiều cùng lúc (ví dụ vừa trước 1 tuần để sắm lễ vừa đúng ngày để cúng) phù hợp thói quen thật. Tập cố định giữ UI gọn và khớp ngân sách 64 dễ tính.
+**Why is lead-time a fixed multi-select (§1 #5, DEC-LUNAR-062)?** The PRD lists exactly four levels: on the day / 1 / 3 days before / 1 week before. Allowing several at once (for example a week ahead to buy offerings and on the day to observe) fits real habits. A fixed set keeps the UI compact and makes the budget of 64 easy to calculate.
 
-**Tại sao danh sách sắp tới sort theo ngày dương (§1 #6, DEC-LUNAR-063)?** Người dùng sống theo lịch dương - họ muốn biết "sắp tới có gì" theo thứ tự thời gian thật. Sort theo ngày dương tính từ FR-LUNAR-004, kèm nhãn âm và lead-time, cho một cái nhìn đúng như PRD section 13 mô tả.
+**Why sort the upcoming list by solar date (§1 #6, DEC-LUNAR-063)?** Users live by the solar calendar - they want to know "what is coming up" in real chronological order. Sorting by the solar date computed from FR-LUNAR-004, with the lunar label and lead-time, gives a view that matches what the PRD section 13 describes.
 
-**Tại sao fold FR-F05 nhưng không dùng AI ở Phase 1 (§1 #9, #10, DEC-LUNAR-065)?** FR-F05 (chọn tông giọng, emoji, ảnh) là một phần trải nghiệm cá nhân hóa, hợp lý nằm cạnh quản lý nhắc. Nhưng sinh lời nhắc bằng AI thuộc FR-LUNAR-015 (Phase 2, có Claude proxy). Ở Phase 1, body thông báo render từ template tĩnh theo `tone` - vẫn ấm áp, vẫn cá nhân, mà không cần backend hay key.
+**Why fold FR-F05 but not use AI in Phase 1 (§1 #9, #10, DEC-LUNAR-065)?** FR-F05 (choosing tone, emoji, image) is part of the personalized experience and reasonably sits next to reminder management. But generating reminders with AI belongs to FR-LUNAR-015 (Phase 2, with a Claude proxy). In Phase 1, the notification body renders from a static template based on `tone` - still warm, still personal, without a backend or key.
 
-**Tại sao đọc OccurrenceCache nếu còn hạn (§1 #12, DEC-LUNAR-066)?** Tính lại ngày dương cho mỗi dòng mỗi lần mở danh sách là lãng phí khi dữ liệu không đổi. Đọc cache nếu `engineVersion` còn khớp, tính lại khi core đã đổi - vừa nhanh vừa đúng, và offline hoàn toàn theo NFR-Offline.
+**Why read OccurrenceCache when still valid (§1 #12, DEC-LUNAR-066)?** Recomputing the solar date for every row each time the list opens is wasteful when the data has not changed. Read the cache if the `engineVersion` still matches, recompute when the core has changed - both fast and correct, and fully offline per NFR-Offline.
 
-**Tại sao cảnh báo thay vì âm thầm cắt khi > 64 (§1 #16)?** Nếu một gia đình nhập nhiều giỗ, tổng điểm nhắc có thể vượt 64 và scheduler sẽ cắt các cái xa. Thay vì để user ngạc nhiên vì không được nhắc, hiển cảnh báo ("một số sẽ lập khi đến gần") giữ minh bạch, đúng tinh thần PRD Recommendations về ngưỡng > 50 nhắc.
+**Why warn rather than silently drop when > 64 (§1 #16)?** If a family enters many gio, the total reminder points can exceed 64 and the scheduler will drop the distant ones. Rather than surprising the user by not being reminded, showing a warning ("some will be scheduled as they get closer") keeps things transparent, in the spirit of the PRD Recommendations about the > 50 reminders threshold.
 
 ---
 
@@ -194,22 +194,22 @@ export const DEFAULT_NOTIFY_TIME = "07:00";
 
 ## §4 - Acceptance criteria
 
-1. **Toggle Rằm độc lập** - bật "Nhắc Rằm" tạo 1 `Reminder` `type:"RAM"`, `recurrence:"MONTHLY"`, `lunarDay:15`; tắt xóa nó.
-2. **Toggle Mùng Một độc lập** - bật "Nhắc Mùng Một" tạo `type:"MUNG_MOT"`, `lunarDay:1`; độc lập với Rằm (bật cái này không đóng cái kia).
-3. **Toggle gọi reschedule** - mỗi `toggleMonthly` gọi `reschedule()` đúng một lần (assert qua mock).
-4. **Nhập giỗ bằng ngày âm** - form nhập `lunarDay:16, lunarMonth:2` tạo `Reminder` `type:"GIO"` không chứa trường ngày dương nào.
-5. **Solar preview hiển bên cạnh** - form hiển chuỗi ngày dương tính từ `(lunarDay, lunarMonth, isLeap)` cho năm tới; user không có ô nhập ngày dương.
-6. **Custom reminder** - nhập "vía Thần Tài" `lunarDay:10, lunarMonth:1` tạo `type:"CUSTOM"`.
-7. **Lead-time multi-select** - chọn `[0,7]` lưu `leadTimes:[0,7]`; chọn `notifyTime:"06:30"` lưu đúng.
-8. **Upcoming sort theo ngày dương** - `upcoming()` trả danh sách sort tăng theo `solarDate`; mỗi item có `solarDate`, `lunarLabel`, `leadDays`.
-9. **CRUD gọi reschedule** - `upsert`, `remove`, `setEnabled` mỗi cái gọi `reschedule()` sau khi đổi dữ liệu (assert qua mock).
-10. **Validate chặn lưu sai** - `upsert` một `RAM` với `lunarDay:14` trả `errors` chứa `RAM_DAY_MISMATCH` và KHÔNG lưu.
-11. **notificationStyle lưu** - chọn `tone:"warm", emoji:"🌼"` lưu vào `Reminder.notificationStyle`.
-12. **renderBody không gọi mạng** - `renderBody` là hàm thuần, trả chuỗi khác nhau cho `warm` vs `formal`, không có fetch nào.
-13. **enabled tắt giữ dữ liệu** - `setEnabled(id,false)` giữ Reminder trong `list()` nhưng loại khỏi reschedule.
-14. **Offline** - `upcoming()` và `upsert()` chạy không cần mạng (không có network call trong đường CRUD/hiển thị).
-15. **Diagnostics cảnh báo** - khi nhiều nhắc, `diagnostics()` trả `slotsDropped > 0` để UI cảnh báo.
-16. **Link nội dung** - reminder có `linkedContentId` hiển item upcoming kèm `linkedContentId` để UI render liên kết "xem nghi lễ".
+1. **Independent Ram toggle** - turning on "Remind Ram" creates 1 `Reminder` with `type:"RAM"`, `recurrence:"MONTHLY"`, `lunarDay:15`; turning it off deletes it.
+2. **Independent Mung Mot toggle** - turning on "Remind Mung Mot" creates `type:"MUNG_MOT"`, `lunarDay:1`; independent of Ram (turning this on does not close the other).
+3. **Toggle calls reschedule** - each `toggleMonthly` calls `reschedule()` exactly once (asserted via mock).
+4. **Enter gio by lunar date** - entering `lunarDay:16, lunarMonth:2` in the form creates a `Reminder` of `type:"GIO"` with no solar-date field.
+5. **Solar preview shown alongside** - the form shows the solar date string computed from `(lunarDay, lunarMonth, isLeap)` for the coming year; the user has no solar-date input field.
+6. **Custom reminder** - entering "God of Wealth day" `lunarDay:10, lunarMonth:1` creates `type:"CUSTOM"`.
+7. **Lead-time multi-select** - selecting `[0,7]` saves `leadTimes:[0,7]`; setting `notifyTime:"06:30"` saves it correctly.
+8. **Upcoming sorted by solar date** - `upcoming()` returns a list sorted ascending by `solarDate`; each item has `solarDate`, `lunarLabel`, `leadDays`.
+9. **CRUD calls reschedule** - `upsert`, `remove`, `setEnabled` each call `reschedule()` after changing the data (asserted via mock).
+10. **Validation blocks bad saves** - `upsert` of a `RAM` with `lunarDay:14` returns `errors` containing `RAM_DAY_MISMATCH` and does NOT save.
+11. **notificationStyle saved** - choosing `tone:"warm", emoji:"🌼"` saves into `Reminder.notificationStyle`.
+12. **renderBody makes no network call** - `renderBody` is a pure function, returns different strings for `warm` vs `formal`, with no fetch.
+13. **disabling keeps the data** - `setEnabled(id,false)` keeps the Reminder in `list()` but excludes it from reschedule.
+14. **Offline** - `upcoming()` and `upsert()` run without a network (no network call in the CRUD/display path).
+15. **Diagnostics warning** - with many reminders, `diagnostics()` returns `slotsDropped > 0` so the UI can warn.
+16. **Content link** - a reminder with `linkedContentId` shows the upcoming item with `linkedContentId` so the UI can render a "view ritual" link.
 
 ---
 
@@ -384,7 +384,7 @@ describe("reminder store", () => {
 
 ## §6 - Implementation skeleton
 
-API ở §3 là skeleton. Chi tiết đang ghim là `upsert`: nó là nơi validate, persist, và reschedule mắc nối nhau theo đúng thứ tự:
+The API in §3 is the skeleton. The detail worth pinning is `upsert`: it is where validate, persist, and reschedule chain together in exactly the right order:
 
 ```typescript
 // apps/web/lib/reminders/store.ts (lõi upsert)
@@ -398,15 +398,15 @@ async upsert(input: Reminder) {
 }
 ```
 
-`upcoming` đọc `OccurrenceCache` nếu còn hạn, ngược lại gọi `nextOccurrences` rồi cache lại, sort theo `solarDate`. `toggleMonthly("RAM", true)` tạo `Reminder` `{type:"RAM", lunarDay:15, recurrence:"MONTHLY"}` qua chính `upsert`; `false` gọi `remove` của reminder RAM đang có.
+`upcoming` reads `OccurrenceCache` if it is still valid, otherwise calls `nextOccurrences` then caches the result, sorted by `solarDate`. `toggleMonthly("RAM", true)` creates a `Reminder` `{type:"RAM", lunarDay:15, recurrence:"MONTHLY"}` through `upsert` itself; `false` calls `remove` on the existing RAM reminder.
 
 ---
 
 ## §7 - Dependencies
 
-- Upstream: FR-LUNAR-004 (type `Reminder`, `normalizeReminder`, `validateReminder`, `nextOccurrences` để tính `solarDate`, `OccurrenceCache`); FR-LUNAR-005 (`reschedule`, `getPlanDiagnostics` gọi sau mỗi thay đổi); FR-LUNAR-010 (app shell cung cấp `storage.ts` on-device và routing, host các component này).
-- Downstream: không block FR nào (là lá của MVP). Liên quan FR-LUNAR-008 (link nội dung dịp qua `linkedContentId`).
-- Cross-cutting: `notificationStyle` (FR-F05) được render bởi `tone.ts` ở Phase 1; ở Phase 2, FR-LUNAR-015 CÓ THỂ thay body template bằng lời nhắc do Claude sinh, nhưng không đổi schema `notificationStyle`. Deep-link route `/reminder/:id` của FR-LUNAR-005 mở đúng màn hình chi tiết ở đây.
+- Upstream: FR-LUNAR-004 (type `Reminder`, `normalizeReminder`, `validateReminder`, `nextOccurrences` to compute `solarDate`, `OccurrenceCache`); FR-LUNAR-005 (`reschedule`, `getPlanDiagnostics` called after each change); FR-LUNAR-010 (the app shell provides on-device `storage.ts` and routing, and hosts these components).
+- Downstream: does not block any FR (it is a leaf of the MVP). Related to FR-LUNAR-008 (occasion content link via `linkedContentId`).
+- Cross-cutting: `notificationStyle` (FR-F05) is rendered by `tone.ts` in Phase 1; in Phase 2, FR-LUNAR-015 **MAY** replace the template body with a Claude-generated reminder, but does not change the `notificationStyle` schema. The deep-link route `/reminder/:id` from FR-LUNAR-005 opens the right detail screen here.
 
 ---
 
@@ -441,16 +441,16 @@ async upsert(input: Reminder) {
 
 ## §9 - Open questions
 
-Đã giải quyết:
-- Rằm/Mùng Một là hai toggle độc lập ánh xạ Reminder MONTHLY (DEC-LUNAR-060).
-- Ngày âm là nguồn, ngày dương chỉ hiển tham chiếu (DEC-LUNAR-061).
-- FR-F05 fold vào đây nhưng body render từ template tĩnh, AI để Phase 2 (DEC-LUNAR-065).
+Resolved:
+- Ram/Mung Mot are two independent toggles mapping to MONTHLY Reminders (DEC-LUNAR-060).
+- The lunar date is the source, the solar date is shown only for reference (DEC-LUNAR-061).
+- FR-F05 is folded in here, but the body renders from a static template, with AI in Phase 2 (DEC-LUNAR-065).
 
-Deferred (gần với các FR sau / Caveats):
-- Sinh lời nhắc cá nhân hóa bằng Claude (giọng ấm áp động, theo ngữ cảnh) - thuộc FR-LUNAR-015 Phase 2; ở đây chỉ có template tĩnh theo tone.
-- Snooze / đánh dấu "đã cúng" cho một occurrence - cải thiện UX nhưng không thuộc lõi MVP; để sau.
-- Nhập ảnh tùy chỉnh cho `notificationStyle.imageId` (ví dụ ảnh người mất) - chạm dữ liệu nhạy cảm văn hóa; chỉ mở khi có lớp PDPL/consent (FR-LUNAR-019), Phase 1 chỉ cho emoji + ảnh dùng sẵn.
-- Cảnh báo chi tiết khi > 64 nên gợi ý bỏ bớt nhắc nào - phụ thuộc fairness của FR-LUNAR-005; ban đầu chỉ hiển thông báo chung.
+Deferred (near later FRs / Caveats):
+- Generating personalized reminders with Claude (a dynamic warm tone, by context) - belongs to FR-LUNAR-015 Phase 2; here there is only a static template by tone.
+- Snooze / marking an occurrence as "observed" - improves UX but is not part of the MVP core; deferred.
+- Entering a custom image for `notificationStyle.imageId` (for example a photo of the deceased) - touches culturally sensitive data; only opened when there is a PDPL/consent layer (FR-LUNAR-019); Phase 1 allows only emoji + built-in images.
+- A detailed warning when > 64 that suggests which reminders to remove - depends on the fairness of FR-LUNAR-005; initially just show a general notice.
 
 ---
 
@@ -458,32 +458,32 @@ Deferred (gần với các FR sau / Caveats):
 
 | Failure | Detection | Outcome | Recovery |
 |---|---|---|---|
-| Bật nhắc Rằm nhưng máy không reo | toggle gọi reschedule | pending đồng bộ | none (DEC-LUNAR-064; AC #3) |
-| User nhập ngày dương làm nguồn | UI chỉ có ô nhập ngày âm | không xảy ra | none (DEC-LUNAR-061; AC #4/#5) |
-| Sửa/xóa nhắc mà pending không đổi | CRUD gọi reschedule | đồng bộ lại | none (DEC-LUNAR-064; AC #9) |
-| Lưu RAM sai ngày (!=15) | validateReminder | chặn lưu + báo lỗi | user sửa (AC #10) |
-| ONCE thiếu năm | validateReminder | chặn lưu | user nhập năm |
-| Gọi AI sinh body ở Phase 1 | tone.ts thuần, không fetch | template tĩnh | AI ở FR-LUNAR-015 (DEC-LUNAR-065; AC #12) |
-| Danh sách sắp tới sai thứ tự | sort theo solarDate | tăng dần | none (AC #8) |
-| Tính lại ngày dương mỗi lần mở (chậm) | đọc OccurrenceCache còn hạn | nhanh, offline | tính lại khi engineVersion đổi (DEC-LUNAR-066) |
-| Tắt nhắc làm mất dữ liệu | setEnabled giữ Reminder | giữ, chỉ loại khỏi schedule | bật lại (AC #13) |
-| Quá nhiều nhắc, âm thầm cắt | diagnostics slotsDropped | cảnh báo UI | user tắt bớt (AC #15) |
-| Cần mạng để xem danh sách | đường CRUD/hiển thị offline | chạy offline | none (NFR-Offline; AC #14) |
-| Reminder không link nội dung dịp | linkedContentId optional | item vẫn hiển, không liên kết | gắn content sau (FR-D02; AC #16) |
-| Emoji/ảnh nhạy cảm làm lộ dữ liệu | Phase 1 chỉ emoji + ảnh sẵn | không nhập ảnh riêng | mở khi có PDPL (FR-LUNAR-019) |
+| Ram reminder turned on but the device does not ring | toggle calls reschedule | pending in sync | none (DEC-LUNAR-064; AC #3) |
+| User enters a solar date as the source | UI has only a lunar-date input | does not happen | none (DEC-LUNAR-061; AC #4/#5) |
+| Edit/delete a reminder but pending does not change | CRUD calls reschedule | resynced | none (DEC-LUNAR-064; AC #9) |
+| Save a RAM with the wrong day (!=15) | validateReminder | blocks save + reports error | user fixes it (AC #10) |
+| ONCE missing the year | validateReminder | blocks save | user enters the year |
+| Calling AI to generate the body in Phase 1 | tone.ts is pure, no fetch | static template | AI in FR-LUNAR-015 (DEC-LUNAR-065; AC #12) |
+| Upcoming list in the wrong order | sort by solarDate | ascending | none (AC #8) |
+| Recomputing the solar date on every open (slow) | read OccurrenceCache while valid | fast, offline | recompute when engineVersion changes (DEC-LUNAR-066) |
+| Disabling a reminder loses the data | setEnabled keeps the Reminder | kept, only excluded from schedule | re-enable (AC #13) |
+| Too many reminders, silently dropped | diagnostics slotsDropped | UI warning | user disables some (AC #15) |
+| Network needed to view the list | CRUD/display path is offline | runs offline | none (NFR-Offline; AC #14) |
+| Reminder not linked to occasion content | linkedContentId optional | item still shows, no link | attach content later (FR-D02; AC #16) |
+| Sensitive emoji/image leaks data | Phase 1 allows only emoji + built-in images | no custom image entry | opened when PDPL is available (FR-LUNAR-019) |
 
 ---
 
 ## §11 - Implementation notes
 
-- Điểm nối quan trọng nhất là `upsert`/`remove`/`toggleMonthly` luôn kết thúc bằng `reschedule()`. Đây là nơi lớp quản lý và FR-LUNAR-005 mắc vào nhau; quên nó là bug "bật nhắc mà không reo" khó lần ra.
-- Form không bao giờ có ô nhập ngày dương. Chỉ nhập ngày âm, hiển ngày dương tính ra bên cạnh như một xem trước. Đây là cách giữ nguyên tắc lưu-ngày-âm của FR-LUNAR-004 ở tầng UI.
-- Toggle Rằm/Mùng Một map thẳng sang Reminder `MONTHLY` `lunarDay` 15/1 qua chính `upsert`, nên đi qua đúng đường validate + reschedule, không đi đường tắt.
-- `tone.ts` là template tĩnh: một bảng câu theo `tone` (warm/neutral/formal) ghép với ngữ cảnh (title, ngày dương, nhãn âm, lead). Không fetch, không AI - để Phase 1 chạy offline và để FR-LUNAR-015 thay sau mà không đổi schema `notificationStyle`.
-- `upcoming` đọc OccurrenceCache nếu `engineVersion` còn khớp để nhanh; chỉ tính lại khi core đổi. Sort dùng chuỗi ISO `solarDate` (so sánh chuỗi), tránh `Date` local.
-- Cảnh báo > 64 lấy từ `getPlanDiagnostics` của FR-LUNAR-005 (`slotsDropped`), hiển thông báo minh bạch thay vì để user ngạc nhiên - đúng tinh thần ngưỡng > 50 nhắc trong PRD Recommendations.
-- `notificationStyle.imageId` ở Phase 1 chỉ nhận emoji và ảnh dùng sẵn, chưa cho upload ảnh riêng (ví dụ ảnh người mất) vì đây là dữ liệu nhạy cảm văn hóa - chỉ mở khi có lớp consent/PDPL của FR-LUNAR-019.
+- The most important join point is that `upsert`/`remove`/`toggleMonthly` always end with `reschedule()`. This is where the management layer and FR-LUNAR-005 hook into each other; forgetting it produces the hard-to-trace "reminder on but no ring" bug.
+- The form never has a solar-date input field. It takes only the lunar date and shows the computed solar date alongside as a preview. This is how the store-the-lunar-date principle of FR-LUNAR-004 is kept at the UI layer.
+- Ram/Mung Mot toggles map straight to a `MONTHLY` Reminder with `lunarDay` 15/1 through `upsert` itself, so they go through the proper validate + reschedule path, not a shortcut.
+- `tone.ts` is a static template: a table of phrases by `tone` (warm/neutral/formal) combined with the context (title, solar date, lunar label, lead). No fetch, no AI - so Phase 1 runs offline and FR-LUNAR-015 can replace it later without changing the `notificationStyle` schema.
+- `upcoming` reads OccurrenceCache if the `engineVersion` still matches for speed; it recomputes only when the core changes. The sort uses the ISO string `solarDate` (string comparison), avoiding local `Date`.
+- The > 64 warning comes from `getPlanDiagnostics` in FR-LUNAR-005 (`slotsDropped`), showing a transparent notice rather than surprising the user - in the spirit of the > 50 reminders threshold in the PRD Recommendations.
+- `notificationStyle.imageId` in Phase 1 accepts only emoji and built-in images, not custom image uploads (for example a photo of the deceased) yet, because this is culturally sensitive data - only opened when there is the consent/PDPL layer of FR-LUNAR-019.
 
 ---
 
-*Hết FR-LUNAR-006.*
+*End of FR-LUNAR-006.*

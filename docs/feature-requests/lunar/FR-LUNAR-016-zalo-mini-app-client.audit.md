@@ -12,50 +12,50 @@ authoring_md_compliance: 2026-06-27 (rule 36 - 6 ISS > 6 minimum; DEC-LUNAR-160.
 
 ## §1 - Verdict summary
 
-FR-LUNAR-016 đặc tả Zalo Mini App client cho "Genie Âm Lịch". Phạm vi: 15 mệnh đề BCP-14 trong §1 (khởi tạo zmp-sdk, import amlich-core offline, zmp Storage chỉ lưu settings và reminders, Home + CalendarGrid + CRUD Reminder, ConsentSheet trước getUserInfo và getPhoneNumber, ZNS-only push, purple theme, Settings xóa dữ liệu, cache occurrence trong bộ nhớ). 6 §2 rationale block. §3 có đầy đủ types (`ZaloReminder`, `ZaloSettings`, `StorageData`, `UpcomingOccurrence`), storage.ts, zalo-auth.ts, day-computer.ts, reminder-service.ts và phần trích app-config.json. 14 acceptance criteria kiểm tra được. §5 có 5 test case bao phủ round-trip Storage, tính ngày âm fixtures, fallback tháng nhuận, consent guard và phone token. §10 liệt kê 14 failure row. §11 có 7 ghi chú triển khai. Ánh xạ PRD §9 (Zalo client), §14 (Phase 3), Key Findings 3 (Zalo reach ~80 triệu người dùng), và NFR-Privacy/PDPL.
+FR-LUNAR-016 specifies the Zalo Mini App client for "Genie Am Lich". Scope: 15 BCP-14 clauses in §1 (initialize zmp-sdk, import amlich-core offline, zmp Storage stores only settings and reminders, Home + CalendarGrid + Reminder CRUD, ConsentSheet before getUserInfo and getPhoneNumber, ZNS-only push, purple theme, Settings deletes data, occurrence cache in memory). 6 §2 rationale blocks. §3 has the full types (`ZaloReminder`, `ZaloSettings`, `StorageData`, `UpcomingOccurrence`), storage.ts, zalo-auth.ts, day-computer.ts, reminder-service.ts and an app-config.json excerpt. 14 testable acceptance criteria. §5 has 5 test cases covering the Storage round-trip, lunar date fixtures, leap-month fallback, the consent guard and the phone token. §10 lists 14 failure rows. §11 has 7 implementation notes. Maps to PRD §9 (Zalo client), §14 (Phase 3), Key Findings 3 (Zalo reach ~80 million users), and NFR-Privacy/PDPL.
 
 ## §2 - Findings (all resolved during authoring)
 
-### ISS-001 - Mini App gọi getUserInfo ngầm khi khởi động, vi phạm PDPL
-Nếu gọi `getUserInfo` trong `useEffect` khởi động mà không có consent, ứng dụng thu thập dữ liệu cá nhân trước khi người dùng đồng ý - vi phạm PDPL hiệu lực 01/01/2026 và chính sách Zalo. Resolved: §1 #7 bắt buộc ConsentSheet trước gọi API; DEC-LUNAR-163; AC #5; test "consent guard" trong §5.
+### ISS-001 - The Mini App calls getUserInfo implicitly on startup, violating PDPL
+If it calls `getUserInfo` in a startup `useEffect` without consent, the app collects personal data before the user agrees - violating PDPL effective 01/01/2026 and Zalo policy. Resolved: §1 #7 requires a ConsentSheet before calling the API; DEC-LUNAR-163; AC #5; the "consent guard" test in §5.
 
-### ISS-002 - getPhoneNumber trả về token, không phải số thực - nguy cơ lưu nhầm
-Nhiều developer nhầm tưởng `getPhoneNumber` trả số điện thoại thực và lưu thẳng vào Storage để gửi ZNS; thực tế cần đổi token qua OA API phía server. Resolved: §1 #8 ghi rõ chỉ lưu token; §6 ghi chú "điểm khó nhất"; DEC-LUNAR-163; §8 payload có `"phone": "zalo_phone_token_xyz"`; §11 ghi chú 2.
+### ISS-002 - getPhoneNumber returns a token, not the real number - risk of storing the wrong thing
+Many developers wrongly assume `getPhoneNumber` returns the real phone number and store it straight into Storage to send ZNS; in reality the token must be exchanged via the OA API on the server. Resolved: §1 #8 states clearly to store only the token; §6 notes "the hardest point"; DEC-LUNAR-163; §8 payload has `"phone": "zalo_phone_token_xyz"`; §11 note 2.
 
-### ISS-003 - Mini App tự gửi push notification, vi phạm giới hạn nền tảng Zalo
-Không có API push native trong Zalo Mini App; nếu thiết kế cho phép channels: ["LOCAL"] sẽ không có hiệu lực và nhầm lẫn người dùng. Resolved: §1 #13 KHÔNG ĐƯỢC tự gửi push; DEC-LUNAR-162; type `ReminderChannel = "ZNS"` chỉ (không có "LOCAL"); AC #12 xác nhận không có network call âm lịch; §10 row "redirect đến FR-017".
+### ISS-003 - The Mini App sends push notifications itself, violating the Zalo platform limitation
+There is no native push API in a Zalo Mini App; if the design allows channels: ["LOCAL"] it will have no effect and confuse users. Resolved: §1 #13 MUST NOT send push itself; DEC-LUNAR-162; type `ReminderChannel = "ZNS"` only (no "LOCAL"); AC #12 confirms no lunar-calendar network call; §10 row "redirect to FR-017".
 
-### ISS-004 - zmp Storage bị over-write với OccurrenceCache đầy đủ, vượt giới hạn
-Nếu lưu tất cả `OccurrenceCache` cho nhiều năm vào zmp Storage, dung lượng nhanh vượt giới hạn ~1 MB. Resolved: §1 #3 + DEC-LUNAR-161 chỉ lưu Settings + Reminder[]; §4 AC #7 xác nhận Storage không có cache; `day-computer.ts` tính on-the-fly; §10 row "Người dùng >50 Reminder" xử lý riêng.
+### ISS-004 - zmp Storage is over-written with a full OccurrenceCache, exceeding the limit
+Storing every `OccurrenceCache` for multiple years into zmp Storage quickly exceeds the ~1 MB limit. Resolved: §1 #3 + DEC-LUNAR-161 stores only Settings + Reminder[]; §4 AC #7 confirms Storage has no cache; `day-computer.ts` computes on-the-fly; §10 row "User with >50 Reminders" handled separately.
 
-### ISS-005 - amlich-core có thể không build được trong webpack của zmp do ESM/CJS conflict
-Zalo Mini App dùng webpack; `@cyberskill/amlich-core` nếu chỉ export ESM sẽ không import được trong bundle Zalo. Resolved: §11 ghi chú 3 ("kiểm tra exports field trong package.json của core để chắc là CJS bundle được export"); AC #13 xác nhận `zmp build` không có warning; DEC-LUNAR-164.
+### ISS-005 - amlich-core may not build in zmp's webpack due to ESM/CJS conflict
+The Zalo Mini App uses webpack; `@cyberskill/amlich-core` will not import into the Zalo bundle if it only exports ESM. Resolved: §11 note 3 ("check the exports field in the core's package.json to ensure the CJS bundle is exported"); AC #13 confirms `zmp build` has no warning; DEC-LUNAR-164.
 
-### ISS-006 - Purple theme bị "nuốt" bởi CSS specificity của zmp-ui
-zmp-ui inject CSS với độ ưu tiên cao; nếu override bằng class thông thường, màu tím sẽ bị ghi đè bởi màu mặc định. Resolved: §1 #11 + DEC-LUNAR-165 override qua CSS variables; §11 ghi chú 4 (nhúng vào `zalo/src/styles/theme.css` và kiểm tra specificity); AC #8 kiểm tra visual không còn màu xanh mặc định.
+### ISS-006 - The purple theme is "swallowed" by zmp-ui's CSS specificity
+zmp-ui injects CSS with high priority; overriding with an ordinary class means the purple is overwritten by the default color. Resolved: §1 #11 + DEC-LUNAR-165 override via CSS variables; §11 note 4 (embed into `zalo/src/styles/theme.css` and check specificity); AC #8 checks the visual no longer has the default blue.
 
 ## §3 - Resolution
 
-Cả 6 vấn đề có học được giải quyết trong lúc biên soạn. Consent trước getUserInfo/getPhoneNumber (ISS-001) là việc quan trọng nhất cho cả PDPL lẫn chính sách Zalo; token vs. số điện thoại (ISS-002) và giới hạn push (ISS-003) là những bẫy có thể mất nhiều giờ debug nếu không ghi rõ ngay từ đầu. Storage over-write (ISS-004), ESM conflict (ISS-005) và CSS specificity (ISS-006) là các vấn đề triển khai cụ thể cần được pin trước khi code. **Score = 10/10.** Sẵn sàng transition draft -> ready_to_implement.
+All 6 substantive issues resolved during authoring. Consent before getUserInfo/getPhoneNumber (ISS-001) is the most important item for both PDPL and Zalo policy; token vs. phone number (ISS-002) and the push limitation (ISS-003) are traps that can cost hours of debugging if not stated clearly from the start. Storage over-write (ISS-004), ESM conflict (ISS-005) and CSS specificity (ISS-006) are concrete implementation issues that must be pinned before coding. **Score = 10/10.** Ready to transition draft -> ready_to_implement.
 
 ## §3b - Independent adversarial pass (2026-06-27)
 
-Reviewer độc lập đối chiếu §3/§5 với contract upstream FR-LUNAR-001/004. Pre-fix độc lập: 8/10. Hai defect được sửa:
+The independent reviewer compared §3/§5 against the upstream FR-LUNAR-001/004 contract. Pre-fix independent: 8/10. Two defects fixed:
 
-- MAJOR - `todayLunar()` đọc `now.getDate()/getMonth()/getFullYear()` theo TZ thiết bị rồi truyền vào engine với `tz=7.0`. Khi người dùng ở nước ngoài, ngày civil của thiết bị khác ngày Việt Nam -> ngày âm "hôm nay" sai, vi phạm §1 #12 và AC #14 (lịch phải khóa Asia/Ho_Chi_Minh). Đã sửa: import `todayInHCM()` từ amlich-core (FR-004) và derive ngày HCM trước khi gọi `convertSolar2Lunar`.
-- MAJOR (test) - test §5 đọc `lunar.lunarDay/.lunarMonth/.lunarYear` trên kết quả `todayLunar()`, nhưng `LunarDate` của FR-001 là tuple `[day, month, year, leap]` (không phải object) -> test không compile/chạy. Đã sửa: destructure tuple `const [lunarDay, lunarMonth, lunarYear] = todayLunar()`.
-- MINOR - §10 row "convertLunar2Solar trả về null" sửa thành sentinel `[0,0,0]` (engine không trả null).
+- MAJOR - `todayLunar()` reads `now.getDate()/getMonth()/getFullYear()` by device TZ then passes it into the engine with `tz=7.0`. When the user is abroad, the device's civil date differs from the Vietnam date -> "today's" lunar date is wrong, violating §1 #12 and AC #14 (the calendar must lock to Asia/Ho_Chi_Minh). Fixed: import `todayInHCM()` from amlich-core (FR-004) and derive the HCM date before calling `convertSolar2Lunar`.
+- MAJOR (test) - the §5 test reads `lunar.lunarDay/.lunarMonth/.lunarYear` on the result of `todayLunar()`, but FR-001's `LunarDate` is a tuple `[day, month, year, leap]` (not an object) -> the test does not compile/run. Fixed: destructure the tuple `const [lunarDay, lunarMonth, lunarYear] = todayLunar()`.
+- MINOR - the §10 row "convertLunar2Solar returns null" changed to the sentinel `[0,0,0]` (the engine does not return null).
 
-Đã ghi nhận (không sửa): `ZaloReminder` thiếu `recurrence` và `sharedWith` của model FR-004 - chấp nhận được cho client tính on-the-fly nhưng nên mang `recurrence` để phân biệt MONTHLY/ANNUAL khi sinh occurrence; AC #14 không có test backing (chỉ mô tả). Post-fix: 9/10.
+Recorded (not fixed): `ZaloReminder` lacks the `recurrence` and `sharedWith` of the FR-004 model - acceptable for a client computing on-the-fly but it should carry `recurrence` to distinguish MONTHLY/ANNUAL when generating occurrences; AC #14 has no backing test (only a description). Post-fix: 9/10.
 
 ## §4 - Readiness pass (2026-06-28)
 
-Đã áp dụng 3 sửa đổi theo task harden:
+Applied 3 changes per the harden task:
 
-1. Import `canChi` (không tồn tại) sửa thành `canChiDay` (đúng tên trong CONTRACT.md).
-2. `todayInHCM()` trả TUPLE `SolarDate` - sửa từ `const { dd, mm, yy } = todayInHCM()` thành `const [dd, mm, yy] = todayInHCM()`.
-3. `ZaloReminder` bổ sung trường `recurrence: "MONTHLY" | "ANNUAL" | "ONCE"` - cần thiết để `getUpcomingOccurrences` phân biệt Rằm/Mùng Một (MONTHLY) và đám giỗ (ANNUAL); tất cả fixtures trong §5 và §8 cập nhật tương ứng.
+1. The import `canChi` (nonexistent) changed to `canChiDay` (the correct name in CONTRACT.md).
+2. `todayInHCM()` returns a TUPLE `SolarDate` - changed from `const { dd, mm, yy } = todayInHCM()` to `const [dd, mm, yy] = todayInHCM()`.
+3. `ZaloReminder` added the field `recurrence: "MONTHLY" | "ANNUAL" | "ONCE"` - needed for `getUpcomingOccurrences` to distinguish Ram/Mung Mot (MONTHLY) from a death anniversary (ANNUAL); all fixtures in §5 and §8 updated accordingly.
 
-Không có thay đổi frontmatter ids/depends_on/blocks/DEC-ids/effort_hours. Sẵn sàng handoff không cần context thêm.
+No change to frontmatter ids/depends_on/blocks/DEC-ids/effort_hours. Ready for handoff without further context.
 
-*Hết audit FR-LUNAR-016.*
+*End of audit FR-LUNAR-016.*

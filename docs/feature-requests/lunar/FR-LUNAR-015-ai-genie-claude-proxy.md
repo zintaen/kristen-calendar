@@ -1,6 +1,6 @@
 ---
 id: FR-LUNAR-015
-title: "AI Genie - serverless Claude proxy (/api/genie), Claude Haiku 4.5, prompt caching, persona Genie, rate-limit per user, key chỉ ở server, TTS tùy chọn"
+title: "AI Genie - serverless Claude proxy (/api/genie), Claude Haiku 4.5, prompt caching, Genie persona, per-user rate limit, key only on the server, optional TTS"
 module: LUNAR
 priority: MUST
 status: ready_to_implement
@@ -20,12 +20,12 @@ source_pages:
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#12 (AI Feature Architecture)"
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#7 (Key Findings 7 - Claude pricing)"
 source_decisions:
-  - DEC-LUNAR-150 (ANTHROPIC_API_KEY chi ton tai trong bien moi truong serverless; KHONG DUOC nhung vao client bundle, env client, hoac log; vi pham la loi bao mat P0)
-  - DEC-LUNAR-151 (model mac dinh la claude-haiku-4-5; chi nang len claude-sonnet khi do chinh xac thuc te duoi nguong; quyet dinh do operator, khong auto-escalate)
-  - DEC-LUNAR-152 (system prompt phong tuc Viet duoc danh dau cache_control type "ephemeral" de ap dung prompt caching; giam toi 90% input token cost cho moi cuoc hoi-dap)
-  - DEC-LUNAR-153 (rate-limit: toi da 20 requests/user/ngay tren Vercel KV hoac in-memory; bust rate-limit tra 429 voi Retry-After header; khong cho phep bypass phia client)
-  - DEC-LUNAR-154 (khong truyen ten nguoi da mat, so dien thoai, hoac du lieu dinh danh ca nhan ra ngoai Claude API; chi truyen ngay am, ten dip, cau hoi phong tuc - tuan thu PDPL)
-  - DEC-LUNAR-155 (TTS la FR-C05 tuy chon: Web Speech API tren web, AVSpeechSynthesizer qua Capacitor tren iOS; proxy khong lam gi cho TTS - client tu xu ly tren text response)
+  - DEC-LUNAR-150 (ANTHROPIC_API_KEY exists only in the serverless environment variables; MUST NOT be embedded in the client bundle, the client env, or logs; a violation is a P0 security bug)
+  - DEC-LUNAR-151 (the default model is claude-haiku-4-5; escalate to claude-sonnet only when real-world accuracy falls below the threshold; this is an operator decision, not auto-escalation)
+  - DEC-LUNAR-152 (the Vietnamese-custom system prompt is marked cache_control type "ephemeral" to apply prompt caching; cutting up to 90% of the input token cost for each Q&A)
+  - DEC-LUNAR-153 (rate limit: at most 20 requests/user/day on Vercel KV or in-memory; a rate-limit burst returns 429 with a Retry-After header; no client-side bypass allowed)
+  - DEC-LUNAR-154 (do not pass the names of the deceased, phone numbers, or personally identifying data out to the Claude API; pass only the lunar date, the occasion name, and the custom question - complying with the PDPL)
+  - DEC-LUNAR-155 (TTS is the optional FR-C05: Web Speech API on web, AVSpeechSynthesizer via Capacitor on iOS; the proxy does nothing for TTS - the client handles it on the text response)
 language: typescript 5.x
 service: services/genie-api/
 new_files:
@@ -43,60 +43,60 @@ allowed_tools:
   - file_write: services/genie-api/api/genie.ts, services/genie-api/lib/**, apps/web/components/GenieChat.tsx, apps/web/lib/genie-client.ts
   - bash: cd services/genie-api && pnpm test
 disallowed_tools:
-  - nhung ANTHROPIC_API_KEY vao bat ky file client-side (vi pham DEC-LUNAR-150 / FR-C06)
-  - log noi dung request chua du lieu dinh danh ca nhan (vi pham DEC-LUNAR-154 / NFR-Privacy)
-  - tu dong nang model len Sonnet ma khong co config cua operator (vi pham DEC-LUNAR-151)
-  - truyen ten nguoi da mat hoac so dien thoai den Claude API (vi pham DEC-LUNAR-154 / PDPL)
+  - embed ANTHROPIC_API_KEY in any client-side file (violates DEC-LUNAR-150 / FR-C06)
+  - log request content containing personally identifying data (violates DEC-LUNAR-154 / NFR-Privacy)
+  - automatically escalate the model to Sonnet without operator config (violates DEC-LUNAR-151)
+  - pass the names of the deceased or phone numbers to the Claude API (violates DEC-LUNAR-154 / PDPL)
 effort_hours: 14
 sub_tasks:
-  - "1.5h: system-prompt.ts - viet system prompt tieng Viet cho persona Genie, danh dau cache_control type ephemeral"
-  - "2.0h: prompt-builder.ts - buildGenieMessages(ctx, question) them context ngay am + dip sap toi; sanitize input (loai truong PII)"
-  - "2.0h: api/genie.ts - handler POST /api/genie: xac thuc userId, rate-limit check, goi Claude API, tra JSON response"
-  - "1.5h: rate-limiter.ts - RateLimiter interface + VercelKVRateLimiter impl (20 req/user/ngay) + InMemoryRateLimiter (test/dev)"
-  - "1.5h: genie-client.ts - fetchGenie(request): fetch /api/genie, xu ly loi 429/500, retry once on 5xx"
-  - "2.0h: GenieChat.tsx - UI chat bubble, input box, loading state, TTS button (Web Speech API tuy chon)"
-  - "2.0h: api/genie.test.ts - unit test handler: rate-limit, key absent, PII stripped, response shape, 429 path"
-  - "1.5h: integration smoke test voi Claude API (manual / staging environment)"
-risk_if_skipped: "FR-C01..C06 la toan bo nhom tinh nang AI Genie - phong tuc hoi-dap, goi y mam cung, loi nhac ca nhan hoa - la ly do chinh de nguoi dung tra phi premium (FR-LUNAR-020 block vao day). Khong co FR-015 thi FR-LUNAR-020 (freemium monetization) mat di san pham premium hang dau. Ngoai ra, neu API key bi nhung vao client (bo FR-C06), rui ro lo key la P0 bao mat."
+  - "1.5h: system-prompt.ts - write the Vietnamese system prompt for the Genie persona, mark cache_control type ephemeral"
+  - "2.0h: prompt-builder.ts - buildGenieMessages(ctx, question) adds the lunar-date context + the upcoming occasion; sanitize input (strip PII fields)"
+  - "2.0h: api/genie.ts - handler POST /api/genie: authenticate userId, rate-limit check, call the Claude API, return JSON response"
+  - "1.5h: rate-limiter.ts - RateLimiter interface + VercelKVRateLimiter impl (20 req/user/day) + InMemoryRateLimiter (test/dev)"
+  - "1.5h: genie-client.ts - fetchGenie(request): fetch /api/genie, handle 429/500 errors, retry once on 5xx"
+  - "2.0h: GenieChat.tsx - chat bubble UI, input box, loading state, TTS button (Web Speech API optional)"
+  - "2.0h: api/genie.test.ts - unit test the handler: rate-limit, key absent, PII stripped, response shape, 429 path"
+  - "1.5h: integration smoke test with the Claude API (manual / staging environment)"
+risk_if_skipped: "FR-C01..C06 is the entire AI Genie feature group - custom Q&A, offering-tray suggestions, personalized reminders - and is the main reason users pay for premium (FR-LUNAR-020 blocks on this). Without FR-015, FR-LUNAR-020 (freemium monetization) loses its top premium product. In addition, if the API key is embedded in the client (dropping FR-C06), the risk of a key leak is a P0 security issue."
 ---
 
 ## §1 - Description (BCP-14 normative)
 
-Hệ thống PHẢI xây một serverless endpoint `/api/genie` làm proxy giữa client và Claude API, giữ API key hoàn toàn phía server, áp dụng persona Genie, rate-limit per user, và xử lý prompt caching. Hợp đồng:
+The system MUST build a serverless endpoint `/api/genie` as a proxy between the client and the Claude API, keeping the API key entirely on the server, applying the Genie persona, per-user rate limiting, and handling prompt caching. Contract:
 
-1. PHẢI đặt `ANTHROPIC_API_KEY` chỉ trong biến môi trường serverless (Vercel Environment Variables hoặc tương đương); KHÔNG ĐƯỢC xuất hiện trong bất kỳ file client-side nào, bundle JS, hoặc log (DEC-LUNAR-150, FR-C06).
-2. PHẢI nhận request `POST /api/genie` với body `GenieRequest` (xem §3) từ client đã xác thực; trả về `GenieResponse` với field `answer` là chuỗi văn bản tiếng Việt.
-3. PHẢI gọi Claude API bằng model `claude-haiku-4-5` theo mặc định (DEC-LUNAR-151); model ID PHẢI là config server-side, không được client truyền lên.
-4. PHẢI áp dụng prompt caching cho system prompt bằng cách đặt `cache_control: { type: "ephemeral" }` trên content block chứa system prompt phong tục (DEC-LUNAR-152); mục đích là giảm tới 90% input token cost.
-5. PHẢI xây dựng system prompt tiếng Việt định hình persona "Genie Am Lich": giọng ấm áp, kính trọng, tiếng Việt chuẩn dấu, kiến thức rộng về Rằm/giỗ/lễ tết/phong tục; mọi câu trả lời PHẢI kèm footer "Tham khao theo phong tuc dan gian" (DEC-LUNAR-152).
-6. PHẢI nhận `context` trong request gồm: `lunarDate` (ngày âm hiện tại), `upcomingEvent` (tên dịp sắp tới nếu có), `questionType` (xem §3 enum); KHÔNG ĐƯỢC nhận hoặc chuyển tiếp bất kỳ field nào chứa tên người đã mất, số điện thoại, hay định danh cá nhân khác (DEC-LUNAR-154, NFR-Privacy/PDPL).
-7. PHẢI thực thi rate-limit: tối đa 20 requests/userId/ngày; khi vượt ngưỡng trả `429 Too Many Requests` với header `Retry-After` là số nguyên giây còn lại đến nửa đêm theo `Asia/Ho_Chi_Minh` (UTC+7) - cùng mốc reset với key rate-limit ở §11 (DEC-LUNAR-153).
-8. PHẢI log tối thiểu: chỉ log `{ timestamp, userId (hashed), questionType, latencyMs, tokenUsage }`; KHÔNG ĐƯỢC log `question` hoặc `answer` full text trong môi trường production (DEC-LUNAR-154, NFR-Privacy/PDPL).
-9. PHẢI trả structured error khi Claude API thất bại: `{ error: "UPSTREAM_ERROR", retryable: true, message: "..." }` cho 5xx; `{ error: "RATE_LIMITED", retryAfter: <s> }` cho 429 từ Anthropic (hiếm).
-10. PHẢI cover FR-C01 (hoi-dap phong tuc, ky ki), FR-C02 (goi y mam cung + checklist), FR-C03 (y nghia ngay am lich), FR-C04 (loi nhac ca nhan hoa giong am) bằng `questionType` enum; mỗi type có template prompt riêng trong `prompt-builder.ts`.
-11. CÓ THỂ hỗ trợ FR-C05 (TTS): sau khi nhận `answer` từ `/api/genie`, client PHẢI tự gọi `window.speechSynthesis.speak()` (Web Speech API) hoặc `AVSpeechSynthesizer` qua Capacitor; proxy KHÔNG xử lý TTS (DEC-LUNAR-155).
-12. PHẢI có `GenieChat` component phía client với: ô nhập câu hỏi, loading spinner, bubble hiển thị câu trả lời, nút TTS (tùy chọn, NÊN kiểm tra `'speechSynthesis' in window` truoc khi bật).
-13. KHÔNG ĐƯỢC cho phép client truyền `model`, `maxTokens`, hoặc bất kỳ tham số Claude API nào lên proxy; mọi tham số model là server-side config (DEC-LUNAR-151).
-14. NÊN thêm `X-Request-Id` header trong response để debug; PHẢI là UUID v4 sinh phía server, không liên kết với `userId`.
-15. NÊN stream response (`stream: true` với Anthropic SDK) và trả về `text/event-stream` khi client hỗ trợ; fallback là non-stream JSON nếu client không hỗ trợ SSE.
+1. MUST place `ANTHROPIC_API_KEY` only in the serverless environment variables (Vercel Environment Variables or equivalent); it MUST NOT appear in any client-side file, JS bundle, or log (DEC-LUNAR-150, FR-C06).
+2. MUST receive a `POST /api/genie` request with a `GenieRequest` body (see §3) from an authenticated client; return a `GenieResponse` with the field `answer` being a Vietnamese text string.
+3. MUST call the Claude API with the model `claude-haiku-4-5` by default (DEC-LUNAR-151); the model ID MUST be server-side config, not passed up by the client.
+4. MUST apply prompt caching to the system prompt by setting `cache_control: { type: "ephemeral" }` on the content block containing the custom system prompt (DEC-LUNAR-152); the goal is to cut up to 90% of the input token cost.
+5. MUST build a Vietnamese system prompt shaping the "Genie Am Lich" persona: a warm, respectful voice, standard Vietnamese with correct diacritics, broad knowledge of Full Moon / death anniversaries / festivals / customs; every answer MUST include the footer "Tham khao theo phong tuc dan gian" (DEC-LUNAR-152).
+6. MUST receive `context` in the request including: `lunarDate` (the current lunar date), `upcomingEvent` (the name of the upcoming occasion if any), `questionType` (see the §3 enum); it MUST NOT receive or forward any field containing the name of a deceased person, a phone number, or other personal identifier (DEC-LUNAR-154, NFR-Privacy/PDPL).
+7. MUST enforce the rate limit: at most 20 requests/userId/day; when the threshold is exceeded, return `429 Too Many Requests` with a `Retry-After` header being the integer number of seconds remaining until midnight in `Asia/Ho_Chi_Minh` (UTC+7) - the same reset point as the rate-limit key in §11 (DEC-LUNAR-153).
+8. MUST log at minimum: log only `{ timestamp, userId (hashed), questionType, latencyMs, tokenUsage }`; it MUST NOT log the full text of `question` or `answer` in the production environment (DEC-LUNAR-154, NFR-Privacy/PDPL).
+9. MUST return a structured error when the Claude API fails: `{ error: "UPSTREAM_ERROR", retryable: true, message: "..." }` for 5xx; `{ error: "RATE_LIMITED", retryAfter: <s> }` for a 429 from Anthropic (rare).
+10. MUST cover FR-C01 (custom Q&A, taboos), FR-C02 (offering-tray suggestions + checklist), FR-C03 (meaning of a lunar-calendar day), FR-C04 (personalized reminders in a warm voice) via the `questionType` enum; each type has its own prompt template in `prompt-builder.ts`.
+11. MAY support FR-C05 (TTS): after receiving `answer` from `/api/genie`, the client MUST itself call `window.speechSynthesis.speak()` (Web Speech API) or `AVSpeechSynthesizer` via Capacitor; the proxy does NOT handle TTS (DEC-LUNAR-155).
+12. MUST have a `GenieChat` component on the client with: a question input box, a loading spinner, a bubble displaying the answer, a TTS button (optional, SHOULD check `'speechSynthesis' in window` before enabling it).
+13. MUST NOT let the client pass `model`, `maxTokens`, or any Claude API parameter to the proxy; all model parameters are server-side config (DEC-LUNAR-151).
+14. SHOULD add an `X-Request-Id` header in the response for debugging; it MUST be a server-generated UUID v4, not linked to `userId`.
+15. SHOULD stream the response (`stream: true` with the Anthropic SDK) and return `text/event-stream` when the client supports it; the fallback is non-stream JSON if the client does not support SSE.
 
 ---
 
 ## §2 - Why this design (rationale for humans)
 
-**Tại sao phải có proxy thay vì gọi Claude API trực tiếp từ client?** API key trong client bundle hoặc trong `NEXT_PUBLIC_*` env là lỗ hổng bảo mật P0: bất kỳ ai inspect DevTools đều lấy được key và có thể dùng tùy ý, toàn bộ chi phí rơi vào tài khoản của mình. Proxy giữ key trong biến môi trường serverless, không bao giờ ra client (DEC-LUNAR-150, FR-C06).
+**Why have a proxy instead of calling the Claude API directly from the client?** An API key in the client bundle or in a `NEXT_PUBLIC_*` env is a P0 security hole: anyone inspecting DevTools can obtain the key and use it at will, with the entire cost falling on your account. The proxy keeps the key in the serverless environment variables, never reaching the client (DEC-LUNAR-150, FR-C06).
 
-**Tại sao Claude Haiku 4.5 là mặc định?** Haiku 4.5 giá $1/$5 per 1M token - với vài chục câu hỏi/gia đình/tháng, chi phí AI dưới vài nghìn VND. Sonnet cho chất lượng cao hơn nhưng giá cao hơn đáng kể; quyết định nâng model PHẢI là decision của operator khi đánh giá thực tế, không auto-escalate (DEC-LUNAR-151, Key Findings §7).
+**Why is Claude Haiku 4.5 the default?** Haiku 4.5 costs $1/$5 per 1M tokens - with a few dozen questions per family per month, the AI cost is under a few thousand VND. Sonnet gives higher quality but at a significantly higher price; the decision to escalate the model MUST be an operator decision after a real-world assessment, not auto-escalation (DEC-LUNAR-151, Key Findings §7).
 
-**Tại sao prompt caching với `cache_control: ephemeral`?** System prompt phong tục Việt là một khối văn bản lớn (ước tính 800-1500 token) được gửi cùng mỗi request. Anthropic prompt caching cho phép tái dùng KV cache của khối này trong tối đa 5 phút, giảm tới 90% chi phí input token. Với tần suất hỏi liên tục trong một buổi, đây là tiết kiệm đáng kể (DEC-LUNAR-152).
+**Why prompt caching with `cache_control: ephemeral`?** The Vietnamese-custom system prompt is a large block of text (estimated 800-1500 tokens) sent with each request. Anthropic prompt caching lets the KV cache of this block be reused for up to 5 minutes, cutting up to 90% of the input token cost. With continuous questioning in one session, this is a significant saving (DEC-LUNAR-152).
 
-**Tại sao không gửi tên người đã mất ra Claude?** Đám giỗ (giỗ ông bà, người thân mất) là dữ liệu nhạy cảm theo văn hóa và theo PDPL Law 91/2025. Proxy PHẢI strip các field PII truoc khi gọi Claude. Người dùng hỏi về phong tục không cần model biết tên cụ thể của người mất - "đám giỗ" là đủ context (DEC-LUNAR-154).
+**Why not send the names of the deceased to Claude?** Death anniversaries (for grandparents, deceased relatives) are culturally sensitive data and are sensitive under PDPL Law 91/2025. The proxy MUST strip the PII fields before calling Claude. A user asking about a custom does not need the model to know the specific name of the deceased - "death anniversary" is enough context (DEC-LUNAR-154).
 
-**Tại sao rate-limit 20 req/user/ngày?** Với gia đình dùng thông thường, 20 câu/ngày là quá đủ. Giới hạn này bảo vệ khỏi lạm dụng (abuse, scraping, bot), giữ chi phí Claude có thể dự đoán được, và là cơ sở để phân biệt free vs premium tier trong FR-LUNAR-020 (DEC-LUNAR-153).
+**Why the 20 req/user/day rate limit?** For a typical family, 20 questions/day is more than enough. This limit protects against abuse (scraping, bots), keeps the Claude cost predictable, and is the basis for distinguishing free vs premium tiers in FR-LUNAR-020 (DEC-LUNAR-153).
 
-**Tại sao TTS xử lý phía client?** Web Speech API và AVSpeechSynthesizer là on-device, miễn phí, hỗ trợ tiếng Việt tốt trên iOS/Android. Nếu TTS qua server thi thêm latency, thêm chi phí, và phức tạp streaming audio. Client xử lý text response rồi tự đọc là đơn giản và hiệu quả hơn nhiều (DEC-LUNAR-155).
+**Why is TTS handled on the client?** The Web Speech API and AVSpeechSynthesizer are on-device, free, and support Vietnamese well on iOS/Android. Doing TTS through the server would add latency, add cost, and complicate audio streaming. Having the client process the text response and read it itself is much simpler and more effective (DEC-LUNAR-155).
 
-**Tại sao log minimization?** Ghi log toàn bộ câu hỏi và câu trả lời sẽ vi phạm PDPL nếu câu hỏi chứa thông tin cá nhân ngầm định (tên người thân, ngày giỗ cụ thể). Log chỉ metadata (timestamp, type, latency, token count) đủ để debug và monitor mà không tạo rủi ro pháp lý (DEC-LUNAR-154, NFR-Privacy/PDPL).
+**Why log minimization?** Logging the entire question and answer would violate the PDPL if the question contains implicit personal information (a relative's name, a specific death-anniversary date). Logging only metadata (timestamp, type, latency, token count) is enough to debug and monitor without creating legal risk (DEC-LUNAR-154, NFR-Privacy/PDPL).
 
 ---
 
@@ -240,21 +240,21 @@ export async function fetchGenie(
 
 ## §4 - Acceptance criteria
 
-1. `ANTHROPIC_API_KEY` không xuất hiện trong bất kỳ file `.js`, `.ts`, `.tsx` nào trong `apps/web/`; grep trả về 0 kết quả.
-2. `POST /api/genie` với body hợp lệ trả `200` với `GenieResponse` chứa `answer` là chuỗi tiếng Việt không rỗng.
-3. System prompt PHẢI chứa `cache_control: { type: "ephemeral" }` trên text block phong tục; kiểm bằng unit test inspect `BuiltMessages`.
-4. Khi gọi quá 20 requests cùng `userId` trong một ngày, request thứ 21 trả `429` với header `Retry-After` có giá trị > 0.
-5. Request chứa field `tenNguoiMat: "Nguyen Van A"` trong body bị strip truoc khi gửi Claude; unit test verify `buildGenieMessages` không chứa chuỗi này trong output.
-6. `question` và `answer` không xuất hiện trong production log; chỉ log `{ timestamp, userIdHash, questionType, latencyMs, tokenUsage }`.
-7. Response luôn chứa field `requestId` là UUID v4; hai request khác nhau PHẢI có `requestId` khác nhau.
-8. Handler trả `502` với `{ error: "UPSTREAM_ERROR", retryable: true }` khi Claude API trả 5xx.
-9. `client-side test`: `genie-client.ts` không import `ANTHROPIC_API_KEY` hoặc bất kỳ biến môi trường `ANTHROPIC_*` nào.
-10. `GenieChat` component hiển thị loading spinner trong lúc chờ response; spinner biến mất khi có `answer`.
-11. Nút TTS chỉ xuất hiện khi `'speechSynthesis' in window` là true; click nút gọi `window.speechSynthesis.speak` với `lang = "vi-VN"`.
-12. `answer` cuối mỗi response kết thúc bằng hoặc chứa chuỗi "Tham khao theo phong tuc dan gian" (footer từ system prompt, DEC-LUNAR-152).
-13. Handler từ chối request nếu `question.length > 500`; trả `400 { error: "INVALID_REQUEST" }`.
-14. Model gọi Claude là `claude-haiku-4-5`; giá trị này là server-side config, client không thể override (DEC-LUNAR-151).
-15. Test suite `genie.test.ts` pass hoàn toàn mà không cần network thật (dùng mock Anthropic SDK).
+1. `ANTHROPIC_API_KEY` does not appear in any `.js`, `.ts`, or `.tsx` file in `apps/web/`; grep returns 0 results.
+2. `POST /api/genie` with a valid body returns `200` with a `GenieResponse` containing a non-empty Vietnamese string `answer`.
+3. The system prompt MUST contain `cache_control: { type: "ephemeral" }` on the custom text block; checked with a unit test inspecting `BuiltMessages`.
+4. When more than 20 requests are made with the same `userId` in one day, the 21st request returns `429` with a `Retry-After` header value > 0.
+5. A request containing the field `tenNguoiMat: "Nguyen Van A"` in the body is stripped before being sent to Claude; a unit test verifies `buildGenieMessages` does not contain this string in its output.
+6. `question` and `answer` do not appear in the production log; only `{ timestamp, userIdHash, questionType, latencyMs, tokenUsage }` is logged.
+7. The response always contains the field `requestId` as a UUID v4; two different requests MUST have different `requestId` values.
+8. The handler returns `502` with `{ error: "UPSTREAM_ERROR", retryable: true }` when the Claude API returns 5xx.
+9. `client-side test`: `genie-client.ts` does not import `ANTHROPIC_API_KEY` or any `ANTHROPIC_*` environment variable.
+10. The `GenieChat` component displays a loading spinner while waiting for the response; the spinner disappears when there is an `answer`.
+11. The TTS button appears only when `'speechSynthesis' in window` is true; clicking the button calls `window.speechSynthesis.speak` with `lang = "vi-VN"`.
+12. The `answer` at the end of each response ends with or contains the string "Tham khao theo phong tuc dan gian" (the footer from the system prompt, DEC-LUNAR-152).
+13. The handler rejects the request if `question.length > 500`; returns `400 { error: "INVALID_REQUEST" }`.
+14. The model calling Claude is `claude-haiku-4-5`; this value is server-side config, the client cannot override it (DEC-LUNAR-151).
+15. The `genie.test.ts` test suite passes fully without a real network (using a mock Anthropic SDK).
 
 ---
 
@@ -355,7 +355,7 @@ function mockContext(): import("./genie").GenieContext {
 
 ## §6 - Implementation skeleton
 
-Contract đầy đủ ở §3. Hai điểm cần ghim:
+The full contract is in §3. Two points to pin down:
 
 ```typescript
 // services/genie-api/api/genie.ts - cấu trúc handler
@@ -399,11 +399,11 @@ export async function POST(request: Request): Promise<Response> {
 
 ## §7 - Dependencies
 
-Upstream: FR-LUNAR-008 cung cấp `FestivalContent` database - `prompt-builder.ts` CÓ THỂ đọc nội dung tĩnh của dịp sắp tới để thêm context cho Genie (ví dụ: nếu upcomingEvent là "Vu Lan", inject description ngắn từ FR-008 vào prompt); đây là enrichment, không phải hard dependency - Genie vẫn hoạt động nếu FR-008 chưa có nội dung đầy đủ. FR-LUNAR-010 cung cấp app shell và session auth để `/api/genie` xác thực userId.
+Upstream: FR-LUNAR-008 provides the `FestivalContent` database - `prompt-builder.ts` MAY read the static content of the upcoming occasion to add context for Genie (for example: if upcomingEvent is "Vu Lan", inject a short description from FR-008 into the prompt); this is enrichment, not a hard dependency - Genie still works if FR-008 does not have full content yet. FR-LUNAR-010 provides the app shell and session auth for `/api/genie` to authenticate the userId.
 
-Downstream: FR-LUNAR-020 (freemium monetization) sẽ gate Genie sau entitlement check - endpoint `/api/genie` PHẢI có điểm mở rộng để FR-020 inject `isPremium` check mà không sửa handler chính.
+Downstream: FR-LUNAR-020 (freemium monetization) will gate Genie behind an entitlement check - the `/api/genie` endpoint MUST have an extension point so FR-020 can inject an `isPremium` check without editing the main handler.
 
-Cross-cutting: PDPL (Law 91/2025, Decree 356/2025) áp dụng cho mọi data flow qua proxy; DEC-LUNAR-154 đảm bảo không có PII đi qua Claude API. `apca-w3` không liên quan ở đây; `GenieChat.tsx` dùng tokens từ FR-LUNAR-009.
+Cross-cutting: the PDPL (Law 91/2025, Decree 356/2025) applies to every data flow through the proxy; DEC-LUNAR-154 ensures no PII goes through the Claude API. `apca-w3` is not relevant here; `GenieChat.tsx` uses the tokens from FR-LUNAR-009.
 
 ---
 
@@ -451,9 +451,9 @@ Cross-cutting: PDPL (Law 91/2025, Decree 356/2025) áp dụng cho mọi data flo
 
 ## §9 - Open questions
 
-Đã giải quyết: model Haiku 4.5, proxy pattern, prompt caching marker, rate-limit 20/ngày, TTS client-side, PII policy.
+Resolved: the Haiku 4.5 model, the proxy pattern, the prompt-caching marker, the 20/day rate limit, client-side TTS, the PII policy.
 
-Còn deferred: (a) nâng model lên Sonnet cho câu hỏi phức tạp - theo DEC-LUNAR-151, quyết định này ở operator sau khi đánh giá chất lượng thực tế (PRD Recommendations §7: "chi chuyen sang Sonnet neu chat luong Haiku khong dat khi danh gia thuc te"); (b) streaming SSE - §1 #15 đánh dấu NÊN; triển khai non-stream truoc cho đơn giản, stream là cải tiến slice sau; (c) FR-C05 TTS qua Capacitor native (AVSpeechSynthesizer) - cần FR-LUNAR-013 native bridge, deferred sang P2 slice 5; (d) Batch API của Anthropic (giảm 50% cost) - chỉ phù hợp với workload không real-time (ZNS batch notifications), không áp dụng cho Genie interactive.
+Still deferred: (a) escalating the model to Sonnet for complex questions - per DEC-LUNAR-151, this decision rests with the operator after assessing real-world quality (PRD Recommendations §7: "switch to Sonnet only if Haiku quality falls short in a real-world assessment"); (b) SSE streaming - §1 #15 marks it SHOULD; ship non-stream first for simplicity, streaming is a later-slice improvement; (c) FR-C05 TTS via Capacitor native (AVSpeechSynthesizer) - needs the FR-LUNAR-013 native bridge, deferred to P2 slice 5; (d) Anthropic's Batch API (50% cost reduction) - only suits non-real-time workloads (ZNS batch notifications), not applicable to the interactive Genie.
 
 ---
 
@@ -461,31 +461,31 @@ Còn deferred: (a) nâng model lên Sonnet cho câu hỏi phức tạp - theo DE
 
 | Failure | Detection | Outcome | Recovery |
 |---|---|---|---|
-| API key vắng mặt trong env | `!process.env.ANTHROPIC_API_KEY` truoc khi gọi | 500 Internal Error (không lộ key name) | Deploy CI fail nếu secret absent |
-| API key bị nhúng vào client | grep trong CI pipeline | CI fail hard | Developer sửa truoc merge |
-| Claude API 429 (upstream rate limit) | response.status === 429 | 502 `{ retryable: true }` trả về client | Client retry sau 1s; log cảnh báo |
-| Claude API 5xx | response.status >= 500 | 502 `{ error: "UPSTREAM_ERROR", retryable: true }` | Client retry 1 lần |
-| Rate-limit KV unavailable | VercelKV throw | Fallback sang InMemoryRateLimiter | Log warning; không block request |
-| Question > 500 ký tự | `question.length > 500` | 400 `{ error: "INVALID_REQUEST" }` | Client hiển thị "Câu hỏi quá dài" |
-| PII trong question | sanitizeQuestion regex | PII thay bằng "[thong tin duoc an]" | Log số lần sanitize (không log content) |
-| Auth token hết hạn | session validation fail | 401 `{ error: "AUTH_ERROR" }` | Client redirect đến login |
-| Claude trả empty content | `content[0].text === ""` | 502 với message "Empty response" | Retry; log requestId để debug |
-| TTS không hỗ trợ trên browser | `!('speechSynthesis' in window)` | Nút TTS ẩn, không có lỗi | Ẩn nút tự động |
-| `speechSynthesis.speak` không đọc tiếng Việt | không có `vi-VN` voice | Text hiển thị nhưng không đọc | Hiển thị toast "TTS khong ho tro tieng Viet tren thiet bi nay" |
-| Token count vượt max_tokens (1024) | Claude truncate | Response bị cắt, thiếu footer | Tăng max_tokens hoặc rút ngắn system prompt |
-| Cache miss lần đầu | `cacheCreationInputTokens > 0` | Chi phí cao hơn lần đầu | Bình thường; cache có từ request tiếp theo |
+| API key absent from the env | `!process.env.ANTHROPIC_API_KEY` before the call | 500 Internal Error (does not leak the key name) | Fail the deploy CI if the secret is absent |
+| API key embedded in the client | grep in the CI pipeline | CI fails hard | Developer fixes it before merge |
+| Claude API 429 (upstream rate limit) | response.status === 429 | 502 `{ retryable: true }` returned to the client | Client retries after 1s; log a warning |
+| Claude API 5xx | response.status >= 500 | 502 `{ error: "UPSTREAM_ERROR", retryable: true }` | Client retries once |
+| Rate-limit KV unavailable | VercelKV throws | Fall back to InMemoryRateLimiter | Log a warning; do not block the request |
+| Question > 500 characters | `question.length > 500` | 400 `{ error: "INVALID_REQUEST" }` | Client shows "Question too long" |
+| PII in the question | sanitizeQuestion regex | PII replaced with "[thong tin duoc an]" | Log the number of sanitizations (do not log content) |
+| Auth token expired | session validation fails | 401 `{ error: "AUTH_ERROR" }` | Client redirects to login |
+| Claude returns empty content | `content[0].text === ""` | 502 with the message "Empty response" | Retry; log the requestId to debug |
+| TTS unsupported in the browser | `!('speechSynthesis' in window)` | TTS button hidden, no error | Hide the button automatically |
+| `speechSynthesis.speak` does not read Vietnamese | no `vi-VN` voice | Text displays but is not read | Show a toast "TTS khong ho tro tieng Viet tren thiet bi nay" |
+| Token count exceeds max_tokens (1024) | Claude truncates | Response is cut, missing the footer | Increase max_tokens or shorten the system prompt |
+| Cache miss on the first call | `cacheCreationInputTokens > 0` | Higher cost on the first call | Normal; the cache is present from the next request |
 
 ---
 
 ## §11 - Implementation notes
 
-- `ANTHROPIC_API_KEY` PHẢI được set trong Vercel Project Settings -> Environment Variables, KHÔNG trong `.env` commit vào git. CI pipeline NÊN có bước grep toàn bộ source để bắt nếu ai vô tình hardcode (DEC-LUNAR-150).
-- Prompt caching của Anthropic có TTL khoảng 5 phút cho `ephemeral`; trong một phiên hỏi-đáp liên tục, gần như mọi request từ thứ hai trở đi sẽ cache hit. `cacheReadInputTokens` trong response cho biết bao nhiêu token đã đọc từ cache - dùng để monitor hiệu quả caching (DEC-LUNAR-152).
-- `sanitizeQuestion` cần xử lý cả tên tiếng Việt (có dấu) - dùng regex đơn giản loại bỏ pattern "ho ten" phổ biến chỉ là tầng bảo vệ cơ bản; document rõ là best-effort, không phải PII detection hoàn chỉnh (DEC-LUNAR-154).
-- `VercelKVRateLimiter` dùng atomic increment với TTL = giây còn lại đến nửa đêm UTC+7 để reset đúng ngày Việt Nam. Key là `genie:rl:{hashedUserId}:{date}` với `date = YYYY-MM-DD` theo Asia/Ho_Chi_Minh (DEC-LUNAR-153).
-- `GenieChat.tsx` NÊN debounce submit button 300ms để tránh double-submit. Loading state là skeleton text bubble, không phải spinner tròn, để giữ cảm giác "đang gõ" phù hợp với persona Genie.
-- Khi implement streaming (NÊN - §1 #15), dùng `anthropic.messages.stream()` và return `new Response(stream, { headers: { "Content-Type": "text/event-stream" } })`; GenieChat accumulate chunks vào state.
-- `userId` PHẢI được hash (SHA-256) truoc khi dùng làm rate-limit key và truoc khi log; không bao giờ log raw userId hoặc email (DEC-LUNAR-154, DEC-LUNAR-153).
-- Footer "Tham khao theo phong tuc dan gian" trong system prompt là instruction cho Claude, không hardcode vào response trong handler - nếu Claude đôi khi không thêm footer, AC #12 sẽ catch; trong trường hợp đó handler CÓ THỂ append footer server-side như failsafe.
+- `ANTHROPIC_API_KEY` MUST be set in Vercel Project Settings -> Environment Variables, NOT in a `.env` committed to git. The CI pipeline SHOULD have a step that greps the entire source to catch anyone who accidentally hardcodes it (DEC-LUNAR-150).
+- Anthropic prompt caching has a TTL of about 5 minutes for `ephemeral`; in a continuous Q&A session, nearly every request from the second onward will be a cache hit. `cacheReadInputTokens` in the response indicates how many tokens were read from the cache - use it to monitor caching effectiveness (DEC-LUNAR-152).
+- `sanitizeQuestion` needs to handle Vietnamese names (with diacritics) too - using a simple regex to remove common "full name" patterns is only a basic protection layer; document clearly that it is best-effort, not complete PII detection (DEC-LUNAR-154).
+- `VercelKVRateLimiter` uses an atomic increment with TTL = the seconds remaining until midnight UTC+7 to reset on the correct Vietnam day. The key is `genie:rl:{hashedUserId}:{date}` with `date = YYYY-MM-DD` in Asia/Ho_Chi_Minh (DEC-LUNAR-153).
+- `GenieChat.tsx` SHOULD debounce the submit button by 300ms to avoid double-submit. The loading state is a skeleton text bubble, not a round spinner, to keep the "typing" feel that suits the Genie persona.
+- When implementing streaming (SHOULD - §1 #15), use `anthropic.messages.stream()` and return `new Response(stream, { headers: { "Content-Type": "text/event-stream" } })`; GenieChat accumulates the chunks into state.
+- `userId` MUST be hashed (SHA-256) before being used as a rate-limit key and before logging; never log the raw userId or email (DEC-LUNAR-154, DEC-LUNAR-153).
+- The footer "Tham khao theo phong tuc dan gian" in the system prompt is an instruction for Claude, not hardcoded into the response in the handler - if Claude sometimes fails to add the footer, AC #12 will catch it; in that case the handler MAY append the footer server-side as a failsafe.
 
-*Hết FR-LUNAR-015.*
+*End of FR-LUNAR-015.*

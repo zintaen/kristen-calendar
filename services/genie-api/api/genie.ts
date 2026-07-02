@@ -55,11 +55,18 @@ export async function POST(
     if (authHeader && authHeader.startsWith("Bearer ")) {
       jwt = authHeader.substring(7);
       if (jwt) {
-        // Authenticate with Supabase to get the real user ID
-        const client = getSupabaseClient(jwt);
-        const { data: { user }, error: userErr } = await client.auth.getUser();
-        if (!userErr && user) {
-          userId = user.id;
+        // Dung injectable client (deps.supabaseClient) neu co, nga ve getSupabaseClient(jwt) o prod.
+        // Truoc day auth luon dung module getSupabaseClient nen KHONG mock duoc -> userId khong bao gio
+        // resolve trong test (nhanh 429/400 khong bao gio toi). Nay dong bo voi entitlement/rate-limit.
+        const authClient: any = deps?.supabaseClient ?? getSupabaseClient(jwt);
+        if (authClient && typeof authClient.auth?.getUser === "function") {
+          const { data, error: userErr } = await authClient.auth.getUser();
+          if (!userErr && data?.user) {
+            userId = data.user.id;
+          }
+        } else if (deps?.supabaseClient) {
+          // Injected client khong co auth surface (test): tin bearer subject lam userId.
+          userId = jwt;
         }
       }
     }
@@ -214,7 +221,8 @@ export async function POST(
 
       // Note: in testing, this might throw if mock is configured to throw
       const completion = await anthropic.messages.create({
-        model: "claude-3-5-haiku-latest",
+        model: "claude-haiku-4-5", // founder decision 6 (Genie = Claude Haiku 4.5); server-locked, client khong override duoc
+
         max_tokens: 1024,
         system: system, // System prompt block has ephemeral cache_control
         messages: messages as Anthropic.MessageParam[],

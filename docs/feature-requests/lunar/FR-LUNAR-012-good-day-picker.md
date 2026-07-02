@@ -1,6 +1,6 @@
 ---
 id: FR-LUNAR-012
-title: "Good-day picker - chọn loại việc (ký hợp đồng, khai máy, ra mắt, khai trương), liệt kê ngày Hoàng đạo trong khoảng, tùy chọn nhập lịch quay (EventKit)"
+title: "Good-day picker - choose the activity (signing a contract, first-shooting-day, premiere, grand opening), list Hoang dao days within a range, optional import to the shooting calendar (EventKit)"
 module: LUNAR
 priority: MUST
 status: ready_to_implement
@@ -19,11 +19,11 @@ source_pages:
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#4 (FR-E01, FR-E04 optional)"
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#13 (đặc thù diễn viên)"
 source_decisions:
-  - DEC-LUNAR-120 (good-day picker là UI thuần túy trên `getMonthDayQualities` từ FR-011; không có logic phong thủy riêng ở lớp này - toàn bộ lý luận nằm ở FR-011)
-  - DEC-LUNAR-121 (bộ lọc theo loại việc là UI preference, không phải filter thuật toán - tất cả ngày Hoàng đạo đều hiển thị, nhãn loại việc giúp người dùng quyết định; không có map "loại việc -> danh sách Trực bắt buộc")
-  - DEC-LUNAR-122 (EventKit tích hợp là COULD - chỉ bật khi người dùng cấp quyền Calendar; nếu không cấp quyền, flow chính vẫn hoạt động bình thường mà không có EventKit)
-  - DEC-LUNAR-123 (good-day picker không tự tạo Reminder; nó chỉ hiển thị danh sách ngày để người dùng quyết định; nếu người dùng muốn tạo nhắc, họ vào FR-LUNAR-006 reminder management)
-  - DEC-LUNAR-124 (khoảng ngày tối đa là 90 ngày; làm rộng hơn gây ổn hàm getMonthDayQualities trong trường hợp bình thường và làm list quá dài cho người dùng)
+  - DEC-LUNAR-120 (the good-day picker is pure UI over `getMonthDayQualities` from FR-011; there is no feng shui logic at this layer - all reasoning lives in FR-011)
+  - DEC-LUNAR-121 (the activity filter is a UI preference, not an algorithmic filter - all Hoang dao days are displayed, and the activity label helps the user decide; there is no "activity -> required Truc list" map)
+  - DEC-LUNAR-122 (EventKit integration is COULD - enabled only when the user grants Calendar permission; if not granted, the main flow still works normally without EventKit)
+  - DEC-LUNAR-123 (the good-day picker does not create a Reminder itself; it only displays a list of days for the user to decide; if the user wants to create a reminder, they go to FR-LUNAR-006 reminder management)
+  - DEC-LUNAR-124 (the maximum date range is 90 days; a wider range strains getMonthDayQualities in the normal case and makes the list too long for the user)
 language: typescript 5.x
 service: apps/web/
 new_files:
@@ -39,52 +39,52 @@ allowed_tools:
   - file_write: apps/web/app/good-day-picker/**, apps/web/components/GoodDay*, apps/web/lib/good-day.ts
   - bash: cd apps/web && pnpm test
 disallowed_tools:
-  - "gọi API bất kỳ để lấy ngày Hoàng đạo (vi phạm DEC-LUNAR-120 / NFR-Offline)"
-  - "tự động tạo Reminder từ good-day picker (vi phạm DEC-LUNAR-123)"
+  - "call any API to fetch Hoang dao days (violates DEC-LUNAR-120 / NFR-Offline)"
+  - "automatically create a Reminder from the good-day picker (violates DEC-LUNAR-123)"
 effort_hours: 7
 sub_tasks:
-  - "1h: lib/good-day.ts - kiểu WorkType, hàm filterGoodDays(days: DayQuality[], workType: WorkType): DayQuality[]"
-  - "1.5h: GoodDayPicker.tsx - date range picker (startDate, endDate, max 90 ngày) + WorkType selector (4 loại)"
-  - "1.5h: GoodDayList.tsx - danh sách ngày Hoàng đạo: hiển thị ngày dương + âm + can-chi + Trực + sao + giờ Hoàng đạo đầu tiên; badge 'Hoàng đạo'"
-  - "0.5h: page.tsx - kết hợp GoodDayPicker + GoodDayList + disclaimer banner"
-  - "0.5h: disclaimer component tại thanh - 'Tham khảo phong thủy dân gian, không phải tư vấn chuyên môn'"
-  - "1h: EventKitBridge.ts - COULD: kiểm tra quyền Calendar, lấy events trong khoảng, đánh dấu ngày 'Đã có lịch quay'; không block flow chính nếu không có quyền"
-  - "1h: test lib/good-day.ts - filterGoodDays trả đúng ngày, khoảng > 90 ngày bị clamp, EventKit opt-out không lỗi"
-risk_if_skipped: "FR-E01 là yêu cầu MUST cho persona diễn viên (Persona 1 Chú Linh) và người kinh doanh (Persona 3 Anh Tuấn). Không có good-day picker, một trong hai điểm bán chính của app Phase 2 bị thiếu. FR-012 cũng là màn hình đếm thị tính năng cốt lõi của FR-LUNAR-011 dưới góc độ người dùng - nếu nó không có thì giá trị của FR-011 bị ẩn."
+  - "1h: lib/good-day.ts - the WorkType type, the function filterGoodDays(days: DayQuality[], workType: WorkType): DayQuality[]"
+  - "1.5h: GoodDayPicker.tsx - date range picker (startDate, endDate, max 90 days) + WorkType selector (4 types)"
+  - "1.5h: GoodDayList.tsx - list of Hoang dao days: display solar date + lunar date + can-chi + Truc + sao + first auspicious hour; badge 'Hoang dao'"
+  - "0.5h: page.tsx - combine GoodDayPicker + GoodDayList + disclaimer banner"
+  - "0.5h: disclaimer component in the bar - 'Folk feng shui reference, not professional advice'"
+  - "1h: EventKitBridge.ts - COULD: check Calendar permission, fetch events in the range, flag days with 'Shooting already scheduled'; do not block the main flow if permission is missing"
+  - "1h: test lib/good-day.ts - filterGoodDays returns the correct days, a range > 90 days is clamped, EventKit opt-out does not error"
+risk_if_skipped: "FR-E01 is a MUST requirement for the actor persona (Persona 1 Chu Linh) and the business owner (Persona 3 Anh Tuan). Without the good-day picker, one of the two main selling points of the Phase 2 app is missing. FR-012 is also the screen that showcases the core feature of FR-LUNAR-011 from the user's point of view - without it, the value of FR-011 is hidden."
 ---
 
 ## §1 - Description (BCP-14 normative)
 
-Good-day picker là màn hình React cho phép người dùng chọn khoảng thời gian và loại việc, sau đó hiển thị danh sách ngày Hoàng đạo trong khoảng đó. Toàn bộ logic phong thủy nằm ở FR-LUNAR-011.
+The good-day picker is a React screen that lets the user choose a time range and an activity, then displays a list of Hoang dao days within that range. All feng shui logic lives in FR-LUNAR-011.
 
-1. PHẢI hiển thị màn hình "Chọn ngày tốt" với 3 thành phần: chọn khoảng ngày (startDate, endDate), chọn loại việc, và danh sách kết quả (DEC-LUNAR-120).
-2. PHẢI hỗ trợ 4 loại việc: "Ký hợp đồng / biên bản" (ky-hop-dong), "Khai máy / bắt đầu quay" (khai-may), "Ra mắt / premiere" (ra-mat), "Khai trương / khởi nghiệp" (khai-truong); bản này bao gồm đúng danh sách từ PRD §13 "đặc thù diễn viên" (FR-E01).
-3. PHẢI giới hạn khoảng ngày tối đa 90 ngày; nếu người dùng chọn khoảng > 90 ngày, PHẢI clamp `endDate = startDate + 90 ngày` và hiển thị thông báo giải thích (DEC-LUNAR-124).
-4. PHẢI gọi `getMonthDayQualities` (FR-LUNAR-011) theo từng tháng trong khoảng, lọc ra các ngày có `isHoangDao === true`, và sắp xếp theo ngày tăng dần (DEC-LUNAR-120).
-5. PHẢI hiển thị cho mỗi ngày trong danh sách: ngày dương (dd/MM/yyyy), ngày âm (dd/MM/yyyy AL), `canChiNgay`, `truc.name`, `sao28.name`, và 3 canh giờ Hoàng đạo đầu tiên trong ngày để người dùng chọn giờ (gioHoangDao filter `isHoang: true`).
-6. PHẢI hiển thị banner disclaimer cố định ở cuối màn hình: "Thông tin này chỉ mang tính tham khảo theo phong thủy dân gian. Không phải tư vấn chuyên môn." (DEC-LUNAR-121).
-7. PHẢI đảm bảo màn hình hoạt động hoàn toàn offline; mọi dữ liệu lấy từ amlich-core (FR-LUNAR-011) mà không gọi network (DEC-LUNAR-120, NFR-Offline).
-8. KHÔNG ĐƯỢC tự động tạo Reminder hay thêm vào lịch khi người dùng chọn ngày; màn hình chỉ hiển thị để tham khảo (DEC-LUNAR-123).
-9. NÊN hiển thị đếm "X ngày Hoàng đạo trong khoảng này" ở đầu danh sách để người dùng biết ngay kết quả trước khi cuộn xuống.
-10. NÊN cho phép người dùng sao chép thông tin ngày (e.g. nhấn vào để copy "Thứ Tư 29/01/2025 - Hoàng đạo - Khai - Quý Sửu").
-11. CÓ THỂ (COULD) tích hợp EventKit theo DEC-LUNAR-122: nếu người dùng đã cấp quyền Calendar, hiển thị thêm cờ "Đã có lịch quay" trên ngày đã có event trong lịch iOS/macOS; câu hỏi cấp quyền là lazy (chỉ hỏi khi người dùng tap "Kết nối lịch của tôi"); nếu từ chối, flow chính không bị ảnh hưởng.
-12. CÓ THỂ hiển thị chip "Phù hợp việc X" khi Trực của ngày có tên loại việc trong `truc.suitableFor` - đây là thông tin bổ sung từ FR-011, chỉ hiển thị khi dữ liệu có sẵn.
+1. MUST display the "Choose good day" screen with 3 components: date range selection (startDate, endDate), activity selection, and the results list (DEC-LUNAR-120).
+2. MUST support 4 activities: "Sign a contract / minutes" (ky-hop-dong), "First shooting day / start shooting" (khai-may), "Premiere" (ra-mat), "Grand opening / startup" (khai-truong); this list matches exactly the list from PRD §13 "actor specifics" (FR-E01).
+3. MUST limit the date range to a maximum of 90 days; if the user selects a range > 90 days, it MUST clamp `endDate = startDate + 90 days` and display an explanatory message (DEC-LUNAR-124).
+4. MUST call `getMonthDayQualities` (FR-LUNAR-011) for each month in the range, filter out the days with `isHoangDao === true`, and sort by date ascending (DEC-LUNAR-120).
+5. MUST display for each day in the list: the solar date (dd/MM/yyyy), the lunar date (dd/MM/yyyy AL), `canChiNgay`, `truc.name`, `sao28.name`, and the first 3 auspicious hours of the day so the user can choose an hour (gioHoangDao filtered by `isHoang: true`).
+6. MUST display a fixed disclaimer banner at the bottom of the screen: "This information is only a folk feng shui reference. It is not professional advice." (DEC-LUNAR-121).
+7. MUST ensure the screen works fully offline; all data comes from amlich-core (FR-LUNAR-011) without calling the network (DEC-LUNAR-120, NFR-Offline).
+8. MUST NOT automatically create a Reminder or add to the calendar when the user selects a day; the screen only displays for reference (DEC-LUNAR-123).
+9. SHOULD display a count "X Hoang dao days in this range" at the top of the list so the user sees the result immediately before scrolling down.
+10. SHOULD let the user copy the day's information (e.g. tap to copy "Wednesday 29/01/2025 - Hoang dao - Khai - Quy Suu").
+11. MAY (COULD) integrate EventKit per DEC-LUNAR-122: if the user has granted Calendar permission, additionally display a "Shooting already scheduled" flag on days that already have an event in the iOS/macOS calendar; the permission prompt is lazy (asked only when the user taps "Connect my calendar"); if denied, the main flow is unaffected.
+12. MAY display a "Suitable for activity X" chip when the day's Truc has the activity name in `truc.suitableFor` - this is supplementary information from FR-011, shown only when the data is available.
 
 ---
 
 ## §2 - Why this design (rationale for humans)
 
-**Tại sao good-day picker là UI thuần, không có logic phong thủy riêng (DEC-LUNAR-120)?** Tất cả lý luận phong thủy (Hoàng/Hắc đạo, Trực, sao, giờ) đã nằm trong FR-011. Nếu FR-012 đủ sửa logic thì dễ lệch: 2 nơi có thể trả lời khác nhau cho cùng một ngày. Giữ FR-012 là UI thuần còn FR-011 là source of truth bảo đảm nhất quán.
+**Why is the good-day picker pure UI with no feng shui logic of its own (DEC-LUNAR-120)?** All feng shui reasoning (Hoang dao/Hac dao, Truc, sao, hours) already lives in FR-011. If FR-012 also touched the logic it would easily diverge: two places could give different answers for the same day. Keeping FR-012 as pure UI while FR-011 is the source of truth guarantees consistency.
 
-**Tại sao không map "loại việc -> Trực bắt buộc" (DEC-LUNAR-121)?** PRD chưa có yêu cầu này. Thêm mapping "ký hợp đồng chỉ hợp với Trực Khai/Định/Thành" là mở thêm chức năng phong thủy mà chưa có nguồn chuẩn. Hiển thị tất cả ngày Hoàng đạo và để người dùng quyết định dựa trên tên Trực + notes là cách thận trọng hơn và hơn trung thực về góc độ editorial.
+**Why not map "activity -> required Truc" (DEC-LUNAR-121)?** The PRD has no such requirement yet. Adding a mapping like "signing a contract only suits Truc Khai/Dinh/Thanh" would open an extra feng shui feature with no standard source. Displaying all Hoang dao days and letting the user decide based on the Truc name + notes is more careful and more editorially honest.
 
-**Tại sao EventKit là COULD, không phải SHOULD (DEC-LUNAR-122)?** Tích hợp EventKit là thay đổi khá năng nghiêm trọng trên iOS (cần quyền Calendar, khác nhau giữa iOS/macOS/web). Nếu là SHOULD sẽ tạo áp lực build EventKit trước khi có giá trị cơ bản. Với người dùng có lịch quay biết, đây là tính năng quý; với người dùng khác nó là nhiễu. COULD cho phép ship tính năng cơ bản trước và thêm EventKit sau.
+**Why is EventKit COULD, not SHOULD (DEC-LUNAR-122)?** Integrating EventKit is a fairly serious change on iOS (needs Calendar permission, differs across iOS/macOS/web). Were it SHOULD, it would create pressure to build EventKit before the core value exists. For users with a known shooting schedule, this is a valuable feature; for others it is noise. COULD allows shipping the core feature first and adding EventKit later.
 
-**Tại sao giới hạn 90 ngày (DEC-LUNAR-124)?** Một người dùng tìm ngày trong 1-3 tháng là use case chính. Cho phép khoảng 365 ngày có thể tạo danh sách 100+ ngày Hoàng đạo - vừa khó xem vừa tốn thời gian render. 90 ngày (3 tháng) là thời gian lập kế hoạch thực tế cho ký hợp đồng hay khai quay phim.
+**Why the 90-day limit (DEC-LUNAR-124)?** A user looking for a day in 1-3 months is the main use case. Allowing a 365-day range could produce a list of 100+ Hoang dao days - both hard to read and slow to render. 90 days (3 months) is a realistic planning horizon for signing a contract or starting a shoot.
 
-**Tại sao không tự động tạo Reminder (DEC-LUNAR-123)?** Good-day picker là công cụ tham khảo, không phải công cụ hành động. Người dùng có thể muốn xem nhiều ngày, suy nghĩ, rồi mới chọn. Auto-creating reminder sẽ làm lộ hành động "mua nhắc" mà người dùng chưa sẵn sàng. FR-006 đã có UI tạo nhắc - người dùng sang FR-006 sau khi đã chọn ngày.
+**Why not automatically create a Reminder (DEC-LUNAR-123)?** The good-day picker is a reference tool, not an action tool. The user may want to view several days, think it over, then choose. Auto-creating a reminder would expose a "buying a reminder" action the user is not ready for. FR-006 already has the reminder-creation UI - the user goes to FR-006 after choosing a day.
 
-**Tại sao hiển thị giờ Hoàng đạo trong danh sách (PRD FR-E03)?** Xem ngày tốt để ký hợp đồng nhưng giờ ký lại là giờ Hắc đạo thì mất điểm. Hiển thị top 3 giờ Hoàng đạo cùng trên từng ngày giúp người dùng chọn ngày và giờ cùng một lúc - điều này đầy đủ đáp ứng PRD FR-E03 trong context này mà không cần màn hình riêng.
+**Why display the auspicious hours in the list (PRD FR-E03)?** Viewing a good day to sign a contract but signing at a Hac dao hour defeats the purpose. Displaying the top 3 auspicious hours on each day helps the user choose the day and the hour at the same time - this fully satisfies PRD FR-E03 in this context without needing a separate screen.
 
 ---
 
@@ -182,19 +182,19 @@ export function GoodDayPicker({ defaultStartDate, defaultEndDate }: GoodDayPicke
 
 ## §4 - Acceptance criteria
 
-1. Màn hình "good-day-picker" hiển thị đúng 3 khu vực: date range input, work type selector với 4 lựa chọn, và danh sách kết quả (hoặc trạng thái "Không có ngày Hoàng đạo nào trong khoảng này").
-2. `filterGoodDays` chỉ trả về ngày có `isHoangDao === true` - không có ngày Hắc đạo trong kết quả.
-3. Khoảng 100 ngày bị clamp thành 90 ngày; UI hiển thị thông báo "Đã giới hạn khoảng xuống 90 ngày".
-4. Kết quả sắp xếp theo ngày tăng dần (ngày sớm nhất lên đầu).
-5. Mỗi hàng trong danh sách hiển thị đủ: ngày dương, ngày âm, `canChiNgay`, `truc.name`, `sao28.name`, và ít nhất 1 canh giờ Hoàng đạo.
-6. Banner disclaimer cố định hiển thị văn bản "Thông tin này chỉ mang tính tham khảo theo phong thủy dân gian" - kiểm tra bằng DOM query.
-7. `computeGoodDays(new Date("2025-01-01"), new Date("2025-01-31"), "ky-hop-dong")` trả về `totalGoodDays > 0` và mỗi kết quả có `isHoangDao === true`.
-8. Không có request network nào được thực hiện trong quá trình tính kết quả (mock fetch, assert 0 calls).
-9. Khi EventKit bật (COULD) và quyền bị từ chối, flow chính vẫn hiển thị kết quả; cột `hasCalendarConflict` là `undefined`.
-10. Khi khoảng ngày thay đổi (startDate hoặc endDate thay đổi), danh sách kết quả tự động tính lại mà không cần tap nút "Tìm kiếm".
-11. Trên điện thoại (viewport 375px), danh sách cuộn dọc và mỗi hàng có chiều cao đủ để hiển thị thông tin.
-12. Màn hình đạt APCA Lc >= 75 cho văn bản kết quả (theo DEC-LUNAR-090 từ FR-009 purple theme).
-13. Không có lời gọi nào đến API tạo Reminder (FR-LUNAR-006), EventKit write, hoặc bất kỳ side-effect nào khi người dùng chọn ngày trong danh sách; màn hình chỉ hiển thị và copy text (DEC-LUNAR-123) - kiểm tra bằng unit test mock `createReminder` và assert 0 calls trong `computeGoodDays` và `filterGoodDays`.
+1. The "good-day-picker" screen displays exactly 3 areas: date range input, work type selector with 4 choices, and the results list (or the "No Hoang dao days in this range" state).
+2. `filterGoodDays` returns only days with `isHoangDao === true` - no Hac dao day in the result.
+3. A 100-day range is clamped to 90 days; the UI displays the message "Range limited to 90 days".
+4. Results are sorted by date ascending (the earliest day first).
+5. Each row in the list displays fully: solar date, lunar date, `canChiNgay`, `truc.name`, `sao28.name`, and at least 1 auspicious hour.
+6. A fixed disclaimer banner displays the text "This information is only a folk feng shui reference" - verified by DOM query.
+7. `computeGoodDays(new Date("2025-01-01"), new Date("2025-01-31"), "ky-hop-dong")` returns `totalGoodDays > 0` and each result has `isHoangDao === true`.
+8. No network request is made during the computation of results (mock fetch, assert 0 calls).
+9. When EventKit is on (COULD) and permission is denied, the main flow still displays results; the `hasCalendarConflict` column is `undefined`.
+10. When the date range changes (startDate or endDate changes), the results list recomputes automatically without tapping a "Search" button.
+11. On a phone (viewport 375px), the list scrolls vertically and each row is tall enough to display the information.
+12. The screen reaches APCA Lc >= 75 for the result text (per DEC-LUNAR-090 from the FR-009 purple theme).
+13. No call is made to the Reminder-creation API (FR-LUNAR-006), EventKit write, or any side-effect when the user selects a day in the list; the screen only displays and copies text (DEC-LUNAR-123) - verified with a unit test that mocks `createReminder` and asserts 0 calls in `computeGoodDays` and `filterGoodDays`.
 
 ---
 
@@ -305,17 +305,17 @@ describe("filterGoodDays va computeGoodDays - khong tao Reminder", () => {
 
 ## §6 - Implementation skeleton
 
-`computeGoodDays` tách khoảng ngày thành các tháng liên quan, gọi `getMonthDayQualities(y, m)` từng tháng, kết nối mảng, lọc theo `isHoangDao`, trim ngưỡng startDate và endDate, sắp xếp, và tính `topHoangGio`. Điểm duy nhất cần chú ý: khi khoảng chạy qua ranh giới năm (ví dụ 15/12/2025 - 15/02/2026), phải gọi `getMonthDayQualities` cho cả tháng 12/2025, 1/2026, 2/2026. Phần EventKitBridge dùng `@capacitor/calendar` hoặc `Capacitor.Plugins.Calendar` (COULD); trong môi trường web thì trả về mảng rỗng.
+`computeGoodDays` splits the date range into the relevant months, calls `getMonthDayQualities(y, m)` per month, concatenates the arrays, filters by `isHoangDao`, trims to the startDate and endDate bounds, sorts, and computes `topHoangGio`. The only point to note: when the range crosses a year boundary (for example 15/12/2025 - 15/02/2026), it must call `getMonthDayQualities` for December 2025, January 2026, and February 2026. The EventKitBridge part uses `@capacitor/calendar` or `Capacitor.Plugins.Calendar` (COULD); in the web environment it returns an empty array.
 
 ---
 
 ## §7 - Dependencies
 
-Upstream: FR-LUNAR-011 là phụ thuộc bắt buộc - không có `DayQuality` thì không có gì để lọc. FR-LUNAR-010 (app shell) là phụ thuộc về khung React/routing - màn hình `good-day-picker/page.tsx` mount vào Next.js app router của FR-010.
+Upstream: FR-LUNAR-011 is a required dependency - without `DayQuality` there is nothing to filter. FR-LUNAR-010 (app shell) is a dependency for the React/routing frame - the `good-day-picker/page.tsx` screen mounts into the FR-010 Next.js app router.
 
-Downstream: FR-012 không block FR nào khác. Người dùng có thể đi từ đây đến FR-006 để tạo nhắc cho ngày đã chọn, nhưng đây là navigation user thủ công, không phải block khái niệm.
+Downstream: FR-012 does not block any other FR. The user can go from here to FR-006 to create a reminder for the chosen day, but this is manual user navigation, not a conceptual block.
 
-Cross-cutting: Purple theme (FR-009) áp dụng cho màn hình này qua shared token. Disclaimer text đồng nhất với DEC-LUNAR-111 ở FR-011 (phải copy chính xác).
+Cross-cutting: the purple theme (FR-009) applies to this screen via a shared token. The disclaimer text is consistent with DEC-LUNAR-111 in FR-011 (must be copied exactly).
 
 ---
 
@@ -354,14 +354,14 @@ Cross-cutting: Purple theme (FR-009) áp dụng cho màn hình này qua shared t
 
 ## §9 - Open questions
 
-Đã giải quyết:
-- "Có cần map loại việc -> Trực bắt buộc không?" -> DEC-LUNAR-121: không; hiển thị tất cả Hoàng đạo, thêm chip "Phù hợp" từ `truc.suitableFor` là đủ.
-- "EventKit là SHOULD hay COULD?" -> DEC-LUNAR-122: COULD, lazy permission.
-- "Giới hạn khoảng ngày bao nhiêu?" -> DEC-LUNAR-124: 90 ngày.
+Resolved:
+- "Do we need to map activity -> required Truc?" -> DEC-LUNAR-121: no; display all Hoang dao days, adding a "Suitable" chip from `truc.suitableFor` is enough.
+- "Is EventKit SHOULD or COULD?" -> DEC-LUNAR-122: COULD, lazy permission.
+- "How large is the date range limit?" -> DEC-LUNAR-124: 90 days.
 
-Còn lại (defer):
-- Tương lai: thêm filter theo Trực cụ thể (người dùng tick "Chỉ hiện Trực Khai/Định") - thứ 2 sẽ làm phức tạp UI; defer sang v2.
-- "Hợp tuổi" (hạp tuổi người dùng với can-chi ngày) là tính năng phong thủy nâng cao, chưa có trong PRD - defer.
+Remaining (defer):
+- Future: add a filter by a specific Truc (the user ticks "Show only Truc Khai/Dinh") - this would complicate the UI; defer to v2.
+- "Age compatibility" (matching the user's age to the day's can-chi) is an advanced feng shui feature, not yet in the PRD - defer.
 
 ---
 
@@ -369,27 +369,27 @@ Còn lại (defer):
 
 | Failure | Detection | Outcome | Recovery |
 |---|---|---|---|
-| `getMonthDayQualities` trả rỗng | Kết quả 0 ngày, banner "không có" hiện | UI empty state | Debug FR-011 trước |
-| Khoảng > 90 ngày không bị clamp | AC #3 test fail | Danh sách quá dài | Thêm clamp logic |
-| Kết quả có ngày Hắc đạo | AC #2 test fail | Sai logic lọc | Debug `filterGoodDays` |
-| Khoảng qua ranh giới năm không lấy đủ tháng | Tháng giao 12/1 thiếu kết quả | Thiếu ngày | Xử lý multi-year iteration |
-| Request network trong computeGoodDays | AC #8 mock test fail | Vi phạm NFR-Offline | Xóa code gọi mạng |
-| Banner disclaimer không hiện | AC #6 DOM test fail | Thiếu thông tin bảo vệ | Thêm vào layout cố định |
-| EventKit permission gặp đến main flow | AC #9 test | Flow lỗi | Wrap try/catch, default rỗng |
-| Sắp xếp sai thứ tự | AC #4 test fail | UX nhầm lẫn | Fix sort comparator |
-| Viewport 375px bị overflow | Manual/E2E test | UX vỡ | CSS responsive fix |
-| APCA < 75 trên text kết quả | apca-w3 audit | Accessibility vi phạm | Fix màu text/nền |
-| EventKit unavailable trên web | `Capacitor.isNativePlatform()` check | Return rỗng | Bảo vệ bằng platform check |
+| `getMonthDayQualities` returns empty | 0-day result, "none" banner shows | UI empty state | Debug FR-011 first |
+| A range > 90 days not clamped | AC #3 test fails | List too long | Add clamp logic |
+| Result contains a Hac dao day | AC #2 test fails | Wrong filter logic | Debug `filterGoodDays` |
+| A range crossing a year boundary misses months | The 12/1 crossing month lacks results | Missing days | Handle multi-year iteration |
+| Network request in computeGoodDays | AC #8 mock test fails | Violates NFR-Offline | Remove the network-calling code |
+| Disclaimer banner not shown | AC #6 DOM test fails | Missing protective information | Add it fixed to the layout |
+| EventKit permission reaching the main flow | AC #9 test | Flow errors | Wrap try/catch, default empty |
+| Wrong sort order | AC #4 test fails | Confusing UX | Fix the sort comparator |
+| Viewport 375px overflow | Manual/E2E test | Broken UX | CSS responsive fix |
+| APCA < 75 on result text | apca-w3 audit | Accessibility violation | Fix text/background color |
+| EventKit unavailable on web | `Capacitor.isNativePlatform()` check | Return empty | Guard with a platform check |
 
 ---
 
 ## §11 - Implementation notes
 
-- `computeGoodDays` cần xử lý edge case tháng 12 -> 1 (qua năm mới): loop qua tháng tăng dần từ start đến end, khi tháng đạt 13 thì tăng năm và reset tháng = 1.
-- `topHoangGio` lấy 3 phần tử đầu `filter(g => g.isHoang)` từ `gioHoangDao` - chỉ lấy 3 để không làm chật màn hình; 6 canh Hoàng đầy đủ vẫn trong DayQuality nếu người dùng muốn xem thêm (expandable row).
-- Màn hình này KHÔNG cần state management phức tạp (Redux/Zustand) - `computeGoodDays` là pure function, kết quả là derived state từ startDate/endDate/workType; `useState` là đủ.
-- EventKitBridge PHẢI check `Capacitor.isNativePlatform()` trước khi import bao giờ họ là native-only; trên web (dev environment) phải return `[]` ngay lập tức.
-- Chip "Phù hợp việc X" (§1 #12) là optional display logic: `truc.suitableFor.some(s => s.includes(workTypeKeyword))`; nếu false thì không hiện chip - không cần hide hay error.
-- Disclaimer text phải khớp CHÍNH XÁC với text trong DEC-LUNAR-111 và FR-011 - copy-paste, không paraphrase.
+- `computeGoodDays` needs to handle the December -> January edge case (crossing the new year): loop over months ascending from start to end, and when the month reaches 13 increment the year and reset the month to 1.
+- `topHoangGio` takes the first 3 elements of `filter(g => g.isHoang)` from `gioHoangDao` - only 3 to avoid crowding the screen; the full 6 auspicious hours are still in DayQuality if the user wants to see more (expandable row).
+- This screen does NOT need complex state management (Redux/Zustand) - `computeGoodDays` is a pure function, the result is derived state from startDate/endDate/workType; `useState` is enough.
+- EventKitBridge MUST check `Capacitor.isNativePlatform()` before importing any native-only code; on web (dev environment) it must return `[]` immediately.
+- The "Suitable for activity X" chip (§1 #12) is optional display logic: `truc.suitableFor.some(s => s.includes(workTypeKeyword))`; if false the chip is not shown - no need to hide or error.
+- The disclaimer text must match EXACTLY the text in DEC-LUNAR-111 and FR-011 - copy-paste, do not paraphrase.
 
-*Hết FR-LUNAR-012.*
+*End of FR-LUNAR-012.*

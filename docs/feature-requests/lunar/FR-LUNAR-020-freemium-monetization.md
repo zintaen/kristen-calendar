@@ -1,6 +1,6 @@
 ---
 id: FR-LUNAR-020
-title: "Freemium monetization - nhắc cơ bản free, premium cho AI Genie / good-day nâng cao / family, entitlement gating"
+title: "Freemium monetization - basic reminders free, premium for AI Genie / advanced good-day / family, entitlement gating"
 module: LUNAR
 priority: SHOULD
 status: ready_to_implement
@@ -19,12 +19,12 @@ source_pages:
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#14 (Phase 3 monetization)"
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#15 (Success Metrics)"
 source_decisions:
-  - DEC-LUNAR-200 (ba tier freemium: Free = nhắc cơ bản + lịch tháng + nội dung tĩnh; Premium = AI Genie + good-day nâng cao + ZNS; Family = Premium + sharedWith multi-member; định nghĩa tier là bất biến - thay đổi tier cần DEC mới)
-  - DEC-LUNAR-201 (entitlement check PHẢI ở server-side trong mọi serverless handler; client chỉ nhận kết quả từ server, KHÔNG ĐƯỢC tự quyết định tier của mình - tránh client-trusted entitlement)
-  - DEC-LUNAR-202 (rate-limit AI Genie và ZNS theo tier: Free = 0 Genie call; Premium = 50 Genie calls/tháng; Family = 100 Genie calls/tháng/user; vượt limit trả về HTTP 429 với Retry-After)
-  - DEC-LUNAR-203 (thanh toán qua App Store In-App Purchase trên iOS và Zalo Pay / cổng thanh toán Việt Nam trên Zalo Mini App; FR-020 không xây dựng thanh toán trực tiếp - chỉ webhook xử lý và cập nhật entitlement sau khi thanh toán xác nhận)
-  - DEC-LUNAR-204 (entitlement được lưu trong bảng `user_entitlements` ở Supabase với RLS; client cache entitlement local <= 24h với TTL; hết TTL phải re-validate server)
-  - DEC-LUNAR-205 (success metric: tỷ lệ chuyển đổi premium >= 3% sau 3 tháng Phase 3; nếu chưa đạt, ưu tiên cải thiện giá trị AI Genie trước khi điều chỉnh giá)
+  - DEC-LUNAR-200 (three freemium tiers: Free = basic reminders + month calendar + static content; Premium = AI Genie + advanced good-day + ZNS; Family = Premium + sharedWith multi-member; the tier definitions are immutable - changing a tier needs a new DEC)
+  - DEC-LUNAR-201 (the entitlement check MUST be server-side in every serverless handler; the client only receives the result from the server, MUST NOT decide its own tier - to avoid client-trusted entitlement)
+  - DEC-LUNAR-202 (rate-limit AI Genie and ZNS by tier: Free = 0 Genie calls; Premium = 50 Genie calls/month; Family = 100 Genie calls/month/user; over the limit returns HTTP 429 with Retry-After)
+  - DEC-LUNAR-203 (payment via App Store In-App Purchase on iOS and Zalo Pay / a Vietnamese payment gateway on the Zalo Mini App; FR-020 does not build payment directly - only the webhook handling and entitlement update after payment confirmation)
+  - DEC-LUNAR-204 (entitlement is stored in the `user_entitlements` table in Supabase with RLS; the client caches entitlement locally for <= 24h with a TTL; on TTL expiry it must re-validate with the server)
+  - DEC-LUNAR-205 (success metric: premium conversion rate >= 3% after 3 months of Phase 3; if not met, prioritize improving the AI Genie value before adjusting price)
 language: typescript 5.x
 service: services/genie-api/
 new_files:
@@ -44,57 +44,57 @@ allowed_tools:
   - file_write: services/genie-api/lib/entitlement.ts services/genie-api/lib/rate-limiter.ts services/genie-api/api/entitlement.ts services/genie-api/api/webhook-payment.ts services/genie-api/supabase/migrations/0020_entitlements.sql apps/web/lib/entitlement-client.ts apps/web/components/UpgradePrompt.tsx
   - bash: cd services/genie-api && pnpm test
 disallowed_tools:
-  - "đọc quyết định tier từ client-side storage hoặc localStorage mà không re-validate server (vi phạm DEC-LUNAR-201 - client-trusted entitlement)"
-  - "gọi Claude API từ Free tier mà không có server-side gate (vi phạm DEC-LUNAR-201 / DEC-LUNAR-202)"
-  - "cấp entitlement Premium ngay khi nhận webhook thanh toán mà không xác minh chữ ký HMAC của provider (security vulnerability)"
+  - "read the tier decision from client-side storage or localStorage without re-validating with the server (violates DEC-LUNAR-201 - client-trusted entitlement)"
+  - "call the Claude API from the Free tier without a server-side gate (violates DEC-LUNAR-201 / DEC-LUNAR-202)"
+  - "grant Premium entitlement immediately on receiving a payment webhook without verifying the provider's HMAC signature (security vulnerability)"
 effort_hours: 7
 sub_tasks:
-  - "1h: migration 0020_entitlements.sql - bảng user_entitlements (userId, tier, validUntil, source, updatedAt) và genie_usage_monthly; RLS; index"
+  - "1h: migration 0020_entitlements.sql - the user_entitlements table (userId, tier, validUntil, source, updatedAt) and genie_usage_monthly; RLS; index"
   - "1.5h: lib/entitlement.ts - Tier enum, EntitlementRecord, getEntitlement(), isFeatureAllowed(), getUsageQuota()"
-  - "1h: lib/rate-limiter.ts - checkRateLimit() dùng Supabase hoặc Upstash Redis; ghi usage_count theo tháng"
-  - "1h: api/entitlement.ts - GET /api/entitlement (lấy tier hiện tại và quota), đã bao gồm cache TTL 24h"
-  - "1h: api/webhook-payment.ts - POST /api/webhook/payment (xử lý App Store / Zalo Pay webhook, xác minh HMAC, cập nhật entitlement)"
-  - "0.5h: apps/web/lib/entitlement-client.ts - EntitlementClient, cache local TTL 24h, re-validate"
-  - "1h: sửa api/genie.ts + api/sync.ts thêm server-side entitlement gate; apps/web UpgradePrompt.tsx"
-risk_if_skipped: "Không có entitlement gating thì tất cả tính năng premium (AI Genie, family sharing) là free để dùng - mất doanh thu và mất khả năng scale (chi phí Claude API tăng vô giới hạn). Không có server-side gate thì client-trusted entitlement là lỗ hổng bảo mật: bất kỳ ai sửa localStorage có thể tự cấp Premium. FR-020 là nền tảng kinh doanh để CyberSkill có doanh thu từ sản phẩm này."
+  - "1h: lib/rate-limiter.ts - checkRateLimit() using Supabase or Upstash Redis; write usage_count by month"
+  - "1h: api/entitlement.ts - GET /api/entitlement (get the current tier and quota), including a 24h cache TTL"
+  - "1h: api/webhook-payment.ts - POST /api/webhook/payment (handle the App Store / Zalo Pay webhook, verify HMAC, update entitlement)"
+  - "0.5h: apps/web/lib/entitlement-client.ts - EntitlementClient, local cache TTL 24h, re-validate"
+  - "1h: modify api/genie.ts + api/sync.ts to add the server-side entitlement gate; apps/web UpgradePrompt.tsx"
+risk_if_skipped: "Without entitlement gating, all premium features (AI Genie, family sharing) are free to use - lost revenue and lost ability to scale (Claude API cost rises without limit). Without a server-side gate, client-trusted entitlement is a security hole: anyone editing localStorage can grant themselves Premium. FR-020 is the business foundation for CyberSkill to earn revenue from this product."
 ---
 
 ## §1 - Description (BCP-14 normative)
 
-FR-020 xây dựng cơ chế phân chia tier freemium và ép gate entitlement server-side cho "Genie Âm Lịch". Mô hình ba tier được thiết kế để tối đa hóa giá trị người dùng Free (khuyến khích giữ lại) trong khi tạo rõ giá trị tăng thêm cho Premium và Family.
+FR-020 builds the freemium tier split and the server-side entitlement gate for "Genie Am Lich". The three-tier model is designed to maximize the value for Free users (encouraging retention) while clearly creating additional value for Premium and Family.
 
-1. PHẢI định nghĩa ba tier rõ ràng (DEC-LUNAR-200):
-   - **Free**: nhắc Ram/Mừng Một/đám giỗ/custom, lịch tháng âm-dương, nội dung tĩnh (festival content), local notifications, xem ngày cơ bản can-chi; KHÔNG có AI Genie, KHÔNG có good-day picker nâng cao, KHÔNG có family sharing (sharedWith = []).
-   - **Premium**: mọi thứ của Free cộng thêm AI Genie (50 calls/tháng), good-day picker đầy đủ (FR-012), ZNS reminder (FR-017), shareable cards (FR-014).
-   - **Family**: mọi thứ của Premium cộng thêm family sharing/cloud sync (FR-018), 100 Genie calls/tháng/user, chia sẻ tối đa 10 thành viên.
-2. PHẢI ép gate entitlement **server-side** trong mọi serverless handler; client KHÔNG ĐƯỢC tự quyết định tier - mọi quyết định dựa vào kết quả từ server (DEC-LUNAR-201).
-3. PHẢI lưu entitlement trong bảng `user_entitlements` trên Supabase với RLS; client cache local TTL 24h; hết TTL PHẢI re-validate server (DEC-LUNAR-204).
-4. PHẢI ép rate-limit theo tier trên server cho AI Genie: Free = 0 call; Premium = 50 calls/tháng; Family = 100 calls/tháng/user; vượt giới hạn trả HTTP 429 với header `Retry-After` và `X-RateLimit-Remaining` (DEC-LUNAR-202).
-5. PHẢI ép gate family sharing trong `api/sync.ts`: Free và Premium user không được thêm thành viên vào `sharedWith`; chỉ Family tier mới được (DEC-LUNAR-200).
-6. PHẢI xử lý webhook thanh toán từ App Store và Zalo Pay trong `api/webhook-payment.ts`; PHẢI xác minh chữ ký HMAC/JWT của provider trước khi cập nhật entitlement; cập nhật sai khi chưa xác minh là lỗ hổng bảo mật.
-7. KHÔNG ĐƯỢC xử lý thanh toán trực tiếp trong FR-020; chức năng này chỉ ép webhook từ App Store IAP (iOS) và Zalo Pay (Zalo Mini App) - FR-020 không xây dựng payment UI (DEC-LUNAR-203).
-8. PHẢI có `GET /api/entitlement` trả về `{ tier, features, quota, validUntil }` cho client; phản hồi này PHẢI bao gồm thông tin đủ để hiển thị `UpgradePrompt` đúng cho.
-9. PHẢI hiển thị `UpgradePrompt` khi Free user chạm vào tính năng Premium; prompt PHẢI nêu rõ lợi ích cụ thể ("Mở khóa AI Genie - hỏi bài về mâm cúng, ý nghĩa ngày lễ") không chỉ "Nâng cấp Premium".
-10. KHÔNG ĐƯỢC ẩn hoặc disable tính năng Premium trong client theo cách người dùng không nhìn thấy - nên hiện tính năng với lock icon và `UpgradePrompt`, không xóa UI hoạt động (SHOULD encourage discovery).
-11. NÊN theo dõi tỷ lệ chuyển đổi (Free -> Premium, Premium -> Family) qua analytics (với `consentFlags.analyticsUsage = true` theo FR-019) để phục vụ success metric DEC-LUNAR-205.
-12. PHẢI có cơ chế "graceful downgrade": nếu entitlement hết hạn (validUntil < now()), ngay hóa xe xếp lại về Free tier; dữ liệu Premium (lịch sử Genie, sharedWith) ĐƯỢC GIỮ nguyên trong 30 ngày cho phép tái tục; sau 30 ngày mới xóa.
-13. NÊN cung cấp một trial mode: 7 ngày dùng thử Premium miễn phí cho người dùng mới; trial track bằng trường `trial_used: boolean` trong `user_entitlements`; mỗi user chỉ được 1 trial.
+1. MUST define three clear tiers (DEC-LUNAR-200):
+   - **Free**: Ram/Mung Mot/gio/custom reminders, the lunar-solar month calendar, static content (festival content), local notifications, basic can-chi day view; NO AI Genie, NO advanced good-day picker, NO family sharing (sharedWith = []).
+   - **Premium**: everything in Free plus AI Genie (50 calls/month), the full good-day picker (FR-012), ZNS reminders (FR-017), shareable cards (FR-014).
+   - **Family**: everything in Premium plus family sharing/cloud sync (FR-018), 100 Genie calls/month/user, sharing up to 10 members.
+2. MUST enforce the entitlement gate **server-side** in every serverless handler; the client MUST NOT decide its own tier - every decision is based on the result from the server (DEC-LUNAR-201).
+3. MUST store entitlement in the `user_entitlements` table in Supabase with RLS; the client caches locally with a 24h TTL; on TTL expiry it MUST re-validate with the server (DEC-LUNAR-204).
+4. MUST enforce the tier rate-limit on the server for AI Genie: Free = 0 calls; Premium = 50 calls/month; Family = 100 calls/month/user; over the limit returns HTTP 429 with the `Retry-After` and `X-RateLimit-Remaining` headers (DEC-LUNAR-202).
+5. MUST enforce the family-sharing gate in `api/sync.ts`: Free and Premium users cannot add members to `sharedWith`; only the Family tier can (DEC-LUNAR-200).
+6. MUST handle the payment webhook from the App Store and Zalo Pay in `api/webhook-payment.ts`; it MUST verify the provider's HMAC/JWT signature before updating entitlement; updating incorrectly without verifying is a security hole.
+7. MUST NOT handle payment directly in FR-020; this function only enforces the webhook from App Store IAP (iOS) and Zalo Pay (Zalo Mini App) - FR-020 does not build the payment UI (DEC-LUNAR-203).
+8. MUST have `GET /api/entitlement` returning `{ tier, features, quota, validUntil }` to the client; this response MUST include enough information to display the correct `UpgradePrompt`.
+9. MUST display an `UpgradePrompt` when a Free user taps a Premium feature; the prompt MUST state the specific benefit ("Unlock AI Genie - ask about offering trays, holiday meanings") not just "Upgrade to Premium".
+10. MUST NOT hide or disable a Premium feature in the client in a way the user cannot see - it should show the feature with a lock icon and an `UpgradePrompt`, not remove the working UI (SHOULD encourage discovery).
+11. SHOULD track the conversion rate (Free -> Premium, Premium -> Family) via analytics (with `consentFlags.analyticsUsage = true` per FR-019) to serve the DEC-LUNAR-205 success metric.
+12. MUST have a "graceful downgrade" mechanism: if entitlement expires (validUntil < now()), immediately move back to the Free tier; the Premium data (Genie history, sharedWith) IS KEPT for 30 days to allow renewal; only after 30 days is it deleted.
+13. SHOULD provide a trial mode: a 7-day free Premium trial for new users; the trial is tracked by a `trial_used: boolean` field in `user_entitlements`; each user gets only 1 trial.
 
 ---
 
 ## §2 - Why this design (rationale for humans)
 
-**Tại sao ba tier (Free/Premium/Family) thay vì hai (Free/Premium) (DEC-LUNAR-200)?** Persona "Cô Hoa" (nội trợ giữ hương khói) là segment riêng với nhu cầu "chia sẻ nhắc giỗ cho cả gia đình" - đây là giá trị khác biệt so với "dùng AI Genie". Một tier Family riêng cho phép định giá cao hơn cho use case gia đình mà không ép người dùng đơn lẻ phải trả thêm. Phân chia tier cũng rõ ràng hơn về mặt kỹ thuật: có thể gate FR-018 chỉ cho Family tier.
+**Why three tiers (Free/Premium/Family) instead of two (Free/Premium) (DEC-LUNAR-200)?** The persona "Co Hoa" (the homemaker keeping the ancestral incense) is a distinct segment with the need to "share gio reminders with the whole family" - this is a different value from "using AI Genie". A separate Family tier allows higher pricing for the family use case without forcing a single user to pay more. The tier split is also cleaner technically: FR-018 can be gated for the Family tier only.
 
-**Tại sao entitlement PHẢI ở server-side (DEC-LUNAR-201)?** Client-trusted entitlement là lỗ hổng bảo mật cơ bản: bất kỳ ai vào DevTools sửa `localStorage.tier = "premium"` là có Premium miễn phí. Đối với AI Genie, mỗi call là chi phí thật ($1/$5 per 1M tokens) - lỗ hổng này ảnh hưởng trực tiếp đến chi phí vận hành. Server-side gate đảm bảo mọi request được kiểm tra dữ liệu thật trong database.
+**Why MUST entitlement be server-side (DEC-LUNAR-201)?** Client-trusted entitlement is a fundamental security hole: anyone who opens DevTools and edits `localStorage.tier = "premium"` gets Premium for free. For AI Genie, each call is a real cost ($1/$5 per 1M tokens) - this hole directly affects operating cost. A server-side gate ensures every request is checked against the real data in the database.
 
-**Tại sao cache entitlement local 24h TTL (DEC-LUNAR-204)?** Gọi API kiểm tra entitlement trước mọi action của người dùng là quá châu - tăng độ trễ và giảm UX. 24h TTL là cân bằng: nếu người dùng hết tier, hệ thống biết trong 24h (chấp nhận được cho ứng dụng như thế này). Tính năng quan trọng như AI Genie vẫn gọi server - cache chỉ cho việc hiển thị UI (lock icon, UpgradePrompt).
+**Why cache entitlement locally with a 24h TTL (DEC-LUNAR-204)?** Calling the entitlement-check API before every user action is too slow - it increases latency and hurts UX. A 24h TTL is a balance: if the user's tier expires, the system knows within 24h (acceptable for an app like this). Important features like AI Genie still call the server - the cache is only for displaying the UI (lock icon, UpgradePrompt).
 
-**Tại sao không xây dựng payment UI trong FR-020 (DEC-LUNAR-203)?** Thanh toán iOS qua App Store IAP yêu cầu native Swift/StoreKit; Zalo Mini App yêu cầu Zalo Pay SDK riêng. Việc tích hợp hai hệ thống thanh toán này là một phạm vi lớn riêng biệt. FR-020 chỉ xử lý phần "sau khi thanh toán xác nhận" qua webhook - việc này đơn giản hơn nhiều và không chặn việc triển khai entitlement logic.
+**Why not build a payment UI in FR-020 (DEC-LUNAR-203)?** iOS payment via App Store IAP requires native Swift/StoreKit; the Zalo Mini App requires the separate Zalo Pay SDK. Integrating these two payment systems is a large, separate scope. FR-020 only handles the "after payment confirmation" part via a webhook - this is much simpler and does not block the rollout of the entitlement logic.
 
-**Tại sao xác minh HMAC/JWT webhook là bắt buộc?** Nếu không xác minh, bất kỳ ai có thể POST đến `/api/webhook/payment` và cập nhật entitlement của họ. Đây là tấn công đơn giản nhất có thể. HMAC (App Store dùng JWS, Zalo Pay dùng HMAC-SHA256) là cơ chế chuẩn của cả hai provider - đọc tài liệu chính thức trước khi implement.
+**Why is verifying the webhook HMAC/JWT mandatory?** Without verification, anyone can POST to `/api/webhook/payment` and update their entitlement. This is the simplest possible attack. HMAC (App Store uses JWS, Zalo Pay uses HMAC-SHA256) is the standard mechanism of both providers - read the official documentation before implementing.
 
-**Tại sao hiện tính năng Premium với lock icon thay vì ẩn đi (§1 #10)?** Hiển thị tính năng với lock icon tạo "aspirational pull" - người dùng nhìn thấy "AI Genie" và muốn dùng nó. Ẩn đi thì người dùng không biết nó tồn tại và không bao giờ chuyển đổi. Mẫu này được dùng thành công bởi Duolingo, Spotify, và nhiều sản phẩm freemium khác.
+**Why show Premium features with a lock icon instead of hiding them (§1 #10)?** Showing a feature with a lock icon creates "aspirational pull" - the user sees "AI Genie" and wants to use it. Hiding it means the user does not know it exists and never converts. This pattern is used successfully by Duolingo, Spotify, and many other freemium products.
 
 ---
 
@@ -255,21 +255,21 @@ export class EntitlementClient {
 
 ## §4 - Acceptance criteria
 
-1. Free user gọi `api/genie.ts` trực tiếp (bypass UI) nhận HTTP 403 với body `{ error: "feature_not_allowed", feature: "genieAI", tier: "free" }`.
-2. Premium user gọi Genie 50 lần trong một tháng: lần thứ 51 nhận HTTP 429 với header `X-RateLimit-Remaining: 0` và `Retry-After` bằng số giây đến đầu tháng sau.
-3. Family user gọi Genie 100 lần trong một tháng: lần thứ 101 nhận HTTP 429.
-4. Free user thử thêm thành viên vào `sharedWith` trên endpoint `/api/sync/share` nhận HTTP 403.
-5. Premium user thử thêm thành viên vào `sharedWith` nhận HTTP 403 (chỉ Family được phép).
-6. Family user thêm tối đa 10 thành viên: thêm thành viên thứ 11 nhận HTTP 422 với thông báo rõ ràng.
-7. Sửa `localStorage.tier = "premium"` trên client và gọi `/api/genie`: server trả về HTTP 403 nếu entitlement thật sự là Free (client-trusted entitlement bị chống lại).
-8. Webhook AppStore POST với JWS hợp lệ -> entitlement cập nhật sang Premium trong `user_entitlements`; `GET /api/entitlement` ngay sau đó trả về `tier: "premium"`.
-9. Webhook AppStore POST với JWS giả mạo (chữ ký sai) -> HTTP 401, entitlement KHÔNG thay đổi.
-10. Webhook ZaloPayPay POST với MAC hợp lệ -> cập nhật entitlement; MAC sai -> HTTP 401.
-11. `EntitlementClient.get()` gọi API lần đầu, cache; gọi lần hai trong 24h sử dụng cache (0 request API thêm).
-12. `EntitlementClient.get()` sau 24h hết TTL gọi API mới.
-13. Trial 7 ngày: gọi `POST /api/entitlement/trial` lần đầu -> tier chuyển sang premium, `trialUsed = true`, `validUntil = now() + 7 ngày`. Gọi lần hai -> HTTP 409.
-14. Hết hạn trial: `validUntil < now()` -> tier tự động về Free; dữ liệu Premium giữ nguyên trong 30 ngày (`gracePeriodEndsAt = validUntil + 30 ngày`).
-15. `UpgradePrompt` hiển thị khi Free user chạm AI Genie; prompt có text mô tả lợi ích cụ thể ("Hỏi bài về mâm cúng, ý nghĩa ngày lễ") và nút "Dùng thử 7 ngày miễn phí" nếu `trialAvailable = true`.
+1. A Free user calling `api/genie.ts` directly (bypassing the UI) receives HTTP 403 with body `{ error: "feature_not_allowed", feature: "genieAI", tier: "free" }`.
+2. A Premium user calling Genie 50 times in a month: the 51st call receives HTTP 429 with the header `X-RateLimit-Remaining: 0` and `Retry-After` equal to the number of seconds until the start of next month.
+3. A Family user calling Genie 100 times in a month: the 101st call receives HTTP 429.
+4. A Free user trying to add a member to `sharedWith` on the `/api/sync/share` endpoint receives HTTP 403.
+5. A Premium user trying to add a member to `sharedWith` receives HTTP 403 (only Family is allowed).
+6. A Family user adding up to 10 members: adding the 11th member receives HTTP 422 with a clear message.
+7. Editing `localStorage.tier = "premium"` on the client and calling `/api/genie`: the server returns HTTP 403 if the real entitlement is Free (client-trusted entitlement is defeated).
+8. An App Store webhook POST with a valid JWS -> entitlement is updated to Premium in `user_entitlements`; `GET /api/entitlement` right after returns `tier: "premium"`.
+9. An App Store webhook POST with a forged JWS (wrong signature) -> HTTP 401, entitlement does NOT change.
+10. A Zalo Pay webhook POST with a valid MAC -> entitlement is updated; a wrong MAC -> HTTP 401.
+11. `EntitlementClient.get()` calls the API the first time and caches; a second call within 24h uses the cache (0 additional API requests).
+12. `EntitlementClient.get()` after the 24h TTL expires calls the API again.
+13. 7-day trial: calling `POST /api/entitlement/trial` the first time -> the tier moves to premium, `trialUsed = true`, `validUntil = now() + 7 days`. Calling a second time -> HTTP 409.
+14. Trial expiry: `validUntil < now()` -> the tier automatically moves back to Free; the Premium data is kept for 30 days (`gracePeriodEndsAt = validUntil + 30 days`).
+15. `UpgradePrompt` appears when a Free user taps AI Genie; the prompt has text describing the specific benefit ("Ask about offering trays, holiday meanings") and a "Try 7 days free" button if `trialAvailable = true`.
 
 ---
 
@@ -373,7 +373,7 @@ describe("EntitlementClient - cache TTL", () => {
 
 ## §6 - Implementation skeleton
 
-`TIER_FEATURES` trong §3 là nguồn sự thật duy nhất cho mọi quyết định gate. Hai điểm then chốt:
+`TIER_FEATURES` in §3 is the single source of truth for every gate decision. Two key points:
 
 ```typescript
 // Mau gate trong api/genie.ts (ap dung tuong tu cho moi tinh nang Premium)
@@ -420,11 +420,11 @@ export async function getEntitlement(userId: string): Promise<EntitlementRecord>
 
 ## §7 - Dependencies
 
-Upstream: FR-LUNAR-015 (AI Genie Claude proxy) - FR-020 thêm server-side gate vào `api/genie.ts` của FR-015; FR-015 phải đã tồn tại trước khi gate có thể được thêm. FR-LUNAR-018 (family sharing cloud sync) - FR-020 thêm gate `familySharing` vào `api/sync.ts` của FR-018.
+Upstream: FR-LUNAR-015 (the AI Genie Claude proxy) - FR-020 adds a server-side gate into FR-015's `api/genie.ts`; FR-015 must already exist before the gate can be added. FR-LUNAR-018 (family sharing cloud sync) - FR-020 adds the `familySharing` gate into FR-018's `api/sync.ts`.
 
-Downstream: FR-020 không blocks FR nào. Nhưng toàn bộ Phase 3 phụ thuộc vào FR-020 hoạt động để có doanh thu: không có entitlement gate thì không có sự phân biệt tier, không có khuyến khích chuyển đổi, và chi phí vận hành AI Genie và ZNS tăng vô kiểm soát.
+Downstream: FR-020 blocks no FR. But the entire Phase 3 depends on FR-020 working to earn revenue: without the entitlement gate there is no tier distinction, no conversion incentive, and the operating cost of AI Genie and ZNS rises uncontrolled.
 
-Cross-cutting: FR-LUNAR-019 (PDPL consent) - nếu `analyticsUsage = true`, FR-020 có thể theo dõi tỷ lệ chuyển đổi. FR-LUNAR-016 (Zalo Mini App) - entitlement check phải hoạt động tương tự trên Zalo Mini App client (gọi cùng API `/api/entitlement`).
+Cross-cutting: FR-LUNAR-019 (PDPL consent) - if `analyticsUsage = true`, FR-020 can track the conversion rate. FR-LUNAR-016 (Zalo Mini App) - the entitlement check must work similarly on the Zalo Mini App client (calling the same `/api/entitlement` API).
 
 ---
 
@@ -534,18 +534,18 @@ CREATE TRIGGER trg_entitlements_updated_at
 
 ## §9 - Open questions
 
-Đã giải quyết:
-- Ba tier (Free/Premium/Family): định nghĩa bất biến trong `TIER_FEATURES` (DEC-LUNAR-200); thay đổi tier cần DEC mới.
-- Server-side gate: mẫu trong §6 áp dụng cho tất cả tính năng Premium (DEC-LUNAR-201).
-- Rate-limit storage: Supabase `genie_usage_monthly` là đủ cho phase đầu; có thể chuyển sang Upstash Redis nếu cần tốc độ cao hơn ở Phase 4.
-- Cache TTL 24h: cân bằng giữa UX và freshness (DEC-LUNAR-204); dùng cho Phase 3.
+Resolved:
+- Three tiers (Free/Premium/Family): defined immutably in `TIER_FEATURES` (DEC-LUNAR-200); changing a tier needs a new DEC.
+- Server-side gate: the pattern in §6 applies to all Premium features (DEC-LUNAR-201).
+- Rate-limit storage: Supabase `genie_usage_monthly` is enough for the initial phase; can move to Upstash Redis if higher speed is needed in Phase 4.
+- Cache TTL 24h: a balance between UX and freshness (DEC-LUNAR-204); used for Phase 3.
 
-Còn hoãn (defer):
-- Payment UI (StoreKit cho iOS, Zalo Pay SDK cho Mini App): ngoài phạm vi FR-020 (DEC-LUNAR-203). Sẽ tách thành FR riêng khi có quyết định chọn nhà cung cấp thanh toán.
-- Giá cụ thể (VND/tháng cho Premium và Family): chưa định. Success metric (>= 3% chuyển đổi - DEC-LUNAR-205) là ngưỡng để điều chỉnh giá về sau.
-- Subscription management (hủy, pau, resume qua App Store): phụ thuộc App Store subscription management; defer sang sau khi có tích hợp payment.
-- Promo code / referral: có thể thêm sau khi có conversion data thực; không phù hợp Phase 3 ban đầu.
-- Analytics chi tiết trên tỷ lệ chuyển đổi: phụ thuộc `consentFlags.analyticsUsage = true` của FR-019; defer sang khi có đủ dữ liệu.
+Still deferred:
+- Payment UI (StoreKit for iOS, the Zalo Pay SDK for the Mini App): outside the scope of FR-020 (DEC-LUNAR-203). Will be split into a separate FR once the payment provider is chosen.
+- Specific pricing (VND/month for Premium and Family): not yet set. The success metric (>= 3% conversion - DEC-LUNAR-205) is the threshold for adjusting price later.
+- Subscription management (cancel, pause, resume via the App Store): depends on App Store subscription management; deferred until there is a payment integration.
+- Promo code / referral: can be added once there is real conversion data; not suitable for the initial Phase 3.
+- Detailed analytics on the conversion rate: depends on `consentFlags.analyticsUsage = true` from FR-019; deferred until there is enough data.
 
 ---
 
@@ -553,28 +553,28 @@ Còn hoãn (defer):
 
 | Failure | Detection | Outcome | Recovery |
 |---|---|---|---|
-| Client-trusted entitlement (sửa localStorage) | Server-side gate không đọc client data | HTTP 403 đúng mức | Không cần - gate ở server hoạt động |
-| Webhook giả mạo (HMAC sai) | Xác minh HMAC trước xử lý | HTTP 401, entitlement không đổi | Log IP của request; không cấp tier |
-| Entitlement hết hạn nhưng chưa check | `getEntitlement()` so sánh `valid_until` với `now()` | Auto-downgrade về Free | Graceful; dữ liệu giữ 30 ngày |
-| Vượt Genie quota | `checkAndIncrementGenieUsage()` bản chỉ số | HTTP 429 với `Retry-After` | User đợi đầu tháng hoặc nâng cấp |
-| Supabase down khi check entitlement | HTTP 5xx từ DB | Fallback về Free (toàn tuyến an toàn) | Log lỗi; user nhìn thấy "dịch vụ tạm thời gián đoạn" |
-| Race condition: 2 Genie call đồng thời ở ngưỡng quota | Upsert atomic trong `genie_usage_monthly` | Một call được, một chặn | Dùng `ON CONFLICT DO UPDATE` với atomic increment |
-| Premium user gặp Family gate (sharedWith) | `isFeatureAllowed(tier, "familySharing")` | HTTP 403 rõ ràng | `UpgradePrompt` hiện Family tier với lợi ích |
-| Trial được kích hoạt 2 lần | `trial_used = true` check trước khi cấp | HTTP 409 | Thông báo "Bạn đã dùng thử rồi" |
-| Cache TTL hết nhưng server down | `EntitlementClient.get()` fallback về cache cũ | Dùng cache cũ thêm 1h (fallback window) | Log warning; không block UX |
-| Family member thứ 11 | Gate `maxFamilyMembers = 10` | HTTP 422 với thông báo rõ ràng | Chủ gia đình cần nâng cấp hoặc xóa thành viên |
+| Client-trusted entitlement (edited localStorage) | The server-side gate does not read client data | HTTP 403 correctly | Not needed - the server gate works |
+| Forged webhook (wrong HMAC) | Verify the HMAC before processing | HTTP 401, entitlement unchanged | Log the request IP; do not grant the tier |
+| Entitlement expired but not yet checked | `getEntitlement()` compares `valid_until` with `now()` | Auto-downgrade to Free | Graceful; data kept for 30 days |
+| Genie quota exceeded | `checkAndIncrementGenieUsage()` counter | HTTP 429 with `Retry-After` | User waits for the start of the month or upgrades |
+| Supabase down during the entitlement check | HTTP 5xx from the DB | Fallback to Free (fail-safe across the board) | Log the error; the user sees "service temporarily interrupted" |
+| Race condition: 2 concurrent Genie calls at the quota threshold | Atomic upsert in `genie_usage_monthly` | One call goes through, one is blocked | Use `ON CONFLICT DO UPDATE` with an atomic increment |
+| Premium user hits the Family gate (sharedWith) | `isFeatureAllowed(tier, "familySharing")` | Clear HTTP 403 | `UpgradePrompt` shows the Family tier with its benefits |
+| Trial activated twice | Check `trial_used = true` before granting | HTTP 409 | Message "You have already used the trial" |
+| Cache TTL expired but the server is down | `EntitlementClient.get()` falls back to the old cache | Use the old cache for another 1h (fallback window) | Log a warning; do not block UX |
+| The 11th family member | Gate `maxFamilyMembers = 10` | HTTP 422 with a clear message | The family owner needs to upgrade or remove a member |
 
 ---
 
 ## §11 - Implementation notes
 
-- `TIER_FEATURES` là nguồn sự thật duy nhất: mọi quyết định "tính năng X có được phép không" đi qua `isFeatureAllowed(tier, feature)` đọc từ bảng này. KHÔNG ĐƯỢC hard-code tier check ở các chỗ khác nhau trong code - tránh drift.
-- `genie_usage_monthly` dùng `year_month = "YYYY-MM"` (text) thay vì TIMESTAMPTZ để đơn giản hóa việc reset đầu tháng: `WHERE year_month = to_char(NOW(), 'YYYY-MM')`. Atomic increment dùng `INSERT ... ON CONFLICT DO UPDATE SET call_count = call_count + 1`.
-- Webhook security: AppStore dùng JWS (JWT với RS256 + Apple root certificate); Zalo Pay dùng HMAC-SHA256 với `ZALO_PAY_KEY2` (environment variable). Cả hai phải được xác minh trước khi xử lý. Đọc tài liệu chính thức từng provider - dùng đúng tên biến và thủ tục.
-- `EntitlementClient` trên client: cache trong memory (không phải localStorage) để tránh người dùng đọc/sửa cache; TTL 24h reset khi app reload. `invalidateCache()` gọi sau khi người dùng thanh toán xong.
-- Graceful downgrade 30 ngày: cần một cron job (hoặc kiểm tra ở thời điểm access) để đánh dấu `grace_period_ends_at` và gửi thông báo "tài khoản Premium sẽ hết hạn trong X ngày". Cron này là phần của FR-017 infrastructure (ZNS), không xây dựng trong FR-020.
-- `UpgradePrompt` nên có A/B testing sau khi có đủ dữ liệu: thử nghiệm "Dùng thử 7 ngày" vs "Nâng cấp ngay - giảm 30% tháng đầu". Phụ thuộc vào analytics consent (FR-019) và có đủ người dùng.
-- Success metric DEC-LUNAR-205 (>= 3% chuyển đổi): theo dõi bằng cách đếm `user_entitlements` có `tier != 'free'` chia cho tổng user; đặt alert khi chưa đạt sau 90 ngày Phase 3.
-- So migration P3 duoc phan phoi de tranh va cham: 0016-0017 danh cho FR-018, 0018 cho FR-017, 0019 cho FR-019, 0020 cho FR-020.
+- `TIER_FEATURES` is the single source of truth: every "is feature X allowed" decision goes through `isFeatureAllowed(tier, feature)` reading from this table. MUST NOT hardcode tier checks in different places in the code - to avoid drift.
+- `genie_usage_monthly` uses `year_month = "YYYY-MM"` (text) instead of TIMESTAMPTZ to simplify the start-of-month reset: `WHERE year_month = to_char(NOW(), 'YYYY-MM')`. Atomic increment uses `INSERT ... ON CONFLICT DO UPDATE SET call_count = call_count + 1`.
+- Webhook security: App Store uses JWS (JWT with RS256 + the Apple root certificate); Zalo Pay uses HMAC-SHA256 with `ZALO_PAY_KEY2` (an environment variable). Both must be verified before processing. Read each provider's official documentation - use the correct variable names and procedures.
+- `EntitlementClient` on the client: cache in memory (not localStorage) to prevent the user from reading/editing the cache; the 24h TTL resets on app reload. `invalidateCache()` is called after the user finishes payment.
+- Graceful downgrade of 30 days: needs a cron job (or a check at access time) to mark `grace_period_ends_at` and send a message "your Premium account will expire in X days". This cron is part of the FR-017 infrastructure (ZNS), not built in FR-020.
+- `UpgradePrompt` should have A/B testing once there is enough data: test "Try 7 days" vs "Upgrade now - 30% off the first month". Depends on the analytics consent (FR-019) and having enough users.
+- Success metric DEC-LUNAR-205 (>= 3% conversion): track it by counting `user_entitlements` with `tier != 'free'` divided by total users; set an alert when it is not met after 90 days of Phase 3.
+- The P3 migration numbers are distributed to avoid collisions: 0016-0017 for FR-018, 0018 for FR-017, 0019 for FR-019, 0020 for FR-020.
 
-*Hết FR-LUNAR-020.*
+*End of FR-LUNAR-020.*

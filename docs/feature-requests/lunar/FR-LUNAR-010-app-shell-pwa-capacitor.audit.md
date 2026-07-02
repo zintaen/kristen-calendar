@@ -12,54 +12,54 @@ authoring_md_compliance: 2026-06-27 (rule 36 - 7 ISS >= 6 minimum; DEC-LUNAR-100
 
 ## §1 - Verdict summary
 
-FR-LUNAR-010 đặc tả app shell là nền móng kỹ thuật cho toàn bộ Phase 1 MVP, bao gồm Next.js/React PWA static export, Capacitor iOS wrapper, on-device storage layer, routing 5 route, và glue cho local notifications. Phạm vi: 16 mệnh đề BCP-14 trong §1 (Next.js App Router, 5 route chính, storage CRUD, adapter pattern localStorage/@capacitor/preferences, notificationGlue stub, capacitor.config.ts với bundle ID chính xác, output: "export", manifest.json, bottom nav, home route ngày âm, Be Vietnam Pro, build pass, offline, không API server Phase 1). 7 đoạn rationale §2 giải thích DEC-LUNAR-100..104. §3 có đầy đủ TypeScript interface cho Reminder/UserSettings/NotificationService, export hàm storage, CapacitorConfig, NextConfig, layout.tsx excerpt, và manifest.json content. 15 AC trong §4. §5 có 8 unit test cụ thể cho storage CRUD, notificationGlue stub, và home route render với mock date 2025-01-29. §10 liệt kê 12 failure rows bao gồm race condition, generateStaticParams, permission flow, API key exclusion. Ánh xạ tới PRD §9 (System Architecture), §14 (Phase 1 roadmap).
+FR-LUNAR-010 specifies the app shell, the technical foundation for the whole Phase 1 MVP, including the Next.js/React PWA static export, the Capacitor iOS wrapper, the on-device storage layer, 5-route routing, and the glue for local notifications. Scope: 16 BCP-14 clauses in §1 (Next.js App Router, 5 main routes, storage CRUD, adapter pattern localStorage/@capacitor/preferences, notificationGlue stub, capacitor.config.ts with the exact bundle ID, output: "export", manifest.json, bottom nav, home route lunar date, Be Vietnam Pro, build pass, offline, no API server in Phase 1). 7 rationale paragraphs in §2 explaining DEC-LUNAR-100..104. §3 has the full TypeScript interfaces for Reminder/UserSettings/NotificationService, exported storage functions, CapacitorConfig, NextConfig, a layout.tsx excerpt, and the manifest.json content. 15 ACs in §4. §5 has 8 concrete unit tests for storage CRUD, the notificationGlue stub, and the home route render with a mock date 2025-01-29. §10 lists 12 failure rows including race condition, generateStaticParams, permission flow, API key exclusion. Maps to PRD §9 (System Architecture), §14 (Phase 1 roadmap).
 
 ## §2 - Findings (all resolved during authoring)
 
-### ISS-001 - `output: "export"` xung đột với Next.js API routes sẽ block Phase 2
-Nếu không ghi rõ ràng buộc này sẽ bị phát hiện muộn. Resolved: §1 #7 ghi rõ không dùng API routes trong Phase 1; §9 deferred note về thay đổi sang hybrid mode khi Phase 2; §10 failure row đầu tiên.
+### ISS-001 - `output: "export"` conflicts with Next.js API routes and would block Phase 2
+If this constraint is not stated clearly it will be discovered late. Resolved: §1 #7 states clearly no API routes in Phase 1; §9 deferred note on switching to hybrid mode in Phase 2; the first §10 failure row.
 
-### ISS-002 - localStorage bị xóa trên iOS, mất hết dữ liệu người dùng
-iOS có thể purge localStorage khi thiết bị thiếu dung lượng. Resolved: §1 #4 storage adapter dùng @capacitor/preferences trên iOS; §6 skeleton storageGet/storageSet adapter; §10 failure row "localStorage bị xóa khi iOS thiếu dung lượng".
+### ISS-002 - localStorage is cleared on iOS, losing all user data
+iOS can purge localStorage when the device is low on space. Resolved: §1 #4 the storage adapter uses @capacitor/preferences on iOS; §6 skeleton storageGet/storageSet adapter; §10 failure row "localStorage cleared when iOS is low on space".
 
-### ISS-003 - notificationGlue.ts import @capacitor/local-notifications trực tiếp, crash trên web/JSDOM
-Test và web build lỗi nếu Capacitor package được import unconditionally. Resolved: §1 #5 + DEC-LUNAR-103 stub pattern; WebNotificationStub cho web; createNotificationService() factory; §5 test "WebNotificationStub là no-op".
+### ISS-003 - notificationGlue.ts imports @capacitor/local-notifications directly, crashing on web/JSDOM
+Tests and the web build fail if the Capacitor package is imported unconditionally. Resolved: §1 #5 + DEC-LUNAR-103 stub pattern; WebNotificationStub for web; createNotificationService() factory; §5 test "WebNotificationStub is a no-op".
 
-### ISS-004 - Bundle ID chưa được quyết định, khó thay đổi sau khi tạo App Store record
-App Store Connect khóa bundle ID sau khi tạo. Resolved: §1 #6 + DEC-LUNAR-103 `appId: "world.cyberskill.genieamlich"` trong capacitor.config.ts; §5 test assert appId; §4 AC #7.
+### ISS-004 - Bundle ID not decided, hard to change after creating the App Store record
+App Store Connect locks the bundle ID after creation. Resolved: §1 #6 + DEC-LUNAR-103 `appId: "world.cyberskill.genieamlich"` in capacitor.config.ts; §5 test asserting appId; §4 AC #7.
 
-### ISS-005 - Dynamic route /festival/[id] cần generateStaticParams() cho static export, nếu quên là 404
-Next.js `output: "export"` yêu cầu pre-render mỗi tham số động. Resolved: §11 note "quên generateStaticParams() làm build lỗi hoặc trang 404"; §4 AC #2 kiểm tra route /festival/vu-lan render đúng; disallowed note implicitly guards this.
+### ISS-005 - The dynamic route /festival/[id] needs generateStaticParams() for static export, or it 404s if forgotten
+Next.js `output: "export"` requires pre-rendering every dynamic parameter. Resolved: §11 note "forgetting generateStaticParams() breaks the build or 404s the page"; §4 AC #2 checks the /festival/vu-lan route renders correctly; the disallowed note implicitly guards this.
 
-### ISS-006 - Capacitor requestPermissions() không được gọi trước schedule(), gây silent fail trên iOS
-Lỗi thường gặp nhất với Capacitor notifications. Resolved: §1 #5 interface có requestPermission() riêng; §11 note "PHẢI gọi requestPermission() trước"; §10 failure row "createNotificationService() trả sai loại" và dependency note.
+### ISS-006 - Capacitor requestPermissions() not called before schedule(), causing a silent fail on iOS
+The most common bug with Capacitor notifications. Resolved: §1 #5 the interface has a separate requestPermission(); §11 note "MUST call requestPermission() first"; §10 failure row "createNotificationService() returns the wrong type" and the dependency note.
 
-### ISS-007 - API key có thể bị commit vào build output (Claude key, ZNS token)
-Static export có thể có .env.local bị bundle. Resolved: §1 #14 KHÔNG ĐƯỢC lưu dữ liệu lên server; §4 AC #15 grep kiểm tra build output; disallowed_tools cấm nhúng API key vào client code; §10 failure row "API key lộ trong build output".
+### ISS-007 - An API key could be committed into the build output (Claude key, ZNS token)
+A static export can bundle .env.local. Resolved: §1 #14 MUST NOT store data on a server; §4 AC #15 greps the build output; disallowed_tools bans embedding API keys in client code; §10 failure row "API key leaked in the build output".
 
 ## §3 - Resolution
 
-Sau khi xử lý 7 vấn đề trên, FR-LUNAR-010 có 16 mệnh đề BCP-14, 15 AC, 8 unit test bao gồm storage CRUD round-trip và home route render với mock date, 12 failure rows, 7 implementation notes. Tất cả DEC-LUNAR-100..104 được tạo và tham chiếu đầy đủ. Score sau self-audit = 10/10.
+After handling the 7 issues above, FR-LUNAR-010 has 16 BCP-14 clauses, 15 ACs, 8 unit tests including a storage CRUD round-trip and a home route render with a mock date, 12 failure rows, 7 implementation notes. All of DEC-LUNAR-100..104 are created and fully referenced. Score after self-audit = 10/10.
 
 ## §4 - Independent adversarial pass (2026-06-27)
 
-Pre-fix score: **7/10**. static export + storage adapter + no-server Phase 1 + bundle ID + manifest + API-key grep deu dung. Hai van de:
+Pre-fix score: **7/10**. static export + storage adapter + no-server Phase 1 + bundle ID + manifest + API-key grep are all correct. Two issues:
 
-- **MAJOR - storage.ts static-import "@capacitor/preferences" o top level.** §3 line 111 `import { Preferences } from "@capacitor/preferences"` la unconditional, ngay ca tren web/static-export/JSDOM. Day chinh la loi ISS-003 da fix cho notificationGlue nhung BO SOT cho storage: keo plugin native vao web bundle va bat test phai resolve mot package chi chay iOS, vo tinh than DEC-LUNAR-103 (thin shell, stub tren web). §5 test chi mock localStorage, khong mock Preferences, nhung module van import no luc load. Fixed: bo static import; them `getPreferences()` dung `await import("@capacitor/preferences")` (lazy) chi chay khi `isCapacitor()`; §6 storageGet/storageSet doi theo.
-- **MAJOR - isCapacitor() nem ReferenceError duoi SSG.** §3 cu: `typeof (window as any)?.Capacitor !== "undefined"`. Optional chaining KHONG cuu mot global chua khai bao - `window?.x` van nem ReferenceError khi `window` khong ton tai (static-export prerender). §11 note 1 mo ta check dung nhung §3 ship check sai -> contract crash luc build. Fixed: §3 doi sang `typeof window !== "undefined" && !!(window as any).Capacitor?.isNativePlatform?.()`, khop §11.
+- **MAJOR - storage.ts static-imports "@capacitor/preferences" at the top level.** §3 line 111 `import { Preferences } from "@capacitor/preferences"` is unconditional, even on web/static-export/JSDOM. This is exactly the ISS-003 bug fixed for notificationGlue but MISSED for storage: it pulls the native plugin into the web bundle and forces tests to resolve a package that only runs on iOS, inadvertently violating DEC-LUNAR-103 (thin shell, stub on web). The §5 test only mocks localStorage, not Preferences, but the module still imports it at load time. Fixed: removed the static import; added `getPreferences()` using `await import("@capacitor/preferences")` (lazy) only when `isCapacitor()`; §6 storageGet/storageSet updated accordingly.
+- **MAJOR - isCapacitor() throws ReferenceError under SSG.** §3 old: `typeof (window as any)?.Capacitor !== "undefined"`. Optional chaining does NOT save an undeclared global - `window?.x` still throws ReferenceError when `window` does not exist (static-export prerender). §11 note 1 describes the correct check but §3 shipped the wrong check -> a contract crash at build. Fixed: §3 changed to `typeof window !== "undefined" && !!(window as any).Capacitor?.isNativePlatform?.()`, matching §11.
 
-MINOR (ghi nhan): `/festival/[id]` can `generateStaticParams()` cho `output: "export"`; da co §11 note + AC #2 nhung chua encode ham trong §3 contract - implementation-time, khong block. **Post-fix score = 9/10.**
+MINOR (recorded): `/festival/[id]` needs `generateStaticParams()` for `output: "export"`; the §11 note + AC #2 exist but the function is not yet encoded in the §3 contract - implementation-time, not blocking. **Post-fix score = 9/10.**
 
 ## §5 - Contract-alignment pass (2026-06-28)
 
 Readiness pass against CONTRACT.md and task-B traceability:
 
-- **import type { Reminder } from "@cyberskill/amlich-core"**: §3 da co dung dang nay. Shell KHONG redeclare Reminder. `export type { Reminder }` re-export chinh xac. PASS.
-- **Lazy Capacitor import**: §3 va §6 da dung `async function getPreferences() { const mod = await import("@capacitor/preferences"); ... }` (khong co static import o top level). PASS.
-- **isCapacitor()**: §3 dung `typeof window !== "undefined" && !!(window as any).Capacitor?.isNativePlatform?.()` - khop §11. PASS.
-- **testReminder.leapFallback**: Da them truong `leapFallback: "REGULAR"` vao testReminder trong §5 (truong bat buoc cua Reminder theo CONTRACT.md / FR-LUNAR-004). Truoc do thieu truong nay gay TypeScript error khi compile test.
-- **Traceability Task B**: 16 menh de trong §1 (14 PHAI + 2 NEN). 15 AC trong §4 cover tat ca 14 PHAI. 8 test trong §5. DEC-LUNAR-100..104 ton tai va duoc tham chieu. PASS.
+- **import type { Reminder } from "@cyberskill/amlich-core"**: §3 already has this form. The shell does NOT redeclare Reminder. `export type { Reminder }` re-exports correctly. PASS.
+- **Lazy Capacitor import**: §3 and §6 already use `async function getPreferences() { const mod = await import("@capacitor/preferences"); ... }` (no static import at the top level). PASS.
+- **isCapacitor()**: §3 uses `typeof window !== "undefined" && !!(window as any).Capacitor?.isNativePlatform?.()` - matching §11. PASS.
+- **testReminder.leapFallback**: Added the field `leapFallback: "REGULAR"` to testReminder in §5 (a required Reminder field per CONTRACT.md / FR-LUNAR-004). Previously the missing field caused a TypeScript error when compiling the test.
+- **Traceability Task B**: 16 clauses in §1 (14 MUST + 2 SHOULD). 15 ACs in §4 cover all 14 MUSTs. 8 tests in §5. DEC-LUNAR-100..104 exist and are referenced. PASS.
 
 **Post-alignment score: READY.**
 
-*Hết audit FR-LUNAR-010.*
+*End of audit FR-LUNAR-010.*

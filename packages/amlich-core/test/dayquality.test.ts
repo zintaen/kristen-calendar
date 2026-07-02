@@ -38,7 +38,7 @@ describe("getDayQuality - 28 sao cycle", () => {
     const start = new Date(giac.solarDate);
     const cycle = Array.from({ length: 28 }, (_, i) => {
       const d = new Date(start.getTime()); // copy
-      d.setDate(d.getDate() + i);
+      d.setUTCDate(d.getUTCDate() + i); // UTC-consistent voi getDayQuality (doc UTC), tranh mix local/UTC
       return getDayQuality(d).sao28.name;
     });
     expect(cycle).toEqual([...SAO_28]);
@@ -118,8 +118,8 @@ describe("getDayQuality - dia chi nhat quan voi canChiDay (FR-002)", () => {
     const start = new Date("2025-01-01");
     for (let i = 0; i < 60; i++) {
       const d = new Date(start.getTime());
-      d.setDate(d.getDate() + i);
-      const jdn = jdFromDate(d.getDate(), d.getMonth() + 1, d.getFullYear());
+      d.setUTCDate(d.getUTCDate() + i); // UTC-consistent voi getDayQuality (doc UTC)
+      const jdn = jdFromDate(d.getUTCDate(), d.getUTCMonth() + 1, d.getUTCFullYear());
       const q = getDayQuality(d);
       expect(DIA_CHI_ORDER.indexOf(q.diaChiNgay)).toBe(canChiDay(jdn).chiIndex);
       expect(q.canChiNgay).toBe(canChiDay(jdn).label);

@@ -1,16 +1,16 @@
-# AGENT-GUIDE - hướng dẫn build dự án Genie Âm Lịch (kristen-calendar)
+# AGENT-GUIDE - build guide for the Genie Am Lich project (kristen-calendar)
 
-> Lưu ý quan trọng: file `AGENTS.md` ở gốc repo được DÀNH cho CyberOS Layer-1 Memory Protocol (kích hoạt BRAIN / `.cyberos-memory/`) - đó là file Stephen thả vào để bật bộ nhớ, không phải hướng dẫn build. File NÀY (`docs/AGENT-GUIDE.md`) là hướng dẫn build riêng của dự án. Một agent làm việc ở repo này theo CẢ HAI: `AGENTS.md` cho giao thức bộ nhớ, `docs/AGENT-GUIDE.md` cho invariant core, kỷ luật build, và quy ước viết.
+> Important note: the file `AGENTS.md` at the repo root is RESERVED for the CyberOS Layer-1 Memory Protocol (activating the BRAIN / `.cyberos-memory/`) - it is the file Stephen drops in to enable memory, not a build guide. THIS file (`docs/AGENT-GUIDE.md`) is the project's own build guide. An agent working in this repo follows BOTH: `AGENTS.md` for the memory protocol, `docs/AGENT-GUIDE.md` for core invariants, build discipline, and writing conventions.
 
-Hướng dẫn cho coding agent và developer làm việc trong repo này. Đọc hết trước khi sửa code.
+Guide for coding agents and developers working in this repo. Read it all before editing code.
 
-## Sản phẩm
+## Product
 
-Genie Âm Lịch của CyberSkill: ứng dụng nhắc âm lịch Việt Nam tông tím, tính ngày on-device theo thuật toán Hồ Ngọc Đức (giờ Việt Nam UTC+7, kinh tuyến 105°E). Chạy trên Web/PWA, iOS qua Capacitor, và Zalo Mini App, cộng một serverless backend mỏng cho AI Genie (Claude) và ZNS. Khởi đầu là sản phẩm cá nhân cho vợ founder, mở rộng thành thương mại.
+CyberSkill's Genie Am Lich: a Vietnamese lunar-calendar reminder app in a purple palette, computing dates on-device with the Ho Ngoc Duc algorithm (Vietnamese time UTC+7, meridian 105 degrees E). Runs on Web/PWA, iOS via Capacitor, and Zalo Mini App, plus a thin serverless backend for the AI Genie (Claude) and ZNS. It starts as a personal product for the founder's wife and expands into a commercial one.
 
 ## Source of truth
 
-Toàn bộ spec nằm ở `docs/feature-requests/`: 20 feature request `FR-LUNAR-001..020` (mỗi cái một engineering-spec 11 mục kèm sibling `*.audit.md`), một `lunar/README.md` (index + build order + PRD traceability), `lunar/manifest.json` (máy đọc), `lunar/INDEPENDENT-AUDIT-2026-06-27.md` (audit độc lập), và `BACKLOG.md`. PRD/SRS gốc ở `docs/PRD + SRS — ...md`. Khi implement một FR, đọc spec đó section 3 (API contract) và section 5 (Verification) trước.
+The entire spec lives in `docs/feature-requests/`: 20 feature requests `FR-LUNAR-001..020` (each an 11-section engineering-spec with a sibling `*.audit.md`), a `lunar/README.md` (index + build order + PRD traceability), `lunar/manifest.json` (machine-readable), `lunar/INDEPENDENT-AUDIT-2026-06-27.md` (independent audit), and `BACKLOG.md`. The original PRD/SRS is at `docs/PRD + SRS — ...md`. When implementing an FR, read that spec's section 3 (API contract) and section 5 (Verification) first.
 
 ## Monorepo layout
 
@@ -23,9 +23,9 @@ zalo/                   # FR-016 - Zalo Mini App (React + zmp-ui + zmp-sdk)
 services/genie-api/     # FR-015 Claude proxy, 017 ZNS, 018 sync, 019 PDPL, 020 billing - serverless TS
 ```
 
-Chỉ `packages/amlich-core/` đã được scaffold (constants + types + golden fixtures + harness, các hàm thuật toán là STUB). Các package khác hiện chỉ có `package.json` placeholder; scaffold chúng khi tới slice tương ứng.
+Only `packages/amlich-core/` is scaffolded (constants + types + golden fixtures + harness, the algorithm functions are STUBs). The other packages currently have only a `package.json` placeholder; scaffold them when their slice arrives.
 
-## Lệnh
+## Commands
 
 ```bash
 pnpm install
@@ -34,27 +34,27 @@ pnpm --filter @cyberskill/amlich-core typecheck
 pnpm -r build
 ```
 
-## Kỷ luật build (đọc kỹ)
+## Build discipline (read carefully)
 
-1. Làm theo `docs/BUILD-RUNBOOK.md`: build theo slice, đúng thứ tự topological trong `lunar/README.md`.
-2. P0 trước mọi thứ. Implement `amlich-core` (001/002/003) cho tới khi golden harness xanh 100% trên dải 1900-2199 gồm các năm edge 1985/2007/2030/2053. Đây là ngưỡng go/no-go: lệch bất kỳ năm nào thì dừng, debug, chưa xây UI. Rủi ro kỹ thuật cao nhất nằm ở đây.
-3. Một FR chỉ chuyển sang `done` sau khi qua gate (test xanh + typecheck + review). Không tự ý flip status. Operator (Stephen) chạy gate cuối và git commit trên máy thật.
+1. Follow `docs/BUILD-RUNBOOK.md`: build per slice, in the topological order in `lunar/README.md`.
+2. P0 before everything. Implement `amlich-core` (001/002/003) until the golden harness is 100% green over the range 1900-2199 including the edge years 1985/2007/2030/2053. This is the go/no-go threshold: if any year is off, stop, debug, do not yet build UI. The highest technical risk is here.
+3. An FR moves to `done` only after it passes the gate (tests green + typecheck + review). Do not flip status on your own. The operator (Stephen) runs the final gate and does the git commit on the real machine.
 
-## Invariant của amlich-core (lỗi hay gặp, đã được independent audit bắt)
+## amlich-core invariants (common errors, caught by the independent audit)
 
-- `convertSolar2Lunar` / `convertLunar2Solar` trả về LABELED TUPLE (`[d, m, y, leap]` / `[d, m, y]`), KHÔNG phải object. Mọi consumer PHẢI destructure tuple, KHÔNG đọc `.year` / `.month` (ra undefined -> Invalid Date).
-- convertLunar2Solar trả sentinel `[0, 0, 0]` khi invalid; kiểm bằng `isInvalidSolar()`, KHÔNG kiểm `=== null`.
-- Can-chi ngày: `can = (jdn + 9) % 10`, `chi = (jdn + 1) % 12` (FR-002 là owner). Day-quality (FR-011/013) PHẢI lấy địa chi từ `canChiDay(jdn).chiIndex`, KHÔNG suy từ `(jdn+9)%60 % 12` (lệch +8).
-- Ba epoch và hai synodic constant trong `constants.ts` là các đại lượng riêng, KHÔNG gộp nhầm (PRD 6.2).
-- Core KHÔNG gọi network để tính ngày (NFR-Offline). Mọi phép tính khóa về `Asia/Ho_Chi_Minh` / tz=7 kể cả khi thiết bị ở nước ngoài; dùng `todayInHCM()` thay vì ngày local của thiết bị/server.
+- `convertSolar2Lunar` / `convertLunar2Solar` return a LABELED TUPLE (`[d, m, y, leap]` / `[d, m, y]`), NOT an object. Every consumer MUST destructure the tuple, MUST NOT read `.year` / `.month` (yields undefined -> Invalid Date).
+- convertLunar2Solar returns the sentinel `[0, 0, 0]` when invalid; check it with `isInvalidSolar()`, NOT with `=== null`.
+- Can-chi of the day: `can = (jdn + 9) % 10`, `chi = (jdn + 1) % 12` (FR-002 is the owner). Day-quality (FR-011/013) MUST take the dia chi from `canChiDay(jdn).chiIndex`, MUST NOT derive it from `(jdn+9)%60 % 12` (off by +8).
+- The three epochs and two synodic constants in `constants.ts` are distinct quantities, MUST NOT be conflated (PRD 6.2).
+- Core MUST NOT call the network to compute a date (NFR-Offline). Every computation is locked to `Asia/Ho_Chi_Minh` / tz=7 even when the device is abroad; use `todayInHCM()` instead of the device's/server's local date.
 
-## Quy ước viết (theo chuẩn của Stephen)
+## Writing conventions (per Stephen's standard)
 
-Prose tiếng Việt có dấu; thuật ngữ kỹ thuật, API, code giữ tiếng Anh. Chỉ dùng ký tự bàn phím chuẩn trong prose: straight quotes (" và '), hyphen (-) cho mọi dấu gạch, ba dấu chấm (...) cho ellipsis. Không emit em dash, en dash, curly quote. Không emoji. Giữ format tối thiểu.
+Vietnamese prose with diacritics; technical terms, APIs, and code stay in English. In prose, use only standard keyboard characters: straight quotes (" and '), a hyphen (-) for every dash, three periods (...) for an ellipsis. Do not emit an em dash, an en dash, or a curly quote. No emojis. Keep formatting minimal.
 
-## Liên kết
+## Links
 
 - Build order + PRD traceability: `docs/feature-requests/lunar/README.md`
-- Backlog + founder decisions (đã chốt): `docs/feature-requests/BACKLOG.md`
-- Audit độc lập (defect đã fix + open items): `docs/feature-requests/lunar/INDEPENDENT-AUDIT-2026-06-27.md`
-- Runbook build từng slice: `docs/BUILD-RUNBOOK.md`
+- Backlog + founder decisions (locked): `docs/feature-requests/BACKLOG.md`
+- Independent audit (defects fixed + open items): `docs/feature-requests/lunar/INDEPENDENT-AUDIT-2026-06-27.md`
+- Per-slice build runbook: `docs/BUILD-RUNBOOK.md`

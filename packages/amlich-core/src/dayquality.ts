@@ -1,4 +1,6 @@
-import { canChiDay, jdFromDate, tietKhiStartDiaChi } from "./index";
+import { canChiDay } from "./canchi.js";
+import { jdFromDate } from "./jd.js";
+import { tietKhiStartDiaChi } from "./tietkhi.js";
 
 export const THAN_TRUC_NHAT = [
   "Thanh Long", "Minh Duong", "Kim Quy", "Bao Quang", "Ngoc Duong", "Tu Menh",
@@ -63,13 +65,15 @@ export interface DayQuality {
   disclaimer: "Tham khao phong thuy dan gian";
 }
 
-import { THAN_TRUC_NHAT_TABLE, GIO_HOANG_DAO_TABLE, BASE_JDN_GIAC, TRUC_SUITABLE_AVOID, SAO_28_INFO_MAP } from "./dayquality-tables";
-import { convertSolar2Lunar } from "./index";
+import { THAN_TRUC_NHAT_TABLE, GIO_HOANG_DAO_TABLE, BASE_JDN_GIAC, TRUC_SUITABLE_AVOID, SAO_28_INFO_MAP } from "./dayquality-tables.js";
+import { convertSolar2Lunar } from "./convert.js";
 
 export function getDayQuality(solarDate: Date): DayQuality {
-  const d = solarDate.getDate();
-  const m = solarDate.getMonth() + 1;
-  const y = solarDate.getFullYear();
+  // Doc thanh phan lich theo UTC (khong theo TZ thiet bi) de day-quality on dinh o moi mui gio.
+  // Caller truyen ngay lich (vd new Date("2025-01-29") = UTC midnight); DEC-LUNAR-043.
+  const d = solarDate.getUTCDate();
+  const m = solarDate.getUTCMonth() + 1;
+  const y = solarDate.getUTCFullYear();
   const jdn = jdFromDate(d, m, y);
 
   const cc = canChiDay(jdn);
@@ -124,12 +128,11 @@ export function getDayQuality(solarDate: Date): DayQuality {
 }
 
 export function getMonthDayQualities(year: number, month: number): DayQuality[] {
-  // get number of days in the month
-  const numDays = new Date(year, month, 0).getDate();
+  // So ngay trong thang duong (UTC-based de khong lech theo TZ thiet bi).
+  const numDays = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const results: DayQuality[] = [];
   for (let d = 1; d <= numDays; d++) {
-    // using local date
-    const date = new Date(year, month - 1, d);
+    const date = new Date(Date.UTC(year, month - 1, d));
     results.push(getDayQuality(date));
   }
   return results;

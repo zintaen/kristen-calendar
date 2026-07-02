@@ -1,6 +1,6 @@
 ---
 id: FR-LUNAR-023
-title: "Siri Shortcuts & Live Activities - Tích hợp iOS Native"
+title: "Siri Shortcuts & Live Activities - iOS Native Integration"
 module: LUNAR
 priority: MUST
 status: ready_to_implement
@@ -18,7 +18,7 @@ blocks: []
 source_pages:
   - BACKLOG.md
 source_decisions:
-  - DEC-023 (Sử dụng Apple Developer Account để triển khai Siri Intents và Live Activities cho iOS)
+  - DEC-023 (Use an Apple Developer Account to implement Siri Intents and Live Activities for iOS)
 language: swift
 service: apps/mobile-app/ios
 new_files:
@@ -36,12 +36,12 @@ disallowed_tools:
   - Third-party wrapper plugins for Live Activities (must write native Swift for stability)
 effort_hours: 20
 sub_tasks:
-  - "4h: Setup Apple Developer certificates và App Groups cho Widget/Intents"
-  - "5h: Viết App Intents cho Siri (VD: Hỏi ngày rằm tiếp theo)"
-  - "5h: Viết Live Activity widget UI đếm ngược sự kiện"
-  - "3h: Cấu hình Capacitor plugin để trigger Live Activity từ TS"
-  - "3h: Kiểm thử trên thiết bị thật (iOS 17+)"
-risk_if_skipped: "Bỏ lỡ cơ hội tích hợp sâu vào hệ sinh thái Apple, làm giảm tính tiện dụng của ứng dụng. Khách hàng dùng iPhone rất chuộng Siri và Live Activities."
+  - "4h: Set up Apple Developer certificates and App Groups for the Widget/Intents"
+  - "5h: Write App Intents for Siri (e.g., ask for the next full moon day)"
+  - "5h: Write the Live Activity widget UI counting down to an event"
+  - "3h: Configure the Capacitor plugin to trigger the Live Activity from TS"
+  - "3h: Test on a real device (iOS 17+)"
+risk_if_skipped: "Missing the chance for deep integration into the Apple ecosystem, reducing the app's usability. iPhone users are very fond of Siri and Live Activities."
 ---
 
 # Feature Request
@@ -50,17 +50,17 @@ risk_if_skipped: "Bỏ lỡ cơ hội tích hợp sâu vào hệ sinh thái Appl
 
 ## Summary
 
-Tích hợp sâu iOS Native Features vào ứng dụng Genie. Cho phép người dùng hỏi Siri bằng giọng nói (VD: "Hey Siri, Rằm tháng này là ngày mấy?") thông qua App Intents. Đồng thời, hiển thị đếm ngược (Countdown) tới các sự kiện đặc biệt (VD: Giao thừa, Rằm Trung Thu) ngay trên màn hình khóa (Lock Screen) và Dynamic Island thông qua Live Activities.
+Deeply integrate iOS native features into the Genie app. Let users ask Siri by voice (e.g., "Hey Siri, what day is this month's full moon?") through App Intents. At the same time, show a countdown to special events (e.g., New Year's Eve, Mid-Autumn full moon) right on the Lock Screen and the Dynamic Island through Live Activities.
 
 ## Problem
 
-Người dùng hiện phải mở app (hoặc xem widget) để biết thông tin. Trong nhiều trường hợp (đang bận tay, đang lái xe), việc hỏi Siri nhanh hơn nhiều. Ngoài ra, với những sự kiện lớn như Đêm Giao Thừa, việc có một đồng hồ đếm ngược chạy real-time trên Dynamic Island tạo cảm giác mong chờ và tăng engagement app đáng kể.
+Users currently have to open the app (or look at the widget) to get information. In many cases (hands busy, driving), asking Siri is much faster. In addition, for major events like New Year's Eve, having a real-time countdown clock running on the Dynamic Island creates a sense of anticipation and significantly increases app engagement.
 
 ## Customer Quotes
 
-<untrusted_content source="app-store-reviews"> "Ứng dụng rất hay, nhưng nếu có thể hiển thị đếm ngược đến tết trên cái chỗ đen đen của iPhone 14 Pro (Dynamic Island) thì tuyệt vời." </untrusted_content>
+<untrusted_content source="app-store-reviews"> "The app is great, but it would be wonderful if it could show a countdown to Tet on the little black spot of the iPhone 14 Pro (Dynamic Island)." </untrusted_content>
 
-## §1 — Description (Normative Clauses)
+## §1 - Description (Normative Clauses)
 
 1. **MUST** implement App Intents (Swift) to expose at least one Siri shortcut: "Next Event Query" (e.g., "When is the next Full Moon?").
 2. **MUST** implement a Live Activity using ActivityKit to show a real-time countdown to a specified Lunar Event.
@@ -71,7 +71,7 @@ Người dùng hiện phải mở app (hoặc xem widget) để biết thông ti
 7. **SHOULD** automatically start the Live Activity 24 hours before a major event (e.g., Lunar New Year Eve) if the user opens the app.
 8. **MUST NOT** rely solely on background push notifications to keep Live Activities alive; rely on deterministic client-side countdowns using target timestamps.
 
-## §2 — Why this design
+## §2 - Why this design
 
 **Why native Swift instead of a generic Cordova/Capacitor plugin for Live Activities (§1 #4)?** 
 Live Activities UI requires SwiftUI. Existing Capacitor wrappers only pass data; the actual UI rendering *must* be done in native SwiftUI inside a Widget Extension target.
@@ -79,7 +79,7 @@ Live Activities UI requires SwiftUI. Existing Capacitor wrappers only pass data;
 **Why App Groups (§1 #5)?**
 App Intents and Widget Extensions run in isolated processes. They cannot access the main app's Capacitor SQLite database directly. We must write essential upcoming event dates into a shared `UserDefaults` suite (App Group) that the extensions can read instantly.
 
-## §3 — API contract
+## §3 - API contract
 
 ```typescript
 // Capacitor Plugin Interface (TypeScript)
@@ -108,14 +108,14 @@ struct LunarCountdownAttributes: ActivityAttributes {
 }
 ```
 
-## §4 — Acceptance criteria
+## §4 - Acceptance criteria
 
-1. **Siri Intent** — When the user asks Siri "What is the next event in Genie?", Siri responds audibly with the correct localized event name and date without opening the app.
-2. **Live Activity Start** — When `startCountdown` is called, a Live Activity appears on the Lock Screen showing the event name and a ticking timer.
-3. **Dynamic Island** — On iPhone 14 Pro and newer, returning to the Home Screen moves the countdown into the Dynamic Island.
-4. **App Group Data Sync** — When the main app computes upcoming events, it writes the next 3 events to the shared App Group, allowing Siri to access them offline.
+1. **Siri Intent** - When the user asks Siri "What is the next event in Genie?", Siri responds audibly with the correct localized event name and date without opening the app.
+2. **Live Activity Start** - When `startCountdown` is called, a Live Activity appears on the Lock Screen showing the event name and a ticking timer.
+3. **Dynamic Island** - On iPhone 14 Pro and newer, returning to the Home Screen moves the countdown into the Dynamic Island.
+4. **App Group Data Sync** - When the main app computes upcoming events, it writes the next 3 events to the shared App Group, allowing Siri to access them offline.
 
-## §5 — Verification
+## §5 - Verification
 
 ```swift
 // test/GenieIntentsTests.swift
@@ -138,7 +138,7 @@ final class GenieIntentsTests: XCTestCase {
 }
 ```
 
-## §6 — Implementation skeleton
+## §6 - Implementation skeleton
 
 ```swift
 // GenieIntents.swift
@@ -156,20 +156,20 @@ struct GetNextEventIntent: AppIntent {
 }
 ```
 
-## §7 — Dependencies
+## §7 - Dependencies
 
 - **Upstream:** FR-LUNAR-004 (Core app setup and build targets for iOS).
 - **Apple:** Requires active Apple Developer Program membership (Confirmed: DEC-233).
 
-## §8 — Example payloads
+## §8 - Example payloads
 
 N/A - Native bridging primarily.
 
-## §9 — Open questions
+## §9 - Open questions
 
 - `Deferred: P4 slice 3` - Should we support Android's equivalent (Live spaces / ongoing notifications)? Focus on iOS first due to higher demographic overlap.
 
-## §10 — Failure modes inventory
+## §10 - Failure modes inventory
 
 | Failure | Detection | Outcome | Recovery |
 |---|---|---|---|
@@ -184,7 +184,7 @@ N/A - Native bridging primarily.
 | Dynamic Island not supported | Hardware limitation | Falls back to Lock Screen | Expected OS behavior |
 | Developer certs expire | CI/CD build fails | App cannot be deployed | Renew certs |
 
-## §11 — Implementation notes
+## §11 - Implementation notes
 
 - **Timer UI:** In SwiftUI, use `Text(targetDate, style: .timer)` to allow the OS to update the ticking clock every second without requiring background code execution. This is critical for battery life.
 - **Entitlements:** Both the main app target and the extensions must share the exact same App Group entitlement and Team ID.
@@ -192,7 +192,7 @@ N/A - Native bridging primarily.
 ## AI Authorship Disclosure
 
 - **Tools used:** LLM agent acting as feature-request-author
-- **Scope:** Toàn bộ nội dung FR.
-- **Human review:** Được operator review sau khi sinh.
+- **Scope:** The entire FR content.
+- **Human review:** Reviewed by the operator after generation.
 
 *End of FR-LUNAR-023.*

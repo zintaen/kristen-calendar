@@ -12,47 +12,47 @@ authoring_md_compliance: 2026-06-27 (rule 36 - 6 ISS >= 6 minimum; DEC-LUNAR-200
 
 ## §1 - Verdict summary
 
-FR-LUNAR-020 đặc tả cơ chế freemium ba tier (Free/Premium/Family) và entitlement gating server-side cho "Genie Âm Lịch". Phạm vi: 13 mệnh đề normative ở §1 (TIER_FEATURES bất biến, gate server-side bắt buộc, cache 24h TTL re-validate, rate-limit Genie 0/50/100 per tháng, gate familySharing chỉ Family, webhook HMAC verification, không xây dựng payment UI, GET /api/entitlement đầy đủ, UpgradePrompt lợi ích cụ thể, lock icon thay vì ẩn UI, theo dõi tỷ lệ chuyển đổi, graceful downgrade 30 ngày, trial 7 ngày single-use). 6 đoạn §2 giải thích quyết định thiết kế. §3 có TypeScript đầy đủ - `Tier`, `EntitlementRecord`, `FeatureGate`, `TIER_FEATURES`, `EntitlementClient`, webhook payload types - và migration SQL 0019 với RLS. 15 AC kiểm tra được. §5 có 5 nhóm test: TIER_FEATURES bất biến, `isFeatureAllowed`, rate-limiter, webhook HMAC, EntitlementClient cache TTL. §8 có migration SQL, 4 JSON payload mẫu (Free, Family, 403, 429). §10 có 10 hàng failure. §11 có 7 ghi chú triển khai. Ánh xạ đến PRD #14 (Phase 3 monetization), #15 (Success Metrics - tỷ lệ chuyển đổi >= 3%).
+FR-LUNAR-020 specifies the three-tier freemium mechanism (Free/Premium/Family) and server-side entitlement gating for "Genie Am Lich". Scope: 13 normative clauses in §1 (immutable TIER_FEATURES, server-side gate required, cache 24h TTL re-validate, Genie rate-limit 0/50/100 per month, familySharing gate Family-only, webhook HMAC verification, do not build payment UI, full GET /api/entitlement, UpgradePrompt with concrete benefits, lock icon instead of hiding the UI, track the conversion rate, graceful 30-day downgrade, single-use 7-day trial). 6 §2 paragraphs explaining the design decisions. §3 has full TypeScript - `Tier`, `EntitlementRecord`, `FeatureGate`, `TIER_FEATURES`, `EntitlementClient`, webhook payload types - and migration SQL 0019 with RLS. 15 testable ACs. §5 has 5 test groups: immutable TIER_FEATURES, `isFeatureAllowed`, rate-limiter, webhook HMAC, EntitlementClient cache TTL. §8 has the SQL migration, 4 sample JSON payloads (Free, Family, 403, 429). §10 has 10 failure rows. §11 has 7 implementation notes. Maps to PRD #14 (Phase 3 monetization), #15 (Success Metrics - conversion rate >= 3%).
 
 ## §2 - Findings (all resolved during authoring)
 
-### ISS-001 - Client-trusted entitlement: sửa localStorage là đủ để có Premium miễn phí
-Đây là lỗ hổng bảo mật cơ bản cho bất kỳ freemium nào. Resolved: §1 #2 gate PHẢI ở server-side trong mọi handler; DEC-LUNAR-201; mẫu ở §6 gọi `getEntitlement(userId)` từ database trước mọi action; AC #7 kiểm tra chính xác kịch bản này; §5 test vượt quota ở server.
+### ISS-001 - Client-trusted entitlement: editing localStorage is enough to get Premium for free
+This is a basic security hole for any freemium. Resolved: §1 #2 the gate MUST be server-side in every handler; DEC-LUNAR-201; the §6 pattern calls `getEntitlement(userId)` from the database before every action; AC #7 tests exactly this scenario; §5 test exceeding the quota at the server.
 
-### ISS-002 - Không có định nghĩa bất biến cho tier - logic drift theo thời gian
-Nếu mỗi file điều kiện tier theo cách riêng, thay đổi giá trị quota sẽ bị bỏ sót ở một số nơi. Resolved: §3 `TIER_FEATURES: Record<Tier, FeatureGate>` là nguồn sự thật duy nhất; §11 nhấn mạnh "KHÔNG ĐƯỢC hard-code tier check ở các chỗ khác nhau"; §5 test `TIER_FEATURES` trực tiếp; DEC-LUNAR-200 ghi rõ định nghĩa là bất biến.
+### ISS-002 - No immutable definition for the tier - the logic drifts over time
+If each file conditions the tier in its own way, changing a quota value gets missed in some places. Resolved: §3 `TIER_FEATURES: Record<Tier, FeatureGate>` is the single source of truth; §11 stresses "MUST NOT hard-code tier checks in different places"; §5 tests `TIER_FEATURES` directly; DEC-LUNAR-200 states the definition is immutable.
 
-### ISS-003 - Webhook thanh toán không có xác minh HMAC - bất kỳ ai cấp Premium miễn phí
-Nếu webhook chỉ nhận POST mà không xác minh chữ ký, tấn công là tầm thường. Resolved: §1 #6 xác minh HMAC/JWT bắt buộc trước xử lý; §3 `AppStoreWebhookPayload.signedTransactionInfo` (JWS) và `ZaloPayWebhookPayload.mac` (HMAC-SHA256); §5 test webhook MAC sai -> HTTP 401; AC #8, #9, #10; disallowed_tools ghi rõ.
+### ISS-003 - The payment webhook has no HMAC verification - anyone grants Premium for free
+If the webhook only accepts a POST without verifying the signature, the attack is trivial. Resolved: §1 #6 HMAC/JWT verification required before processing; §3 `AppStoreWebhookPayload.signedTransactionInfo` (JWS) and `ZaloPayWebhookPayload.mac` (HMAC-SHA256); §5 test a wrong webhook MAC -> HTTP 401; AC #8, #9, #10; disallowed_tools states it clearly.
 
-### ISS-004 - Rate-limit Genie không có cơ chế atomic: race condition ở ngưỡng quota
-Nếu hai request đồng thời kiểm tra "đã dùng 49/50" cả hai sẽ được phép, thực sự dùng 51 calls. Resolved: §3 `checkAndIncrementGenieUsage()` dùng `INSERT ... ON CONFLICT DO UPDATE` atomic; §11 ghi nhận kỹ thuật này; §10 hàng "Race condition: 2 Genie call đồng thời" ghi phương án giải quyết.
+### ISS-004 - The Genie rate-limit has no atomic mechanism: a race condition at the quota threshold
+If two concurrent requests both check "used 49/50" both are allowed, actually using 51 calls. Resolved: §3 `checkAndIncrementGenieUsage()` uses `INSERT ... ON CONFLICT DO UPDATE` atomically; §11 notes this technique; §10 row "Race condition: 2 concurrent Genie calls" states the fix.
 
-### ISS-005 - EntitlementClient cache trong localStorage: người dùng có thể sửa để bypass
-Cache trong localStorage có thể bị edit giống như bất kỳ client storage nào khác. Resolved: §3 `EntitlementClient` ghi rõ "cache trong memory (không phải localStorage)"; §11 giải thích lý do; AC #7 kiểm tra rằng sửa localStorage KHÔNG bypass server gate.
+### ISS-005 - EntitlementClient cache in localStorage: the user can edit it to bypass
+A cache in localStorage can be edited like any other client storage. Resolved: §3 `EntitlementClient` states clearly "cache in memory (not localStorage)"; §11 explains why; AC #7 checks that editing localStorage does NOT bypass the server gate.
 
-### ISS-006 - Không có graceful downgrade: người dùng mất Premium data ngay khi hết hạn
-Hết hạn đột ngột mất sharedWith và lịch sử Genie tạo trải nghiệm tồi và có thể dẫn đến charge-back. Resolved: §1 #12 graceful downgrade 30 ngày giữ dữ liệu; §3 `gracePeriodEndsAt` trong `EntitlementResponse`; §6 `getEntitlement()` logic auto-downgrade với comment "giữ dữ liệu 30 ngày"; AC #14; §11 ghi nhận cron job thông báo trước.
+### ISS-006 - No graceful downgrade: the user loses Premium data the moment it expires
+Abrupt expiry losing sharedWith and Genie history creates a bad experience and can lead to charge-backs. Resolved: §1 #12 graceful 30-day downgrade keeps data; §3 `gracePeriodEndsAt` in `EntitlementResponse`; §6 `getEntitlement()` auto-downgrade logic with the comment "keep data for 30 days"; AC #14; §11 notes a cron job to notify in advance.
 
 ## §3 - Resolution
 
-Tất cả 6 mối lo ngại có học được xử lý: server-side gate với mẫu tường minh trong §6 (ISS-001), `TIER_FEATURES` là nguồn sự thật duy nhất (ISS-002), xác minh HMAC JWS + HMAC-SHA256 trước xử lý webhook (ISS-003), atomic increment ngăn race condition ở ngưỡng quota (ISS-004), cache trong memory không phải localStorage (ISS-005), graceful downgrade 30 ngày giữ dữ liệu (ISS-006). **Score = 10/10.** Sẵn sàng transition draft -> ready_to_implement.
+All 6 substantive concerns handled: a server-side gate with an explicit pattern in §6 (ISS-001), `TIER_FEATURES` as the single source of truth (ISS-002), HMAC JWS + HMAC-SHA256 verification before processing the webhook (ISS-003), an atomic increment preventing the race condition at the quota threshold (ISS-004), cache in memory not localStorage (ISS-005), a graceful 30-day downgrade keeping data (ISS-006). **Score = 10/10.** Ready to transition draft -> ready_to_implement.
 
 ## §3b - Independent adversarial pass (2026-06-27)
 
-Reviewer độc lập xác nhận trục bảo mật entitlement (BLOCKER-class checklist). Pre-fix độc lập: 9/10. Gate server-side: §6 mẫu `getEntitlement(userId)` đọc từ DB, `isFeatureAllowed(tier, ...)` trước mọi action; client KHÔNG quyết định tier (AC #7 kiểm tra sửa `localStorage.tier` vẫn 403). Webhook: xác minh JWS (App Store) + HMAC-SHA256 (Zalo Pay) TRƯỚC khi cấp entitlement; MAC sai -> 401 (AC #9/#10). Atomic quota: `INSERT ... ON CONFLICT DO UPDATE SET call_count = call_count + 1` chống race ở ngưỡng. `user_entitlements` có RLS + `server_update_entitlement WITH CHECK (FALSE)`. Không có client-trusted gate -> KHÔNG có BLOCKER.
+The independent reviewer confirmed the entitlement security axis (a BLOCKER-class checklist). Pre-fix independent: 9/10. Server-side gate: the §6 pattern `getEntitlement(userId)` reads from the DB, `isFeatureAllowed(tier, ...)` before every action; the client does NOT decide the tier (AC #7 checks editing `localStorage.tier` still 403). Webhook: verify JWS (App Store) + HMAC-SHA256 (Zalo Pay) BEFORE granting entitlement; a wrong MAC -> 401 (AC #9/#10). Atomic quota: `INSERT ... ON CONFLICT DO UPDATE SET call_count = call_count + 1` prevents the race at the threshold. `user_entitlements` has RLS + `server_update_entitlement WITH CHECK (FALSE)`. No client-trusted gate -> NO BLOCKER.
 
-- NIT (không sửa) - migration của FR-020 là `0019_entitlements.sql`; do FR-017 và FR-018 đều tạo `0016_*`, chuỗi 0016-0019 cần được đánh lại nhất quán khi merge cả nhánh P3 (xem ghi chú trùng số ở audit FR-017/018). `genie_usage_monthly` được khai trong migration 0019 nhưng không liệt kê trong frontmatter `new_files` của FR-020 (chỉ ghi file .sql tổng) - cosmetic. Post-fix: 10/10.
+- NIT (not fixed) - FR-020's migration is `0019_entitlements.sql`; because FR-017 and FR-018 both create `0016_*`, the 0016-0019 sequence needs consistent renumbering when the whole P3 branch merges (see the number-collision note in the FR-017/018 audits). `genie_usage_monthly` is declared in migration 0019 but not listed in FR-020's frontmatter `new_files` (only the overall .sql file is listed) - cosmetic. Post-fix: 10/10.
 
 ## §4 - Readiness pass (2026-06-28)
 
-Xác nhận ba trục bảo mật/thương mại:
+Confirmed the three security/commercial axes:
 
-1. Server-side entitlement: AC #7 ("sửa localStorage.tier vẫn 403") + §5 test `describe("rate-limiter")` + §6 mẫu `getEntitlement(userId)` từ DB truoc moi action - có.
-2. Webhook verify HMAC: AC #8/#9/#10 (AppStore JWS + ZaloPayPay MAC) + §5 test `describe("webhook - xac minh HMAC")` - có.
-3. Atomic quota: AC #2/#3 (rate-limit 429 sau 50/100 calls) + §5 test `describe("rate-limiter")` + §11 ghi rõ `INSERT ... ON CONFLICT DO UPDATE SET call_count = call_count + 1` - có.
-4. Sửa nhỏ: sub_tasks "migration 0019" sửa thành "migration 0020_entitlements.sql" cho khớp tên file thực.
+1. Server-side entitlement: AC #7 ("editing localStorage.tier still 403") + §5 test `describe("rate-limiter")` + the §6 pattern `getEntitlement(userId)` from the DB before every action - present.
+2. Webhook verify HMAC: AC #8/#9/#10 (AppStore JWS + ZaloPay MAC) + §5 test `describe("webhook - verify HMAC")` - present.
+3. Atomic quota: AC #2/#3 (rate-limit 429 after 50/100 calls) + §5 test `describe("rate-limiter")` + §11 states `INSERT ... ON CONFLICT DO UPDATE SET call_count = call_count + 1` - present.
+4. Small fix: the sub_tasks "migration 0019" changed to "migration 0020_entitlements.sql" to match the actual file name.
 
-Frontmatter ids/depends_on/blocks/DEC-ids/effort_hours không thay đổi. Sẵn sàng handoff không cần context thêm.
+Frontmatter ids/depends_on/blocks/DEC-ids/effort_hours unchanged. Ready for handoff without further context.
 
-*Hết audit FR-LUNAR-020.*
+*End of audit FR-LUNAR-020.*

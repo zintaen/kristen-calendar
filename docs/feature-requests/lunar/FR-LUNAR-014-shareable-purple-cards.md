@@ -1,6 +1,6 @@
 ---
 id: FR-LUNAR-014
-title: "Shareable cards - thiệp tông tím export ảnh ('Hôm nay Rằm tháng Giêng'), chia sẻ mạng xã hội"
+title: "Shareable cards - purple-toned card image export ('Today is the Full Moon of the first lunar month'), social-media sharing"
 module: LUNAR
 priority: SHOULD
 status: ready_to_implement
@@ -19,10 +19,10 @@ source_pages:
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#4 (FR-F03)"
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#13 (shareable cards)"
 source_decisions:
-  - DEC-LUNAR-140 (render card trên HTMLCanvasElement 1080x1080px, xuất PNG qua canvas.toBlob; không dùng html2canvas vì CORS + font-render không ổn định)
-  - DEC-LUNAR-141 (mọi cặp chữ/nền PHẢI pass APCA Lc >= 75 bằng apca-w3 truoc khi merge; tím đậm trên nền kem là cặp mặc định)
-  - DEC-LUNAR-142 (chia sẻ qua Web Share API (navigator.share) trên iOS/Android; fallback "tải về" khi API không khả dụng)
-  - DEC-LUNAR-143 (nội dung card lấy từ DayInfo đã tính sẵn ở FR-LUNAR-007, không tính lại; card không cần mạng)
+  - DEC-LUNAR-140 (render the card on an HTMLCanvasElement 1080x1080px, export PNG via canvas.toBlob; do not use html2canvas because of CORS + unstable font rendering)
+  - DEC-LUNAR-141 (every text/background pair MUST pass APCA Lc >= 75 with apca-w3 before merge; deep purple on cream is the default pair)
+  - DEC-LUNAR-142 (share via the Web Share API (navigator.share) on iOS/Android; fall back to "download" when the API is unavailable)
+  - DEC-LUNAR-143 (the card content comes from the DayInfo already computed in FR-LUNAR-007, not recomputed; the card needs no network)
 language: typescript 5.x
 service: apps/web/
 new_files:
@@ -37,53 +37,53 @@ allowed_tools:
   - file_write: apps/web/components/ShareCard.tsx, apps/web/components/ShareCardSheet.tsx, apps/web/lib/card-renderer.ts, apps/web/lib/card-renderer.test.ts
   - bash: cd apps/web && pnpm test card-renderer
 disallowed_tools:
-  - gọi network trong quá trình render card (vi phạm DEC-LUNAR-143 / NFR-Offline cho dữ liệu ngày)
-  - dùng html2canvas hoặc puppeteer để render (vi phạm DEC-LUNAR-140)
+  - call the network during card rendering (violates DEC-LUNAR-143 / NFR-Offline for the day data)
+  - use html2canvas or puppeteer to render (violates DEC-LUNAR-140)
 effort_hours: 6
 sub_tasks:
-  - "1.0h: card-renderer.ts - drawCard(ctx, CardData, CardTheme) ve nen gradient, khung, text layer"
-  - "0.5h: font loading - PreloadFont Be Vietnam Pro 700 truoc khi draw, fallback sans-serif"
-  - "1.0h: APCA check compile-time - apca-w3 assertion trong card-renderer.test.ts cho moi cap mau"
-  - "1.0h: ShareCard.tsx - canvas 1080x1080, preview thu nho 360x360 trong UI"
-  - "0.5h: xuất PNG blob, tạo File object cho Web Share API"
-  - "1.0h: ShareCardSheet.tsx - bottom-sheet chon template (Rằm, Mùng Một, giỗ, custom), nút Chia sẻ / Tải về"
-  - "1.0h: test suite - kich thuoc canvas, APCA assertions, blob output, fallback download"
-risk_if_skipped: "Tính năng chia sẻ thiệp tím là điểm nhấn trực quan của persona 'Chị Linh' (diễn viên, thích đăng Instagram). Thiếu FR-014, app không có nội dung viral để lan truyền tự nhiên. FR-009 đã xây tokens tím nhưng không có bề mặt export nào để dùng chúng ra bên ngoài app."
+  - "1.0h: card-renderer.ts - drawCard(ctx, CardData, CardTheme) draws the gradient background, frame, text layer"
+  - "0.5h: font loading - PreloadFont Be Vietnam Pro 700 before draw, fallback sans-serif"
+  - "1.0h: compile-time APCA check - apca-w3 assertion in card-renderer.test.ts for every color pair"
+  - "1.0h: ShareCard.tsx - canvas 1080x1080, scaled-down preview 360x360 in the UI"
+  - "0.5h: export PNG blob, create a File object for the Web Share API"
+  - "1.0h: ShareCardSheet.tsx - bottom-sheet to choose a template (Full Moon, First Day, death anniversary, custom), Share / Download buttons"
+  - "1.0h: test suite - canvas size, APCA assertions, blob output, fallback download"
+risk_if_skipped: "The purple card-sharing feature is the visual highlight for the persona 'Chi Linh' (an actor who likes to post on Instagram). Without FR-014, the app has no viral content to spread organically. FR-009 already built the purple tokens but there is no export surface to bring them outside the app."
 ---
 
 ## §1 - Description (BCP-14 normative)
 
-Hệ thống PHẢI render thiệp ảnh tông tím dạng vuông 1080x1080px trên `HTMLCanvasElement` và cung cấp nút chia sẻ hoặc tải về. Hợp đồng:
+The system MUST render a purple-toned card image as a 1080x1080px square on an `HTMLCanvasElement` and provide a share or download button. Contract:
 
-1. PHẢI render card trên `HTMLCanvasElement` 1080x1080px bằng Canvas 2D API; KHÔNG ĐƯỢC dùng `html2canvas`, `puppeteer`, hoặc thư viện DOM-to-image nào (DEC-LUNAR-140).
-2. PHẢI export PNG qua `canvas.toBlob("image/png")` với chất lượng không nén; file size mục tiêu < 500 KB.
-3. PHẢI hiển thị tối thiểu ba vùng nội dung: (a) dòng tiêu đề ngày âm (ví dụ "Rằm tháng Giêng"), (b) ngày dương tương ứng, (c) logo/watermark nhỏ "Genie Am Lich - CyberSkill".
-4. PHẢI load font "Be Vietnam Pro" weight 700 qua `FontFace` API truoc khi gọi `drawCard`; nếu load thất bại trong 3s thì fallback sang sans-serif và ghi log cảnh báo (DEC-LUNAR-143).
-5. PHẢI đạt ngưỡng APCA theo cỡ chữ cho mọi cặp text/nền trên card, kiểm bằng `apca-w3` trong test suite; build PHẢI fail nếu thất bại (DEC-LUNAR-141): text chính (>= 60px, `textPrimary`) PHẢI Lc >= 75; text phụ (`textSecondary`) PHẢI Lc >= 60; watermark cỡ nhỏ (~18-22px) PHẢI Lc >= 90 (theo APCA cho chữ nhỏ, §11). Mỗi ngưỡng có một assertion riêng tương ứng cỡ chữ thực tế.
-6. PHẢI hỗ trợ ít nhất hai template màu: (a) "purple-cream" - text tím đậm (`#3B1F6E`) trên nền kem (`#FDF6EC`), (b) "purple-dark" - text kem trên nền tím đậm (`#3B1F6E`); cả hai PHẢI pass APCA >= 75.
-7. PHẢI cung cấp nút "Chia se" gọi `navigator.share({ files: [File] })` (Web Share API Level 2) để chia sẻ ảnh trực tiếp lên mạng xã hội / Zalo trên iOS/Android (DEC-LUNAR-142).
-8. PHẢI có fallback "Tai ve" tạo thẻ `<a download>` và trigger click khi `navigator.canShare` trả về false hoặc không tồn tại (DEC-LUNAR-142).
-9. PHẢI hiển thị preview card thu nhỏ 360x360px trong UI (scale từ canvas 1080px) truoc khi người dùng chia sẻ.
-10. PHẢI cung cấp `ShareCardSheet` - một bottom-sheet cho phép người dùng chọn template và ngày (mặc định là ngày đang xem trong lịch tháng FR-LUNAR-007).
-11. KHÔNG ĐƯỢC tính lại `DayInfo` bên trong card renderer; PHẢI nhận `CardData` đã tính sẵn từ layer trên (DEC-LUNAR-143).
-12. NÊN cho phép người dùng chọn thêm can-chi ngày hiển thị trên card (ví dụ "Giáp Tý - ngày Hoàng đạo").
-13. NÊN thêm họa tiết trang trí nhẹ (gradient, hoa văn trừu tượng) không che khuất text; họa tiết PHẢI vẽ bằng Canvas 2D, không dùng ảnh ngoài để tránh CORS.
+1. MUST render the card on an `HTMLCanvasElement` 1080x1080px with the Canvas 2D API; MUST NOT use `html2canvas`, `puppeteer`, or any DOM-to-image library (DEC-LUNAR-140).
+2. MUST export PNG via `canvas.toBlob("image/png")` with uncompressed quality; the target file size is < 500 KB.
+3. MUST display at least three content areas: (a) the lunar date title line (for example "Full Moon of the first lunar month"), (b) the corresponding solar date, (c) a small logo/watermark "Genie Am Lich - CyberSkill".
+4. MUST load the font "Be Vietnam Pro" weight 700 via the `FontFace` API before calling `drawCard`; if loading fails within 3s, fall back to sans-serif and log a warning (DEC-LUNAR-143).
+5. MUST meet the APCA threshold by font size for every text/background pair on the card, checked with `apca-w3` in the test suite; the build MUST fail if it does not (DEC-LUNAR-141): primary text (>= 60px, `textPrimary`) MUST be Lc >= 75; secondary text (`textSecondary`) MUST be Lc >= 60; the small watermark (~18-22px) MUST be Lc >= 90 (per APCA for small text, §11). Each threshold has its own assertion corresponding to the actual font size.
+6. MUST support at least two color templates: (a) "purple-cream" - deep purple text (`#3B1F6E`) on a cream background (`#FDF6EC`), (b) "purple-dark" - cream text on a deep purple background (`#3B1F6E`); both MUST pass APCA >= 75.
+7. MUST provide a "Share" button that calls `navigator.share({ files: [File] })` (Web Share API Level 2) to share the image directly to social media / Zalo on iOS/Android (DEC-LUNAR-142).
+8. MUST have a "Download" fallback that creates an `<a download>` element and triggers a click when `navigator.canShare` returns false or does not exist (DEC-LUNAR-142).
+9. MUST display a scaled-down 360x360px card preview in the UI (scaled from the 1080px canvas) before the user shares.
+10. MUST provide `ShareCardSheet` - a bottom-sheet that lets the user choose a template and a date (defaulting to the day being viewed in the FR-LUNAR-007 month calendar).
+11. MUST NOT recompute `DayInfo` inside the card renderer; it MUST receive the already-computed `CardData` from the layer above (DEC-LUNAR-143).
+12. SHOULD let the user additionally choose to display the day's can-chi on the card (for example "Giap Ty - auspicious day").
+13. SHOULD add light decorative motifs (a gradient, abstract patterns) that do not obscure the text; the motifs MUST be drawn with Canvas 2D, not using external images, to avoid CORS.
 
 ---
 
 ## §2 - Why this design (rationale for humans)
 
-**Tại sao dùng Canvas 2D thay vì html2canvas?** `html2canvas` chụp DOM thành ảnh nhưng font render, CORS image, và z-index thường ra kết quả khác trình duyệt. Canvas 2D API là surface đồng nhất, kiểm soát được từng pixel, không phụ thuộc DOM layout, và dễ test bằng node-canvas trong môi trường CI (DEC-LUNAR-140).
+**Why use Canvas 2D instead of html2canvas?** `html2canvas` captures the DOM into an image, but font rendering, CORS images, and z-index often produce results that differ across browsers. The Canvas 2D API is a consistent surface, controllable pixel by pixel, independent of DOM layout, and easy to test with node-canvas in a CI environment (DEC-LUNAR-140).
 
-**Tại sao kích thuoc 1080x1080px?** Instagram feed yêu cầu tối thiểu 1080px để không bị làm mờ khi upload; tỷ lệ 1:1 là format phổ biến nhất cho story/post dạng vuông. Zalo Stories cũng khuyến nghị 1080px. Hiển thị preview 360px trong app giúp load nhanh mà không ảnh hưởng chất lượng ảnh export (DEC-LUNAR-140).
+**Why the 1080x1080px size?** The Instagram feed requires at least 1080px to avoid blurring on upload; a 1:1 ratio is the most common format for a square story/post. Zalo Stories also recommends 1080px. Displaying a 360px preview in the app loads quickly without affecting the exported image quality (DEC-LUNAR-140).
 
-**Tại sao cần APCA assertion trong test?** Tông tím dễ rơi vào vùng tương phản trung bình nếu chọn sai shade. Bắt lỗi tại compile time bằng `apca-w3` đảm bảo mọi thay đổi token màu trong `packages/ui/` không âm thầm làm hỏng tương phản card mà không ai phát hiện (DEC-LUNAR-141, NFR-Accessibility).
+**Why an APCA assertion in the test?** Purple tones easily fall into the mid-contrast range if the wrong shade is chosen. Catching the error at compile time with `apca-w3` ensures that any color-token change in `packages/ui/` does not silently break the card contrast without anyone noticing (DEC-LUNAR-141, NFR-Accessibility).
 
-**Tại sao dùng Web Share API thay vì mở link upload?** Web Share API Level 2 cho phép chia sẻ file trực tiếp vào app bất kỳ (Instagram, Zalo, Messenger, Save to Photos) bằng một action sheet native của hệ điều hành. Đây là trải nghiệm mượt mà nhất trên iOS Safari và Android Chrome mà không cần OAuth hay upload lên server (DEC-LUNAR-142).
+**Why use the Web Share API instead of opening an upload link?** The Web Share API Level 2 lets the user share a file directly into any app (Instagram, Zalo, Messenger, Save to Photos) via a native OS action sheet. This is the smoothest experience on iOS Safari and Android Chrome without needing OAuth or a server upload (DEC-LUNAR-142).
 
-**Tại sao CardData đến từ layer trên?** Card renderer là một pure drawing function, không có state. Tách nó khỏi tính toán lịch giúp test độc lập và tái dùng khi có thêm template. Việc tính lại `DayInfo` trong renderer sẽ tạo ra dependency vòng với `amlich-core` mà không cần thiết (DEC-LUNAR-143).
+**Why does CardData come from the layer above?** The card renderer is a pure drawing function with no state. Separating it from the calendar computation makes it independently testable and reusable when more templates are added. Recomputing `DayInfo` in the renderer would create an unnecessary circular dependency with `amlich-core` (DEC-LUNAR-143).
 
-**Tại sao dùng hai template tối thiểu?** "Purple-cream" phù hợp không khí nhẹ nhàng (Mùng Một, Rằm); "purple-dark" cho cảm giác trang trọng hơn (Vu Lan, đám giỗ). Hai template cũng là cách test rằng cả hai hướng màu đều pass APCA, không chỉ một chiều (DEC-LUNAR-141).
+**Why use two templates at minimum?** "Purple-cream" suits a light mood (First Day, Full Moon); "purple-dark" gives a more solemn feel (Vu Lan, death anniversaries). Two templates are also a way to test that both color directions pass APCA, not just one (DEC-LUNAR-141).
 
 ---
 
@@ -184,20 +184,20 @@ export function ShareCardSheet(props: ShareCardSheetProps): React.ReactElement;
 
 ## §4 - Acceptance criteria
 
-1. Canvas được tạo đúng kích thuoc 1080x1080px; `canvas.width === 1080 && canvas.height === 1080`.
-2. `lunarLabel` xuất hiện trong vùng trung tâm card với font size >= 60px; `solarLabel` xuất hiện bên dưới.
-3. Cặp `textPrimary` / `background` của "purple-cream" đạt APCA Lc >= 75 khi kiểm bằng `apca-w3`; assertion fail build nếu < 75.
-4. Cặp `textPrimary` / `background` của "purple-dark" đạt APCA Lc >= 75; assertion fail build nếu < 75.
-5. `exportCardBlob` trả về `Blob` type `"image/png"` có size > 0 và < 500 KB cho nội dung tiêu chuẩn.
-6. Khi `navigator.canShare` là true, `shareCard` gọi `navigator.share` với object chứa `files: [File]`.
-7. Khi `navigator.canShare` là false hoặc undefined, `shareCard` tạo `<a download>` element và trigger click; không throw.
-8. Preview 360px hiển thị trong `ShareCard` component truoc khi người dùng ấn nút chia sẻ.
-9. `ShareCardSheet` hiển thị bottom-sheet với ít nhất 2 template option; chọn template cập nhật preview ngay lập tức.
-10. `loadCardFont` trả về `false` khi timeout 3s; `drawCard` vẫn chạy với font fallback và không throw.
-11. `drawCard` không gọi `fetch`, `XMLHttpRequest`, hoặc bất kỳ network API nào.
-12. Watermark "Genie Am Lich · CyberSkill" xuất hiện ở góc dưới card với font size nhỏ hơn text chính, và `drawCard(...).apcaLc.watermark >= 90` cho cả hai theme (chữ nhỏ cần Lc cao hơn theo APCA, §1 #5/§11); assertion fail build nếu < 90.
-13. Toàn bộ test suite `card-renderer.test.ts` pass trong môi trường CI (jsdom hoặc node-canvas).
-14. `drawCard` nhận `CardData` làm tham số; không có import `canChiDay`, `getDayQuality`, `convertSolar2Lunar`, hoặc bất kỳ symbol nào từ `@cyberskill/amlich-core` trong file `card-renderer.ts` (DEC-LUNAR-143) - kiểm tra bằng grep assertion trong CI: `grep -r "amlich-core" apps/web/lib/card-renderer.ts` trả về 0 kết quả.
+1. The canvas is created at exactly 1080x1080px; `canvas.width === 1080 && canvas.height === 1080`.
+2. `lunarLabel` appears in the center area of the card with a font size >= 60px; `solarLabel` appears below it.
+3. The `textPrimary` / `background` pair of "purple-cream" reaches APCA Lc >= 75 when checked with `apca-w3`; the assertion fails the build if < 75.
+4. The `textPrimary` / `background` pair of "purple-dark" reaches APCA Lc >= 75; the assertion fails the build if < 75.
+5. `exportCardBlob` returns a `Blob` of type `"image/png"` with size > 0 and < 500 KB for standard content.
+6. When `navigator.canShare` is true, `shareCard` calls `navigator.share` with an object containing `files: [File]`.
+7. When `navigator.canShare` is false or undefined, `shareCard` creates an `<a download>` element and triggers a click; it does not throw.
+8. A 360px preview displays in the `ShareCard` component before the user presses the share button.
+9. `ShareCardSheet` displays a bottom-sheet with at least 2 template options; choosing a template updates the preview immediately.
+10. `loadCardFont` returns `false` on a 3s timeout; `drawCard` still runs with the fallback font and does not throw.
+11. `drawCard` does not call `fetch`, `XMLHttpRequest`, or any network API.
+12. The watermark "Genie Am Lich · CyberSkill" appears in the bottom corner of the card with a smaller font size than the primary text, and `drawCard(...).apcaLc.watermark >= 90` for both themes (small text needs a higher Lc per APCA, §1 #5/§11); the assertion fails the build if < 90.
+13. The entire `card-renderer.test.ts` test suite passes in the CI environment (jsdom or node-canvas).
+14. `drawCard` receives `CardData` as a parameter; there is no import of `canChiDay`, `getDayQuality`, `convertSolar2Lunar`, or any symbol from `@cyberskill/amlich-core` in the file `card-renderer.ts` (DEC-LUNAR-143) - checked with a grep assertion in CI: `grep -r "amlich-core" apps/web/lib/card-renderer.ts` returns 0 results.
 
 ---
 
@@ -317,17 +317,17 @@ function mockData() {
 
 ## §6 - Implementation skeleton
 
-Contract đầy đủ ở §3. Điểm duy nhất cần ghim: vẽ text PHẢI gọi `ctx.font = \`700 ${size}px "Be Vietnam Pro", sans-serif\`` sau khi font đã load. Nếu font chưa trong `document.fonts`, gọi `document.fonts.load(...)` và await truoc khi `drawCard`. Trên node-canvas (CI), dùng `registerFont` của thư viện thay thế.
+The full contract is in §3. The single point to pin down: drawing text MUST call `ctx.font = \`700 ${size}px "Be Vietnam Pro", sans-serif\`` after the font has loaded. If the font is not in `document.fonts`, call `document.fonts.load(...)` and await it before `drawCard`. On node-canvas (CI), use the library's `registerFont` instead.
 
 ---
 
 ## §7 - Dependencies
 
-Upstream: FR-LUNAR-007 cung cấp `DayInfo` (lunarDate, canChiDay, ...) là nguồn của `CardData`; FR-LUNAR-009 cung cấp color tokens tím - các giá trị hex trong `CARD_THEMES` PHẢI lấy từ `packages/ui/src/theme/tokens.ts` và không được hardcode riêng để đảm bảo nhất quán.
+Upstream: FR-LUNAR-007 provides `DayInfo` (lunarDate, canChiDay, ...) as the source of `CardData`; FR-LUNAR-009 provides the purple color tokens - the hex values in `CARD_THEMES` MUST come from `packages/ui/src/theme/tokens.ts` and must not be separately hardcoded, to ensure consistency.
 
-Downstream: không có FR nào block trực tiếp từ FR-014.
+Downstream: no FR is directly blocked by FR-014.
 
-Cross-cutting: `apca-w3` là dev dependency của `apps/web/`; cần kiểm tra đã có trong `packages/ui/` (FR-LUNAR-009 dùng nó cho theme gate) để tránh trùng lặp.
+Cross-cutting: `apca-w3` is a dev dependency of `apps/web/`; check that it is already in `packages/ui/` (FR-LUNAR-009 uses it for the theme gate) to avoid duplication.
 
 ---
 
@@ -360,9 +360,9 @@ Cross-cutting: `apca-w3` là dev dependency của `apps/web/`; cần kiểm tra 
 
 ## §9 - Open questions
 
-Đã giải quyết: kích thuoc 1080px, renderer Canvas 2D, Web Share API Level 2.
+Resolved: the 1080px size, the Canvas 2D renderer, the Web Share API Level 2.
 
-Còn deferred: (a) hỗ trợ thêm định dạng 9:16 (1080x1920) cho Instagram Story - chưa cần cho slice 5, có thể thêm sau khi có feedback thực tế; (b) thêm animation (GIF/video card) - ghi nhận ở Caveats PRD nhưng chưa có FR; (c) template do người dùng tự thiết kế - nằm ngoài scope FR-014.
+Still deferred: (a) support for an additional 9:16 format (1080x1920) for Instagram Story - not needed for slice 5, can be added after real feedback; (b) adding animation (a GIF/video card) - noted in the PRD Caveats but no FR yet; (c) user-designed templates - out of scope for FR-014.
 
 ---
 
@@ -370,27 +370,27 @@ Còn deferred: (a) hỗ trợ thêm định dạng 9:16 (1080x1920) cho Instagra
 
 | Failure | Detection | Outcome | Recovery |
 |---|---|---|---|
-| Font "Be Vietnam Pro" timeout | `loadCardFont` trả về false sau 3s | Fallback sans-serif, text vẫn render | Log cảnh báo; không block UX |
-| APCA < 75 khi đổi token màu | CI test `calcAPCA` fail | Build fail | Developer sửa token trước khi merge |
-| `canvas.toBlob` trả về null | Check `blob == null` | Throw `CardExportError` | Hiển thị toast "Không thể xuất ảnh, thử lại" |
-| File PNG > 500 KB | Check `blob.size` trong test | Test fail | Giảm họa tiết hoặc dùng nén JPEG |
-| `navigator.share` throw `AbortError` | catch AbortError | Bỏ qua (người dùng hủy) | Không báo lỗi |
-| `navigator.share` throw khác | catch generic Error | Log + fallback download | Toast "Chia sẻ không thành công, đã tải về" |
-| `canShare` = false (desktop browser) | `!navigator.canShare` | Kích hoạt download path | Nút đổi nhãn thành "Tải về" |
-| CORS khi load ảnh ngoài vào canvas | canvas bị "tainted" | `toBlob` throw SecurityError | DEC-LUNAR-140: không dùng ảnh ngoài; họa tiết vẽ bằng Canvas 2D |
-| node-canvas không có trong CI | import fail | Test crash | Thêm `canvas` vào devDependencies |
-| Web Share API không hỗ trợ `files` | `canShare({ files })` = false | Fallback download | Documented behavior |
+| Font "Be Vietnam Pro" timeout | `loadCardFont` returns false after 3s | Fallback sans-serif, text still renders | Log a warning; do not block UX |
+| APCA < 75 when a color token changes | CI test `calcAPCA` fails | Build fails | Developer fixes the token before merge |
+| `canvas.toBlob` returns null | Check `blob == null` | Throw `CardExportError` | Show a toast "Cannot export the image, try again" |
+| PNG file > 500 KB | Check `blob.size` in the test | Test fails | Reduce the motifs or use JPEG compression |
+| `navigator.share` throws `AbortError` | catch AbortError | Ignore (user cancelled) | No error reported |
+| `navigator.share` throws otherwise | catch generic Error | Log + fallback download | Toast "Share failed, downloaded instead" |
+| `canShare` = false (desktop browser) | `!navigator.canShare` | Activate the download path | Button relabeled to "Download" |
+| CORS when loading an external image into the canvas | canvas is "tainted" | `toBlob` throws SecurityError | DEC-LUNAR-140: do not use external images; draw the motifs with Canvas 2D |
+| node-canvas missing in CI | import fails | Test crash | Add `canvas` to devDependencies |
+| Web Share API does not support `files` | `canShare({ files })` = false | Fallback download | Documented behavior |
 
 ---
 
 ## §11 - Implementation notes
 
-- `drawCard` là async vì cần await `document.fonts.ready` sau khi load; trong môi trường CI dùng node-canvas thì bỏ qua bước này.
-- Khi tính `apcaLc`, nhớ rằng `calcAPCA` từ `apca-w3` trả về giá trị âm khi text tối trên nền sáng; dùng `Math.abs` truoc khi so sánh với ngưỡng 75.
-- Web Share API `navigator.share({ files })` yêu cầu gesture (user click); KHÔNG ĐƯỢC gọi trong `useEffect` hoặc timeout tự động.
-- Preview 360px là CSS `transform: scale(0.333)` từ canvas 1080px - cách này giữ nguyên chất lượng pixel thay vì vẽ lại canvas nhỏ hơn.
-- `ShareCardSheet` nên lazy-load `card-renderer.ts` bằng dynamic import để không ảnh hưởng bundle size màn hình chính.
-- Token màu trong `CARD_THEMES` PHẢI import từ `packages/ui/src/theme/tokens.ts` để khi FR-LUNAR-009 cập nhật palette, card tự cập nhật theo mà không cần sửa hai nơi.
-- Watermark text nhỏ (khoảng 18-22px tương đương 18px ở 1080px canvas) - cần kiểm riêng APCA cho watermark vì size nhỏ đòi Lc >= 90 theo APCA guidelines; nếu không đạt, tăng contrast hoặc thêm nền bán trong suốt.
+- `drawCard` is async because it needs to await `document.fonts.ready` after loading; in a CI environment using node-canvas this step is skipped.
+- When computing `apcaLc`, remember that `calcAPCA` from `apca-w3` returns a negative value when dark text is on a light background; use `Math.abs` before comparing against the threshold of 75.
+- The Web Share API `navigator.share({ files })` requires a gesture (a user click); it MUST NOT be called inside `useEffect` or an automatic timeout.
+- The 360px preview is a CSS `transform: scale(0.333)` from the 1080px canvas - this preserves pixel quality instead of redrawing a smaller canvas.
+- `ShareCardSheet` should lazy-load `card-renderer.ts` via a dynamic import so it does not affect the main-screen bundle size.
+- The color tokens in `CARD_THEMES` MUST be imported from `packages/ui/src/theme/tokens.ts` so that when FR-LUNAR-009 updates the palette, the card updates automatically without editing two places.
+- The watermark text is small (about 18-22px, equivalent to 18px on the 1080px canvas) - it needs a separate APCA check because the small size requires Lc >= 90 per APCA guidelines; if it does not meet this, increase the contrast or add a semi-transparent background.
 
-*Hết FR-LUNAR-014.*
+*End of FR-LUNAR-014.*

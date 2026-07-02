@@ -12,47 +12,47 @@ authoring_md_compliance: 2026-06-27 (rule 36 - 7 ISS > 6 minimum; determinism + 
 
 ## §1 - Verdict summary
 
-FR-LUNAR-004 đặc tả data model `Reminder`/`User`/`OccurrenceCache` cộng recurrence engine sinh ngày dương từ ngày âm. Phạm vi: 16 mệnh đề §1 (lưu âm không lưu dương, recurrence MONTHLY/ANNUAL/ONCE, type RAM/MUNG_MOT/GIO/CUSTOM/FESTIVAL, gọi convertLunar2Solar mỗi năm, fallback tháng nhuận REGULAR/SKIP/ASK, clamp ngày tháng thiếu, khóa Asia/Ho_Chi_Minh, lead-time fan-out, OccurrenceCache invalidate theo engineVersion, validate/normalize, zero-dependency). 8 đoạn §2. §3 có type Reminder/User/Occurrence/OccurrenceCache đầy đủ, chữ ký nextOccurrences/mergeAndSort/todayInHCM. 17 AC. §5 có 12 test vitest gồm mốc 1985 tháng 2 nhuận + khóa TZ. §10 liệt kê 15 dòng failure. §11 có 7 note. Ánh xạ PRD FR-B02, FR-B06, section 10 (Data Model + recurrence rule), section 11.
+FR-LUNAR-004 specifies the data model `Reminder`/`User`/`OccurrenceCache` plus the recurrence engine that generates solar dates from lunar dates. Scope: 16 §1 clauses (store lunar not solar, recurrence MONTHLY/ANNUAL/ONCE, type RAM/MUNG_MOT/GIO/CUSTOM/FESTIVAL, call convertLunar2Solar each year, leap-month fallback REGULAR/SKIP/ASK, clamp missing month days, lock Asia/Ho_Chi_Minh, lead-time fan-out, OccurrenceCache invalidate by engineVersion, validate/normalize, zero-dependency). 8 §2 paragraphs. §3 has the full Reminder/User/Occurrence/OccurrenceCache types, signatures for nextOccurrences/mergeAndSort/todayInHCM. 17 ACs. §5 has 12 vitest tests including the 1985 leap month 2 date + TZ lock. §10 lists 15 failure lines. §11 has 7 notes. Maps to PRD FR-B02, FR-B06, section 10 (Data Model + recurrence rule), section 11.
 
 ## §2 - Findings (all resolved during authoring)
 
-### ISS-001 - Lưu ngày dương sẽ sai sang năm
-Đám giỗ là ngày âm cố định, ngày dương đổi mỗi năm. Resolved: §1 #1 lưu lunarDay/lunarMonth/isLeapMonth + DEC-LUNAR-040; AC #1.
+### ISS-001 - Storing the solar date is wrong across years
+A death anniversary is a fixed lunar date; the solar date changes every year. Resolved: §1 #1 store lunarDay/lunarMonth/isLeapMonth + DEC-LUNAR-040; AC #1.
 
-### ISS-002 - Nội suy 354/384 ngày sẽ trôi dần
-Khoảng cách hai ngày giỗ theo dương không cố định. Resolved: §1 #4 gọi convertLunar2Solar mỗi targetLunarYear + DEC-LUNAR-041; AC #2; §10 dòng 2.
+### ISS-002 - Interpolating 354/384 days drifts over time
+The gap between two anniversaries in solar days is not fixed. Resolved: §1 #4 call convertLunar2Solar per targetLunarYear + DEC-LUNAR-041; AC #2; §10 line 2.
 
-### ISS-003 - Giỗ rơi tháng nhuận không có câu trả lời
-Năm không có tháng nhuận đã nhập thì cúng ngày nào. Resolved: §1 #5/#6 fallback REGULAR/SKIP/ASK + fellBack + DEC-LUNAR-042; AC #5/#6/#7.
+### ISS-003 - An anniversary falling in a leap month has no answer
+If the entered year has no leap month, which day to observe. Resolved: §1 #5/#6 fallback REGULAR/SKIP/ASK + fellBack + DEC-LUNAR-042; AC #5/#6/#7.
 
-### ISS-004 - Ngày 30 trong tháng âm 29 ngày biến mất
-Resolved: §1 #7 clamp về ngày cuối tháng + dayClamped; AC #9; §10 dòng 6.
+### ISS-004 - Day 30 in a 29-day lunar month vanishes
+Resolved: §1 #7 clamp to the last day of the month + dayClamped; AC #9; §10 line 6.
 
-### ISS-005 - Derive theo giờ thiết bị sai khi ở nước ngoài
-Persona diễn viên đi quay xa. Resolved: §1 #8 khóa tz=7.0 qua tz.ts + DEC-LUNAR-043; AC #12; test set process.env.TZ.
+### ISS-005 - Deriving by device time is wrong when abroad
+The actor persona travels far for shoots. Resolved: §1 #8 lock tz=7.0 via tz.ts + DEC-LUNAR-043; AC #12; test sets process.env.TZ.
 
-### ISS-006 - Cache có thể phục vụ ngày sai sau khi core đổi
-Resolved: §1 #11 OccurrenceCache mang engineVersion + isCacheStale + DEC-LUNAR-044; AC #13.
+### ISS-006 - The cache may serve wrong dates after the core changes
+Resolved: §1 #11 OccurrenceCache carries engineVersion + isCacheStale + DEC-LUNAR-044; AC #13.
 
-### ISS-007 - Lead-time chưa rõ thành bao nhiêu thông báo
-Resolved: §1 #9/#10 mỗi (occurrence x leadTime) thành một Occurrence có fireAtLocal cho FR-LUNAR-005 cắt 64; AC #10/#16.
+### ISS-007 - Lead-time is not yet clear as how many notifications
+Resolved: §1 #9/#10 each (occurrence x leadTime) becomes an Occurrence with fireAtLocal for FR-LUNAR-005 to cut to 64; AC #10/#16.
 
 ## §3 - Resolution
 
-Bảy vấn đề cốt học đã xử lý: lưu-âm-derive-dương, tính-lại-mỗi-năm, fallback tháng nhuận, clamp ngày, khóa timezone, cache invalidation, lead-time fan-out. Type Reminder ở §3 đồng bộ với PRD section 10 từng trường; recurrence engine gọi đúng các hàm FR-LUNAR-001. **Score = 10/10.** Sẵn sàng transition draft -> ready_to_implement.
+The seven core issues are handled: store-lunar-derive-solar, recompute-each-year, leap-month fallback, clamp days, lock timezone, cache invalidation, lead-time fan-out. The Reminder type in §3 is synced field-by-field with PRD section 10; the recurrence engine calls the correct FR-LUNAR-001 functions. **Score = 10/10.** Ready to transition draft -> ready_to_implement.
 
 ---
 
 ## §4 - Independent adversarial audit (2026-06-27, reviewer did NOT author)
 
-Pre-fix independent score: **8/10**. Bốn defect mà self-audit bỏ sót, đã sửa trong .md:
+Pre-fix independent score: **8/10**. Four defects the self-audit missed, fixed in the .md:
 
-- **MAJOR - chữ ký `nextOccurrences` lệch nội bộ.** §1 #4 và sub_task khai báo `nextOccurrences(reminder, fromYear, count)` (3 tham số positional) nhưng §3, §5, §6 đều dùng `nextOccurrences(r, opt: RecurrenceOptions)` (object form). Mệnh đề §1 normative mâu thuẫn với contract thật. **Fixed:** §1 #4 + sub_task chuyển sang `nextOccurrences(reminder, opt)` object form, khớp §3/§5/§6 và brief audit.
-- **MAJOR - `notificationStyle` field không có trên type Reminder mà FR-LUNAR-006 tiêu thụ.** FR-LUNAR-006 (§1 #9, §3 tone.ts, AC #11, payload, DEC-LUNAR-065) ghi `Reminder.notificationStyle`, nhưng type `Reminder` ở §3 (FR-004 sở hữu) và bản mirror ở FR-LUNAR-010 đều KHÔNG có trường này -> mismatch cấp biên dịch giữa producer (004) và consumer (006), đúng loại defert "gọi field/method chưa khai báo" mà tiền lệ CLICK bắt. **Fixed:** thêm `notificationStyle?: NotificationStyle` + type `NotificationStyle {tone, emoji, imageId?}` vào §3 của FR-004 (owner); FR-LUNAR-006 đổi `tone.ts` thành `import type { NotificationStyle } from "@cyberskill/amlich-core"` thay vì redeclare.
-- **MAJOR - `count` vs lead-time mơ hồ + vòng lặp vô hạn ở ONCE+SKIP.** §3 nói `count` = "so occurrence muon (truoc khi nhan lead-time)" nhưng skeleton lặp `while (out.length < occurrenceBudget)` trong khi `out` đã fan-out theo leadTimes; chưa pin được `occurrenceBudget`. Đồng thời nhánh `resolved.skip` của `recurrence="ONCE"` (năm cố định) tăng `lunarYear` mãi mà `targetYear` không đổi và `lunarOccCount` không tiến -> treo. **Fixed:** §1 #4 pin `tổng Occurrence = count * leadTimes.length`; skeleton đếm `lunarOccCount` (chỉ tăng khi sinh occurrence), thêm `MAX_SKIP_SCAN` guard và `if (ONCE) break` trong nhánh skip; thêm comment rằng REGULAR fallback đặt `isLeap=false` nên `convertLunar2Solar` không trả sentinel `[0,0,0]`.
-- **MINOR - §5 test fellBack dùng assert yếu.** Test "leap-month giỗ falls back" assert `lunarLabel.toContain("16/2")`, khớp cả nhãn nhuận lẫn nhãn thường nên không phân biệt được REGULAR fallback đã bỏ "(nhuan)". Ghi nhận làm note triển khai (siết thành `not.toContain("(nhuan)")` khi implement); không đổi contract.
+- **MAJOR - `nextOccurrences` signature is internally inconsistent.** §1 #4 and the sub_task declare `nextOccurrences(reminder, fromYear, count)` (3 positional params) but §3, §5, §6 all use `nextOccurrences(r, opt: RecurrenceOptions)` (object form). The §1 normative clause contradicts the actual contract. **Fixed:** §1 #4 + sub_task changed to `nextOccurrences(reminder, opt)` object form, matching §3/§5/§6 and the brief audit.
+- **MAJOR - the `notificationStyle` field is not on the Reminder type that FR-LUNAR-006 consumes.** FR-LUNAR-006 (§1 #9, §3 tone.ts, AC #11, payload, DEC-LUNAR-065) writes `Reminder.notificationStyle`, but the `Reminder` type in §3 (owned by FR-004) and the mirror in FR-LUNAR-010 both do NOT have this field -> a compile-level mismatch between producer (004) and consumer (006), exactly the "calling an undeclared field/method" defect the CLICK precedent caught. **Fixed:** added `notificationStyle?: NotificationStyle` + type `NotificationStyle {tone, emoji, imageId?}` to §3 of FR-004 (owner); FR-LUNAR-006 changed `tone.ts` to `import type { NotificationStyle } from "@cyberskill/amlich-core"` instead of redeclaring.
+- **MAJOR - `count` vs lead-time is ambiguous + infinite loop at ONCE+SKIP.** §3 says `count` = "the number of occurrences wanted (before receiving lead-time)" but the skeleton loops `while (out.length < occurrenceBudget)` while `out` has already fanned out by leadTimes; `occurrenceBudget` is not pinned. Also the `resolved.skip` branch of `recurrence="ONCE"` (fixed year) keeps incrementing `lunarYear` while `targetYear` does not change and `lunarOccCount` does not advance -> hang. **Fixed:** §1 #4 pins `total Occurrences = count * leadTimes.length`; the skeleton counts `lunarOccCount` (increments only when an occurrence is generated), adds a `MAX_SKIP_SCAN` guard and `if (ONCE) break` in the skip branch; added a comment that REGULAR fallback sets `isLeap=false` so `convertLunar2Solar` does not return the sentinel `[0,0,0]`.
+- **MINOR - the §5 fellBack test uses a weak assert.** The "leap-month anniversary falls back" test asserts `lunarLabel.toContain("16/2")`, which matches both the leap label and the regular label so it cannot tell that the REGULAR fallback dropped "(nhuan)". Recorded as an implementation note (tighten to `not.toContain("(nhuan)")` when implementing); no contract change.
 
-**Cross-FR note (không sửa trong 3 FR mục tiêu):** FR-LUNAR-010 §3 redeclare một bản `Reminder` mirror cho storage layer; nó cũng thiếu `notificationStyle`. Runtime an toàn vì `JSON.parse(...) as Reminder` round-trip mọi field optional, nhưng hai bản type 004/010 là duplicate dễ drift - khuyến nghị FR-010 import `Reminder` từ amlich-core thay vì giữ bản sao (ghi cho pass triển khai shell).
+**Cross-FR note (not fixed in the 3 target FRs):** FR-LUNAR-010 §3 redeclares a `Reminder` mirror for the storage layer; it also lacks `notificationStyle`. Runtime is safe because `JSON.parse(...) as Reminder` round-trips every optional field, but the two 004/010 type copies are a duplicate that can drift - recommend FR-010 import `Reminder` from amlich-core rather than keeping a copy (recorded for the shell implementation pass).
 
 Post-fix score: **10/10** (code-level majors fixed).
 
@@ -62,21 +62,21 @@ Post-fix score: **10/10** (code-level majors fixed).
 
 ## §5 - Contract-alignment readiness pass (2026-06-28)
 
-Tat ca cac diem sau da chinh sua trong FR-LUNAR-004.md:
+All of the following were fixed in FR-LUNAR-004.md:
 
-1. **todayInHCM signature** - da sua tu `todayInHCM(nowUtcMs?: number): {dd,mm,yy}` thanh `todayInHCM(now?: Date): SolarDate` (CONTRACT chinh xac). Sub_task tuong ung da cap nhat.
-2. **Occurrence la readonly** - 8 truong da them `readonly`; `gregorianDate` la `string` (khong phai SolarDate tuple) - da ghi chu ro.
-3. **RecurrenceOptions.engineVersion REQUIRED** - da xac nhan khong co dau `?`; them comment "REQUIRED - CONTRACT".
-4. **nextOccurrences / mergeAndSort return type** - da sua sang `readonly Occurrence[]` cho ca signature va skeleton.
-5. **ReminderChannel** - doi ten type tu `Channel` thanh `ReminderChannel` cho khop CONTRACT.
-6. **Reminder.lunarYear** - doi tu `lunarYear?: number` sang `lunarYear: number | null` (CONTRACT).
-7. **Reminder.sharedWith** - doi tu `sharedWith: string[]` sang `sharedWith?: readonly string[]` (CONTRACT).
-8. **Reminder readonly fields** - them `readonly` cho toan bo cac truong Reminder.
-9. **§5 test AC #12** - sua `todayInHCM(fixedNoon)` (number) thanh `todayInHCM(fixedNow)` (Date); destructure theo tuple `result[0]/[1]/[2]` thay vi `{dd,mm,yy}`.
-10. **§5 import** - them `type SolarDate` vao import cho test type-check.
+1. **todayInHCM signature** - changed from `todayInHCM(nowUtcMs?: number): {dd,mm,yy}` to `todayInHCM(now?: Date): SolarDate` (exact CONTRACT). The matching sub_task is updated.
+2. **Occurrence is readonly** - 8 fields got `readonly`; `gregorianDate` is a `string` (not a SolarDate tuple) - noted clearly.
+3. **RecurrenceOptions.engineVersion REQUIRED** - confirmed no `?`; added the comment "REQUIRED - CONTRACT".
+4. **nextOccurrences / mergeAndSort return type** - changed to `readonly Occurrence[]` for both the signature and the skeleton.
+5. **ReminderChannel** - renamed the type from `Channel` to `ReminderChannel` to match CONTRACT.
+6. **Reminder.lunarYear** - changed from `lunarYear?: number` to `lunarYear: number | null` (CONTRACT).
+7. **Reminder.sharedWith** - changed from `sharedWith: string[]` to `sharedWith?: readonly string[]` (CONTRACT).
+8. **Reminder readonly fields** - added `readonly` for every Reminder field.
+9. **§5 test AC #12** - changed `todayInHCM(fixedNoon)` (number) to `todayInHCM(fixedNow)` (Date); destructure by tuple `result[0]/[1]/[2]` instead of `{dd,mm,yy}`.
+10. **§5 import** - added `type SolarDate` to the import for the test type-check.
 
-Verdict: FR-LUNAR-004 san sang cho agent context-free implement.
+Verdict: FR-LUNAR-004 is ready for context-free agent implementation.
 
-*Het audit FR-LUNAR-004.*
+*End of audit FR-LUNAR-004.*
 
-*Hết audit FR-LUNAR-004.*
+*End of audit FR-LUNAR-004.*

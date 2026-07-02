@@ -1,6 +1,6 @@
 ---
 id: FR-LUNAR-018
-title: "Family sharing + cloud sync - Supabase/Postgres với RLS, sharedWith, đồng bộ đa thiết bị, nhiều thành viên cùng nhận một nhắc giỗ"
+title: "Family sharing + cloud sync - Supabase/Postgres with RLS, sharedWith, multi-device sync, multiple members receiving one gio reminder"
 module: LUNAR
 priority: SHOULD
 status: ready_to_implement
@@ -20,12 +20,12 @@ source_pages:
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#9 (Sync optional)"
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#10 (sharedWith, consentFlags)"
 source_decisions:
-  - DEC-LUNAR-180 (on-device là mặc định bất biến; Supabase/Postgres chỉ được bật sau khi người dùng cấp consent tường minh qua FR-019 - không có consent thì không có cloud)
-  - DEC-LUNAR-181 (RLS policy trên bảng reminders đảm bảo hàng chỉ đọc/ghi được bởi owner hoặc thành viên trong sharedWith; backend không bao giờ bypass RLS)
-  - DEC-LUNAR-182 (sharedWith lưu mảng userId; mỗi thành viên nhận một bản sao notification độc lập, tính trên thiết bị của họ - không dùng một notification chung)
-  - DEC-LUNAR-183 (conflict resolution theo "last-write-wins" trên updated_at; không có CRDT; ghi log mâu thuẫn để debug nhưng không hiện lên UI)
-  - DEC-LUNAR-184 (dữ liệu đám giỗ - tên người đã mất, ngày mất - được tối thiểu hóa theo DEC-LUNAR-190; trường `title` chứa tên người đã mất KHÔNG ĐƯỢC gửi ra ngoài VN khi chưa có DPIA)
-  - DEC-LUNAR-185 (invite flow dùng token một lần, hết hạn sau 48h; không có email - gửi qua ZNS hoặc copy link)
+  - DEC-LUNAR-180 (on-device is the immutable default; Supabase/Postgres is only enabled after the user grants explicit consent via FR-019 - no consent, no cloud)
+  - DEC-LUNAR-181 (the RLS policy on the reminders table ensures a row can only be read/written by the owner or a member in sharedWith; the backend never bypasses RLS)
+  - DEC-LUNAR-182 (sharedWith stores an array of userId; each member receives an independent notification copy, computed on their own device - not a single shared notification)
+  - DEC-LUNAR-183 (conflict resolution is "last-write-wins" on updated_at; no CRDT; conflicts are logged for debugging but not shown in the UI)
+  - DEC-LUNAR-184 (gio data - the name of the deceased, the date of death - is minimized per DEC-LUNAR-190; the `title` field containing the name of the deceased MUST NOT be sent outside VN before a DPIA)
+  - DEC-LUNAR-185 (the invite flow uses a one-time token, expiring after 48h; no email - sent via ZNS or copy link)
 language: typescript 5.x
 service: services/genie-api/
 new_files:
@@ -45,56 +45,56 @@ allowed_tools:
   - file_write: services/genie-api/** apps/web/lib/sync-client.ts apps/web/lib/conflict-resolver.ts
   - bash: cd services/genie-api && pnpm test
 disallowed_tools:
-  - "lưu dữ liệu đám giỗ (tên người đã mất) vào cột riêng không mã hóa rồi expose qua REST không RLS (vi phạm DEC-LUNAR-181 / DEC-LUNAR-184)"
-  - "bypass RLS bằng cách dùng service_role key ở client (vi phạm DEC-LUNAR-181)"
-  - "bật đồng bộ cloud khi chưa nhận consent từ FR-019 (vi phạm DEC-LUNAR-180)"
+  - "store gio data (the name of the deceased) in a separate unencrypted column and then expose it via a REST endpoint without RLS (violates DEC-LUNAR-181 / DEC-LUNAR-184)"
+  - "bypass RLS by using the service_role key on the client (violates DEC-LUNAR-181)"
+  - "enable cloud sync before receiving consent from FR-019 (violates DEC-LUNAR-180)"
 effort_hours: 12
 sub_tasks:
-  - "2h: migration SQL 0016 - bảng users, reminders, shared_reminder_members, sync_log; index; RLS enable"
-  - "2h: migration SQL 0017 - RLS policies (owner CRUD, member read-only trên shared, anon không có gì)"
+  - "2h: migration SQL 0016 - the users, reminders, shared_reminder_members, sync_log tables; indexes; RLS enable"
+  - "2h: migration SQL 0017 - RLS policies (owner CRUD, member read-only on shared, anon nothing)"
   - "1.5h: supabase.ts - Supabase client singleton, auth helper, refresh token; lib/rls-helpers.ts"
-  - "1.5h: api/sync.ts - POST /api/sync/push (upsert reminders), GET /api/sync/pull (reminders cho user), PATCH /api/sync/share (thêm/xóa sharedWith)"
-  - "1h: lib/invite.ts - tạo invite token (JWT, 48h TTL), validate, resolve thành viên"
+  - "1.5h: api/sync.ts - POST /api/sync/push (upsert reminders), GET /api/sync/pull (reminders for the user), PATCH /api/sync/share (add/remove sharedWith)"
+  - "1h: lib/invite.ts - create an invite token (JWT, 48h TTL), validate, resolve the member"
   - "1.5h: apps/web/lib/sync-client.ts - SyncClient class: push local -> cloud, pull cloud -> local, debounce, retry exponential backoff"
-  - "1.5h: apps/web/lib/conflict-resolver.ts - last-write-wins trên updated_at, ghi conflict log, unit test"
-  - "1h: apps/web/lib/storage.ts - mở rộng StorageAdapter kết nối SyncClient khi cloud enabled"
-risk_if_skipped: "FR-F04 (family sharing) là một trong những lý do chính để người dùng thương mại trả phí premium - không có FR-018 thì không có multi-member shared giỗ và FR-019 (PDPL layer) thiếu cơ sở hạ tầng cloud để enforce consent. FR-020 (freemium) cũng blocks vì tier 'family' cần FR-018. Nếu bỏ qua, cơ sở bán thương mại bị gãy."
+  - "1.5h: apps/web/lib/conflict-resolver.ts - last-write-wins on updated_at, write a conflict log, unit test"
+  - "1h: apps/web/lib/storage.ts - extend the StorageAdapter to connect the SyncClient when cloud is enabled"
+risk_if_skipped: "FR-F04 (family sharing) is one of the main reasons commercial users pay for premium - without FR-018 there is no multi-member shared gio and FR-019 (the PDPL layer) lacks the cloud infrastructure to enforce consent. FR-020 (freemium) is also blocked because the 'family' tier needs FR-018. If skipped, the commercial sales basis is broken."
 ---
 
 ## §1 - Description (BCP-14 normative)
 
-Tính năng này mở rộng mô hình lưu trữ on-device của FR-LUNAR-004 lên một tầng cloud tùy chọn, dùng Supabase/Postgres với Row Level Security, để nhiều thành viên cùng gia đình có thể cùng nhận một nhắc đám giỗ và đồng bộ nhắm nhắn trên nhiều thiết bị. Luôn phải lấy consent trước (FR-019) trước khi bật bất kỳ quá trình nào gửi dữ liệu lên cloud.
+This feature extends the on-device storage model of FR-LUNAR-004 with an optional cloud tier, using Supabase/Postgres with Row Level Security, so that multiple members of the same family can receive one gio reminder and sync reminders across multiple devices. Consent must always be obtained first (FR-019) before enabling any process that sends data to the cloud.
 
-1. PHẢI giữ on-device làm mặc định bất biến: khi người dùng chưa cấp consent cloud (theo FR-019), mọi dữ liệu PHẢI ở lại trên thiết bị và KHÔNG ĐƯỢC gửi lên Supabase (DEC-LUNAR-180).
-2. PHẢI chỉ bật đồng bộ cloud sau khi người dùng cấp `consentFlags.cloudSync = true` qua luồng consent của FR-019; việc thu hồi consent PHẢI tắt đồng bộ ngay lập tức và có thể kích hoạt xóa dữ liệu trên cloud theo yêu cầu (DEC-LUNAR-180).
-3. PHẢI sử dụng Supabase/Postgres với RLS bật trên mọi bảng; `service_role` key KHÔNG ĐƯỢC sử dụng ở client - chỉ ở server (DEC-LUNAR-181).
-4. PHẢI áp dụng RLS policy: owner của một `Reminder` có full CRUD; thành viên trong `sharedWith` chỉ có READ trên hàng đó; mọi request không xác thực bị từ chối hoàn toàn (DEC-LUNAR-181).
-5. PHẢI lưu `sharedWith` là mảng `userId`; mỗi thành viên trong mảng PHẢI nhận một bản sao notification độc lập, được tính và lên lịch trên thiết bị của chính họ qua FR-LUNAR-005 (DEC-LUNAR-182).
-6. PHẢI thực hiện invite flow: owner tạo `invite_token` (JWT, TTL 48h) và chia sẻ link/ZNS; người nhận click link -> xác thực -> được thêm vào `sharedWith`; token hết hạn sau 48h và chỉ dùng một lần (DEC-LUNAR-185).
-7. PHẢI giải quyết xung đột theo "last-write-wins" dựa trên trường `updated_at`; bản ghi có `updated_at` mới hơn PHẢI ghi đè bản ghi cũ trong mọi trường hợp (DEC-LUNAR-183).
-8. PHẢI ghi conflict log khi phát hiện xung đột (hai bản ghi có `updated_at` sai lệch < 1 giây) để debug, nhưng KHÔNG ĐƯỢC hiện log này lên UI người dùng (DEC-LUNAR-183).
-9. PHẢI tối thiểu hóa trường dữ liệu đám giỗ: bảng `reminders` lưu `title` (có thể chứa tên người đã mất) nhưng trường này KHÔNG ĐƯỢC expose qua bất kỳ REST endpoint nào không xác thực; KHÔNG ĐƯỢC chuyển dữ liệu này ra ngoài Việt Nam khi chưa có DPIA (DEC-LUNAR-184, NFR-Privacy/PDPL).
-10. PHẢI cung cấp `SyncClient` ở client-side với chiến lược: push local -> cloud khi có thay đổi (debounce 2 giây), pull cloud -> local khi mở app, retry exponential backoff khi mất mạng.
-11. PHẢI đồng bộ `OccurrenceCache` bị vô hiệu sau mỗi lần pull cloud thành công để đảm bảo lịch tính lại từ dữ liệu mới (DEC-LUNAR-180).
-12. NÊN bao gồm endpoint `DELETE /api/sync/account` cho phép người dùng xóa toàn bộ dữ liệu trên cloud theo yêu cầu quyền xóa PDPL (PRD Recommendations #6).
-13. KHÔNG ĐƯỢC lưu `lunarDay`, `lunarMonth`, `isLeapMonth` ở dạng plain-text không mã hóa khi lưu trên cloud; NÊN mã hóa cột nhạy cảm ở mức ứng dụng trước khi INSERT (DEC-LUNAR-184).
-14. PHẢI trả về HTTP 409 khi có xung đột không tự động giải quyết được và client PHẢI có cơ chế fallback hiển thị last-known-good thay vì crash.
+1. MUST keep on-device as the immutable default: when the user has not granted cloud consent (per FR-019), all data MUST stay on the device and MUST NOT be sent to Supabase (DEC-LUNAR-180).
+2. MUST enable cloud sync only after the user grants `consentFlags.cloudSync = true` via the FR-019 consent flow; revoking consent MUST disable sync immediately and MAY trigger deletion of the cloud data on request (DEC-LUNAR-180).
+3. MUST use Supabase/Postgres with RLS enabled on every table; the `service_role` key MUST NOT be used on the client - only on the server (DEC-LUNAR-181).
+4. MUST apply the RLS policy: the owner of a `Reminder` has full CRUD; a member in `sharedWith` has only READ on that row; every unauthenticated request is rejected entirely (DEC-LUNAR-181).
+5. MUST store `sharedWith` as an array of `userId`; each member in the array MUST receive an independent notification copy, computed and scheduled on their own device via FR-LUNAR-005 (DEC-LUNAR-182).
+6. MUST implement the invite flow: the owner creates an `invite_token` (JWT, 48h TTL) and shares a link/ZNS; the recipient clicks the link -> authenticates -> is added to `sharedWith`; the token expires after 48h and is single-use (DEC-LUNAR-185).
+7. MUST resolve conflicts with "last-write-wins" based on the `updated_at` field; the record with a newer `updated_at` MUST overwrite the older record in every case (DEC-LUNAR-183).
+8. MUST write a conflict log when a conflict is detected (two records with `updated_at` differing by < 1 second) for debugging, but MUST NOT show this log in the user UI (DEC-LUNAR-183).
+9. MUST minimize gio data fields: the `reminders` table stores `title` (which may contain the name of the deceased) but this field MUST NOT be exposed via any unauthenticated REST endpoint; this data MUST NOT be transferred outside Vietnam before a DPIA (DEC-LUNAR-184, NFR-Privacy/PDPL).
+10. MUST provide a client-side `SyncClient` with the strategy: push local -> cloud when there is a change (debounce 2 seconds), pull cloud -> local on app open, retry with exponential backoff on network loss.
+11. MUST invalidate the `OccurrenceCache` after each successful cloud pull to ensure the calendar recomputes from the new data (DEC-LUNAR-180).
+12. SHOULD include a `DELETE /api/sync/account` endpoint that lets the user delete all cloud data on request per the PDPL right to erasure (PRD Recommendations #6).
+13. MUST NOT store `lunarDay`, `lunarMonth`, `isLeapMonth` as unencrypted plain-text when stored in the cloud; SHOULD encrypt sensitive columns at the application level before INSERT (DEC-LUNAR-184).
+14. MUST return HTTP 409 when there is a conflict that cannot be resolved automatically, and the client MUST have a fallback mechanism to display last-known-good instead of crashing.
 
 ---
 
 ## §2 - Why this design (rationale for humans)
 
-**Tại sao on-device là mặc định và cloud là opt-in (DEC-LUNAR-180)?** Dữ liệu đám giỗ gắn liền với tên và ngày mất của người thân - đây là dữ liệu nhạy cảm văn hóa theo PDPL. Gửi nó lên cloud mà không có consent là vi phạm pháp lý ngay cả khi startup được ân hạn 5 năm với DPIA/DPO. Thiết kế opt-in cũng có nghĩa là bản MVP cá nhân (dùng riêng gia đình) hoàn toàn không cần cloud - đúng đúng phạm vi miễn trừ cá nhân/gia đình của PDPL.
+**Why is on-device the default and cloud opt-in (DEC-LUNAR-180)?** Gio data is tied to the name and death date of a relative - this is culturally sensitive data under PDPL. Sending it to the cloud without consent is a legal violation even though a startup gets a 5-year grace period for DPIA/DPO. The opt-in design also means the personal MVP (used within one's own family) needs no cloud at all - exactly within the personal/family exemption scope of PDPL.
 
-**Tại sao Supabase/Postgres với RLS thay vì giải pháp tự xây (DEC-LUNAR-181)?** Supabase cung cấp RLS trên Postgres - có nghĩa quyền truy cập được thiết lập ở tầng cơ sở dữ liệu, không phụ thuộc vào logic tầng ứng dụng. Nếu có lỗi ở API layer, RLS vẫn chặn truy cập trái phép. Đối với dữ liệu nhạy cảm như tên người đã mất, đây là lớp phòng thủ cần thiết.
+**Why Supabase/Postgres with RLS instead of a self-built solution (DEC-LUNAR-181)?** Supabase provides RLS on Postgres - meaning access rights are set at the database layer, not dependent on application-layer logic. If there is a bug in the API layer, RLS still blocks unauthorized access. For sensitive data like the name of a deceased person, this is a necessary line of defense.
 
-**Tại sao sharedWith là mảng userId thay vì bảng quan hệ riêng (DEC-LUNAR-182)?** Với quy mô gia đình (thường 2-10 thành viên), mảng userId trong cột JSONB của Postgres là đủ - không cần join phức tạp. Khi cần scale lên nhóm lớn hơn trong tương lai, migration sang bảng quan hệ là thẳng thắn.
+**Why is sharedWith an array of userId instead of a separate relation table (DEC-LUNAR-182)?** At family scale (usually 2-10 members), an array of userId in a Postgres JSONB column is enough - no complex joins needed. When you need to scale to larger groups in the future, migrating to a relation table is straightforward.
 
-**Tại sao last-write-wins thay vì CRDT (DEC-LUNAR-183)?** Người dùng thủ công chỉnh sửa dữ liệu đám giỗ hiếm hơn nhiều so với cả người kế toán chung. Xung đột thực sự là ngoại lệ, không phải quy luật. CRDT thêm độ phức tạp mà không có lợi ích rõ ràng cho use case này. Ghi conflict log là đủ để debug khi nó xảy ra.
+**Why last-write-wins instead of CRDT (DEC-LUNAR-183)?** Users manually editing gio data is much rarer than a shared household accountant. A real conflict is the exception, not the rule. CRDT adds complexity without a clear benefit for this use case. Writing a conflict log is enough to debug when it happens.
 
-**Tại sao invite token JWT 48h thay vì email (DEC-LUNAR-185)?** App này phát triển trên nền tảng Zalo - chia sẻ link qua Zalo chat hay ZNS là tự nhiên hơn và nhanh hơn email. Email cần thêm một bước phức tạp (SMTP setup, spam filter) cho một app tương tác cá nhân. TTL 48h là đủ để người nhận phản hồi nhưng ngắn hạn để giảm rủi ro nếu link bị chia sẻ sai.
+**Why an invite token JWT 48h instead of email (DEC-LUNAR-185)?** This app grows on the Zalo platform - sharing a link via Zalo chat or ZNS is more natural and faster than email. Email needs an extra complex step (SMTP setup, spam filter) for a personal interaction app. A 48h TTL is enough for the recipient to respond but short enough to reduce the risk if the link is shared wrongly.
 
-**Tại sao đồng bộ tối thiểu hóa dữ liệu đám giỗ (DEC-LUNAR-184)?** PDPL pháp định rằng tên người đã mất là dữ liệu liên quan đến cá nhân khác. Không chuyển qua biên giới khi chưa DPIA là nghĩa vụ pháp lý áp dụng ngay từ 01/01/2026. Dùng hosting Supabase tại khu vực Singapore (ap/southeast-1) giảm rủi ro nhưng vẫn cần DPIA chính thức khi scale - do đó endpoint DELETE và cơ chế hủy consent là bắt buộc ngay bây giờ (PRD Caveats - PDPL còn điểm chưa rõ).
+**Why does syncing minimize gio data (DEC-LUNAR-184)?** PDPL provides that the name of a deceased person is data related to another individual. Not transferring it across borders before a DPIA is a legal obligation applying from 01/01/2026. Using Supabase hosting in the Singapore region (ap/southeast-1) reduces the risk but still requires an official DPIA at scale - therefore the DELETE endpoint and the consent-revocation mechanism are mandatory right now (PRD Caveats - PDPL still has unclear points).
 
 ---
 
@@ -247,21 +247,21 @@ export function resolveConflict(
 
 ## §4 - Acceptance criteria
 
-1. Khi `consentFlags.cloudSync` là `false` (mặc định), không có request nào được gửi đến Supabase - kiểm tra bằng network log.
-2. Sau khi người dùng cấp consent qua FR-019 và bật đồng bộ, `SyncClient.push()` upsert reminders lên Supabase thành công với HTTP 200.
-3. RLS policy chặn: user B KHÔNG THỂ đọc reminder của user A nếu A chưa thêm B vào `sharedWith` - trả về 0 hàng, không phải 403 (behavior của RLS).
-4. User A thêm user B vào `sharedWith` của một `GIO` reminder -> user B pull -> `SyncPullResponse` của B chứa reminder đó.
-5. Mỗi thành viên trong `sharedWith` nhận notification độc lập trên thiết bị của chính họ, không phải notification chung.
-6. Invite token hết hạn sau 48h: accept sau 48h trả về HTTP 401.
-7. Invite token chỉ dùng một lần: dùng lại token đã sử dụng trả về HTTP 409.
-8. Last-write-wins: upsert bản ghi với `updatedAt` mới hơn ghi đè bản ghi cũ; upsert bản ghi cũ hơn không ảnh hưởng bản ghi mới hơn.
-9. Khi xung đột (`updatedAt` sai lệch < 1 giây), conflict được ghi vào log nhưng UI vẫn hiển thị giá trị thắng cuộc, không có dialog báo lỗi.
-10. `DELETE /api/sync/account` xóa toàn bộ reminders, shared_reminder_members và sync_log của user đó, trả về HTTP 200.
-11. Sau `deleteCloudData()`, pull ngay lập tức trả về mảng `reminders` rỗng.
-12. Thu hồi consent -> `SyncClient` ngừng push/pull; dữ liệu trên cloud vẫn tồn tại cho đến khi người dùng gọi `deleteCloudData()` riêng.
-13. Mất mạng khi push: `SyncClient` retry với exponential backoff (1s, 2s, 4s, tối đa 30s), không crash app.
-14. `OccurrenceCache` bị clear sau mỗi lần `SyncClient.pull()` thành công.
-15. Trường `title` của reminder type `GIO` không được lộ ra qua endpoint non-authenticated (RLS đảm bảo; test bằng anon request).
+1. When `consentFlags.cloudSync` is `false` (the default), no request is sent to Supabase - checked via the network log.
+2. After the user grants consent via FR-019 and enables sync, `SyncClient.push()` upserts reminders to Supabase successfully with HTTP 200.
+3. The RLS policy blocks: user B CANNOT read user A's reminder if A has not added B to `sharedWith` - returns 0 rows, not 403 (RLS behavior).
+4. User A adds user B to the `sharedWith` of a `GIO` reminder -> user B pulls -> B's `SyncPullResponse` contains that reminder.
+5. Each member in `sharedWith` receives an independent notification on their own device, not a shared notification.
+6. The invite token expires after 48h: accepting after 48h returns HTTP 401.
+7. The invite token is single-use: reusing an already-used token returns HTTP 409.
+8. Last-write-wins: upserting a record with a newer `updatedAt` overwrites the older record; upserting an older record does not affect the newer record.
+9. On a conflict (`updatedAt` differing by < 1 second), the conflict is written to the log but the UI still shows the winning value, with no error dialog.
+10. `DELETE /api/sync/account` deletes all reminders, shared_reminder_members, and sync_log of that user, returning HTTP 200.
+11. After `deleteCloudData()`, an immediate pull returns an empty `reminders` array.
+12. Revoking consent -> `SyncClient` stops pushing/pulling; the cloud data still exists until the user calls `deleteCloudData()` separately.
+13. Network loss during push: `SyncClient` retries with exponential backoff (1s, 2s, 4s, max 30s), does not crash the app.
+14. The `OccurrenceCache` is cleared after each successful `SyncClient.pull()`.
+15. The `title` field of a `GIO` reminder is not exposed via a non-authenticated endpoint (RLS ensures it; tested with an anon request).
 
 ---
 
@@ -339,7 +339,7 @@ describe("RLS - integration (requires Supabase test instance)", () => {
 
 ## §6 - Implementation skeleton
 
-API contract ở §3 là xương sống. Điểm then chốt cần lưu ý khi implement:
+The API contract in §3 is the backbone. Key points to keep in mind when implementing:
 
 ```sql
 -- services/genie-api/supabase/migrations/0016_family_sharing_schema.sql
@@ -372,11 +372,11 @@ async push(reminders: RemindersUpsertRow[]): Promise<void> {
 
 ## §7 - Dependencies
 
-Upstream: FR-LUNAR-004 (Reminder data model + recurrence engine) - `RemindersUpsertRow` map trực tiếp từ model `Reminder` của FR-004; FR-018 không thể chạy mà không có model đó.
+Upstream: FR-LUNAR-004 (the Reminder data model + recurrence engine) - `RemindersUpsertRow` maps directly from FR-004's `Reminder` model; FR-018 cannot run without that model.
 
-Downstream: FR-LUNAR-019 (PDPL compliance consent) - FR-018 yêu cầu consent trước khi bật cloud; FR-019 cung cấp `consentFlags` mà FR-018 check. FR-LUNAR-020 (freemium monetization) - tier "family" cần FR-018 chạy thành công trước.
+Downstream: FR-LUNAR-019 (PDPL compliance consent) - FR-018 requires consent before enabling the cloud; FR-019 provides the `consentFlags` that FR-018 checks. FR-LUNAR-020 (freemium monetization) - the "family" tier needs FR-018 to run successfully first.
 
-Cross-cutting: FR-LUNAR-005 (local notifications) phải được kick lại sau mỗi lần pull cloud thành công để tái tính 64 slot. FR-LUNAR-016 (Zalo Mini App) dùng ZNS để chia sẻ invite link (DEC-LUNAR-185).
+Cross-cutting: FR-LUNAR-005 (local notifications) must be re-kicked after each successful cloud pull to recompute the 64 slots. FR-LUNAR-016 (Zalo Mini App) uses ZNS to share the invite link (DEC-LUNAR-185).
 
 ---
 
@@ -521,16 +521,16 @@ CREATE POLICY "member_select" ON reminders
 
 ## §9 - Open questions
 
-Đã giải quyết:
-- Conflict strategy: last-write-wins trên `updated_at` (DEC-LUNAR-183) - đủ cho use case gia đình nhỏ, không cần CRDT.
-- Invite channel: ZNS/copy link, không cần email (DEC-LUNAR-185) - phù hợp nền tảng Zalo.
-- Cloud region: Supabase `ap-southeast-1` (Singapore) - gần nhất có thể cho Việt Nam, giảm độ trễ; lưu ý vẫn cần DPIA chính thức khi scale ra ngoài gia đình.
-- RLS strategy: anon key + user JWT thay vì service_role - đảm bảo RLS hoạt động ở tầng database, không chỉ tầng API (DEC-LUNAR-181).
+Resolved:
+- Conflict strategy: last-write-wins on `updated_at` (DEC-LUNAR-183) - enough for the small-family use case, no CRDT needed.
+- Invite channel: ZNS/copy link, no email needed (DEC-LUNAR-185) - suits the Zalo platform.
+- Cloud region: Supabase `ap-southeast-1` (Singapore) - the closest possible for Vietnam, reducing latency; note an official DPIA is still needed when scaling beyond the family.
+- RLS strategy: anon key + user JWT instead of service_role - ensures RLS works at the database layer, not only the API layer (DEC-LUNAR-181).
 
-Còn hoãn (defer):
-- End-to-end encryption ở tầng ứng dụng cho `title` của `GIO` reminder (DEC-LUNAR-184): đã ghi nhận là NÊN, nhưng implementation cụ thể (key management, KMS) chưa chọn. Sẽ quyết định khi có DPIA chính thức. Hoãn sang một FR riêng nếu cần.
-- Real-time sync qua Supabase Realtime (WebSocket): hiện tại dùng pull-on-open; real-time là tính năng Phase 4 nếu cần.
-- Cross-border DPIA chính thức: chưa có; đó là lý do endpoint DELETE và cơ chế thu hồi consent là bắt buộc ngay bây giờ (PRD Caveats - PDPL còn điểm chưa rõ).
+Still deferred:
+- End-to-end encryption at the application layer for the `title` of a `GIO` reminder (DEC-LUNAR-184): recorded as SHOULD, but the specific implementation (key management, KMS) is not yet chosen. Will be decided once there is an official DPIA. Deferred to a separate FR if needed.
+- Real-time sync via Supabase Realtime (WebSocket): currently uses pull-on-open; real-time is a Phase 4 feature if needed.
+- Official cross-border DPIA: not yet done; that is why the DELETE endpoint and the consent-revocation mechanism are mandatory right now (PRD Caveats - PDPL still has unclear points).
 
 ---
 
@@ -538,31 +538,31 @@ Còn hoãn (defer):
 
 | Failure | Detection | Outcome | Recovery |
 |---|---|---|---|
-| Push khi chưa có consent | Check `consentFlags.cloudSync` trước gọi API | Return ngay, không push | Không cần - là behavior chính xác |
-| Mất mạng khi push | `fetch` throw NetworkError | Retry exponential backoff (1s, 2s, 4s, max 30s) | Dữ liệu vẫn on-device, push lại khi có mạng |
-| RLS chặn đọc dữ liệu | Supabase trả về 0 hàng (không phải lỗi) | Pull nhận mảng rỗng, UI hiện danh sách rỗng | Log server-side, kiểm tra sharedWith |
-| Xung đột `updated_at` | `resolveConflict()` phát hiện delta < 1s | Last-write-wins, ghi conflict log | Không hiện UI; debug qua sync_log |
-| Invite token hết hạn | `expires_at < NOW()` | HTTP 401, hiện thông báo "link hết hạn" | Owner tạo invite mới |
-| Invite token dùng lại | `used_at IS NOT NULL` | HTTP 409 | Owner tạo invite mới |
-| Supabase down | HTTP 5xx hoặc timeout | SyncClient trả lời; UI hiện "đồng bộ thất bại" | Retry tự động; dữ liệu on-device vẫn hoạt động |
-| RLS policy sai (bug) | Integration test chạy trước deploy | Phát hiện ở test stage | Fix policy, re-deploy migration |
-| Pull trả về reminder không hợp lệ | Schema validation ở client | Reminder bị bỏ qua, log lỗi | Xử lý ở FR-019 data validation layer |
-| Xóa tài khoản cloud (PDPL) | DELETE /api/sync/account | Xóa toàn bộ dữ liệu cloud | Dữ liệu on-device vẫn giữ; người dùng xác nhận trước |
-| sharedWith chứa userId không tồn tại | Foreign key constraint | INSERT bị reject, HTTP 400 | Client phải validate userId trước khi share |
-| OccurrenceCache không bị clear sau pull | Unit test kiểm tra | Cache cũ, hiện ngày sai | Fix sync-client: clear cache sau pull thành công |
+| Push without consent | Check `consentFlags.cloudSync` before calling the API | Return immediately, no push | Not needed - this is the correct behavior |
+| Network loss during push | `fetch` throws NetworkError | Retry with exponential backoff (1s, 2s, 4s, max 30s) | Data stays on-device, push again when there is network |
+| RLS blocks reading data | Supabase returns 0 rows (not an error) | Pull receives an empty array, UI shows an empty list | Log server-side, check sharedWith |
+| `updated_at` conflict | `resolveConflict()` detects a delta < 1s | Last-write-wins, write a conflict log | Not shown in the UI; debug via sync_log |
+| Invite token expired | `expires_at < NOW()` | HTTP 401, show "link expired" | Owner creates a new invite |
+| Invite token reused | `used_at IS NOT NULL` | HTTP 409 | Owner creates a new invite |
+| Supabase down | HTTP 5xx or timeout | SyncClient responds; UI shows "sync failed" | Automatic retry; on-device data still works |
+| Wrong RLS policy (bug) | Integration test runs before deploy | Detected at the test stage | Fix the policy, re-deploy the migration |
+| Pull returns an invalid reminder | Schema validation on the client | The reminder is skipped, log the error | Handled in the FR-019 data validation layer |
+| Cloud account deletion (PDPL) | DELETE /api/sync/account | Delete all cloud data | On-device data still kept; the user confirms first |
+| sharedWith contains a non-existent userId | Foreign key constraint | INSERT is rejected, HTTP 400 | The client must validate the userId before sharing |
+| OccurrenceCache not cleared after pull | Unit test checks it | Stale cache, shows the wrong date | Fix sync-client: clear the cache after a successful pull |
 
 ---
 
 ## §11 - Implementation notes
 
-- Điểm quan trọng nhất: check consent TRƯỚC MỌI GÌ ở `SyncClient` - một dòng `if (!this.hasCloudConsent()) return;` ở đầu hàm `push()` và `pull()`. Không có nền mọi logic khác là vô nghĩa về mặt pháp lý.
-- RLS phải được test bằng integration test với hai user thật (Supabase local docker) trước khi ship - unit test mock không bao giờ được bug RLS policy.
-- `shared_with uuid[]` với GIN index là chọn đúng cho Postgres: `ANY(shared_with)` trong RLS policy sử dụng index hiệu quả hơn `@>` với mảng lớn.
-- Debounce 2000ms trên `push()` là cân bằng giữa responsive (dữ liệu lên cloud nhanh) và giảm số request (tránh spam khi người dùng chỉnh sửa nhanh). Giá trị này có thể tune sau khi có data thực.
-- `OccurrenceCache` phải bị invalidate sau pull vì cache lưu ngày dương đã tính - nếu có reminder mới từ cloud, cache cũ cho ngày sai. Đây là nguyên nhân phổ biến nhất của bug "nhắc sai ngày" sau đồng bộ.
-- Invite token JWT cần `jti` (JWT ID) là UUID duy nhất và phải ghi `used_at` ngay khi accept - không thể dùng JWT standard expiry đơn thuần vì cần single-use enforcement.
-- Trường `title` chứa tên người đã mất: trong tương lai nên mã hóa ở tầng ứng dụng trước khi INSERT (AES-256-GCM với key do user giữ). Hiện tại chưa implement nhưng cột `title` đã được RLS bảo vệ và không expose qua anon endpoint - đây là biện pháp giảm thiểu rủi ro tạm thời.
-- `DELETE /api/sync/account` cần confirm UI rõ ràng ("Toàn bộ dữ liệu trên cloud sẽ bị xóa vĩnh viễn") và không có undo - đây là quyền PDPL người dùng có, không phải tính năng tùy chọn.
-- So migration P3 duoc phan phoi de tranh va cham: 0016-0017 danh cho FR-018, 0018 cho FR-017, 0019 cho FR-019, 0020 cho FR-020.
+- The most important point: check consent BEFORE ANYTHING in `SyncClient` - a single line `if (!this.hasCloudConsent()) return;` at the start of the `push()` and `pull()` functions. Without that foundation, all other logic is legally meaningless.
+- RLS must be tested with an integration test using two real users (Supabase local docker) before shipping - a mocked unit test can never catch an RLS policy bug.
+- `shared_with uuid[]` with a GIN index is the right choice for Postgres: `ANY(shared_with)` in the RLS policy uses the index more efficiently than `@>` with a large array.
+- Debounce 2000ms on `push()` is a balance between responsive (data reaches the cloud fast) and reducing request count (avoiding spam when the user edits quickly). This value can be tuned once there is real data.
+- The `OccurrenceCache` must be invalidated after a pull because the cache stores computed solar dates - if there is a new reminder from the cloud, the stale cache shows the wrong date. This is the most common cause of the "wrong reminder date" bug after syncing.
+- The invite token JWT needs `jti` (JWT ID) to be a unique UUID and must write `used_at` right on accept - you cannot use plain standard JWT expiry alone because single-use enforcement is needed.
+- The `title` field containing the name of the deceased: in the future it SHOULD be encrypted at the application layer before INSERT (AES-256-GCM with a key the user holds). This is not implemented yet, but the `title` column is already protected by RLS and is not exposed via the anon endpoint - this is a temporary risk-mitigation measure.
+- `DELETE /api/sync/account` needs a clear confirm UI ("All cloud data will be permanently deleted") with no undo - this is a PDPL right the user has, not an optional feature.
+- The P3 migration numbers are distributed to avoid collisions: 0016-0017 for FR-018, 0018 for FR-017, 0019 for FR-019, 0020 for FR-020.
 
-*Hết FR-LUNAR-018.*
+*End of FR-LUNAR-018.*

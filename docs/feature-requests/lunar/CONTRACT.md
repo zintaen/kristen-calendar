@@ -1,16 +1,16 @@
 # amlich-core public API contract (authoritative)
 
-Đây là hợp đồng API duy nhất cho `@cyberskill/amlich-core` và `@cyberskill/genie-content`. Mọi FR khi viết §3 (API contract) hoặc §5 (test) PHẢI import đúng tên và chữ ký ở đây. Một agent implement FR nào đó chỉ cần đọc FR đó cộng file này là đủ để viết import không gãy. Nguồn sự thật là code thật trong `packages/amlich-core/src/` (đã scaffold, typecheck sạch); file này phản chiếu nó cộng phần các FR P2/P3 sẽ thêm.
+This is the single API contract for `@cyberskill/amlich-core` and `@cyberskill/genie-content`. Every FR, when writing its §3 (API contract) or §5 (test), MUST import the exact names and signatures listed here. An agent implementing a given FR only needs to read that FR plus this file to write imports that do not break. The source of truth is the real code in `packages/amlich-core/src/` (already scaffolded, typecheck clean); this file mirrors it plus the parts the P2/P3 FRs will add.
 
-Quy tắc: import qua barrel `@cyberskill/amlich-core` (không import theo đường dẫn file nội bộ trong code production; test nội bộ của package có thể import theo `../src/<file>`).
+Rule: import via the barrel `@cyberskill/amlich-core` (do not import by internal file path in production code; a package's internal tests MAY import via `../src/<file>`).
 
-## Tên KHÔNG tồn tại (lỗi hay gặp - đừng import)
+## Names that do NOT exist (common mistake - do not import)
 
-- `getTietKhi`, `getTietKhiForDate` -> KHÔNG có. Dùng `tietKhiAt(jdn, tz?)` cho tiết khí của một ngày, và `tietKhiStartDiaChi(jdn, tz?)` cho địa chi ngày bắt đầu tiết (FR-011 tính Trực).
-- Đọc `.year` / `.month` / `.day` trên kết quả convert -> SAI. `convertSolar2Lunar` / `convertLunar2Solar` trả LABELED TUPLE, phải destructure.
-- So sánh kết quả convertLunar2Solar `=== null` -> SAI. Dùng `isInvalidSolar(s)` (sentinel `[0,0,0]`).
+- `getTietKhi`, `getTietKhiForDate` -> do NOT exist. Use `tietKhiAt(jdn, tz?)` for the tiet khi of a day, and `tietKhiStartDiaChi(jdn, tz?)` for the dia chi of the day a tiet begins (FR-011 computes Truc).
+- Reading `.year` / `.month` / `.day` on a convert result -> WRONG. `convertSolar2Lunar` / `convertLunar2Solar` return a LABELED TUPLE, which MUST be destructured.
+- Comparing a convertLunar2Solar result with `=== null` -> WRONG. Use `isInvalidSolar(s)` (sentinel `[0,0,0]`).
 
-## P0/P1 surface - đã có trong scaffold (ground truth)
+## P0/P1 surface - already present in the scaffold (ground truth)
 
 ```typescript
 // --- constants (PRD 6.2) ---
@@ -91,7 +91,7 @@ export function mergeAndSort(all: readonly Occurrence[]): readonly Occurrence[];
 export function todayInHCM(now?: Date): SolarDate;                                 // "hom nay" theo gio VN (tuple), KHONG phu thuoc TZ thiet bi
 ```
 
-## P2/P3 surface - các FR sẽ THÊM khi tới slice (chưa scaffold, nhưng tên + chữ ký chốt ở đây)
+## P2/P3 surface - the FRs will ADD these when they reach the slice (not yet scaffolded, but the names + signatures are locked here)
 
 ```typescript
 // FR-LUNAR-011 them vao @cyberskill/amlich-core (file dayquality.ts):
@@ -117,7 +117,7 @@ export function getFestivalByLunarDate(lunarDay: number, lunarMonth: number): re
 export function buildFestivalDateSet(year: number): Set<string>;                  // "dd-mm-yyyy" duong -> FR-007 cham le
 ```
 
-## Producer / consumer map (mỗi cạnh phải khớp tên + chữ ký ở trên)
+## Producer / consumer map (each edge must match the name + signature above)
 
 | Symbol | Producer FR | Consumer FR |
 |---|---|---|
@@ -129,4 +129,4 @@ export function buildFestivalDateSet(year: number): Set<string>;                
 | getDayQuality / getMonthDayQualities / DayQuality / GioInfo | 011 | 012 |
 | FestivalContent / getFestivalByLunarDate / buildFestivalDateSet | 008 | 006, 007, 015, 016 |
 
-Bất biến: can-chi ngày `can=(jdn+9)%10`, `chi=(jdn+1)%12` (FR-002 owner); convert trả tuple + sentinel `[0,0,0]`; ba epoch và hai synodic constant tách bạch (PRD 6.2); core offline, mọi tính toán khóa `Asia/Ho_Chi_Minh`.
+Invariants: can-chi of the day `can=(jdn+9)%10`, `chi=(jdn+1)%12` (FR-002 owner); convert returns a tuple + sentinel `[0,0,0]`; the three epochs and two synodic constants are kept distinct (PRD 6.2); core is offline, and every computation is locked to `Asia/Ho_Chi_Minh`.

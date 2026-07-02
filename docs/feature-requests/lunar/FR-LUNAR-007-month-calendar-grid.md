@@ -1,6 +1,6 @@
 ---
 id: FR-LUNAR-007
-title: "Month calendar grid - moi o ngay duong lon + ngay am nho goc + can-chi + tiet khi + cham le/nhac, cham de xem chi tiet"
+title: "Month calendar grid - each cell has a large solar date + small lunar date in the corner + can-chi + tiet khi + ritual/reminder dot, tap to view details"
 module: LUNAR
 priority: MUST
 status: ready_to_implement
@@ -18,13 +18,13 @@ blocks: [FR-LUNAR-014]
 source_pages:
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#4 (FR-A05)"
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#5 (NFR-Performance)"
-  - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#13 (lich thang)"
+  - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#13 (month calendar)"
 source_decisions:
-  - DEC-LUNAR-070 (grid tinh tat ca DayInfo cho 28-31 o trong mot thang trong mot lan duyet mang, khong goi convert tung o rieng le, de dam bao render < 100ms)
-  - DEC-LUNAR-071 (du lieu DayInfo duoc tinh tren worker thread / useMemo voi deps [year, month], ket qua memo hoa de tranh tinh lai khi scroll thang)
-  - DEC-LUNAR-072 (cham vao o ngay mo modal/panel chi tiet hien thi DayInfo day du tu cache; panel nay la placeholder cho FR-LUNAR-011 Hoang dao/Truc/28 sao khi co)
-  - DEC-LUNAR-073 (cham mau tren o ngay chi su dung 3 cap do: khong co gi / co nhac-le / la le lon; tranh overcrowding voi qua nhieu loai cham mau)
-  - DEC-LUNAR-074 (header thang hien thi ca ten thang duong lich lan thang am lich tuong ung cua ngay dau tien trong luoi, cap nhat khi scroll)
+  - DEC-LUNAR-070 (the grid computes all DayInfo for the 28-31 cells of a month in a single array pass, not by calling convert per cell individually, to ensure render < 100ms)
+  - DEC-LUNAR-071 (the DayInfo data is computed on a worker thread / useMemo with deps [year, month], and the result is memoized to avoid recomputation when scrolling through months)
+  - DEC-LUNAR-072 (tapping a day cell opens a detail modal/panel showing the full DayInfo from cache; this panel is a placeholder for FR-LUNAR-011 Hoang dao/Truc/28 mansions when available)
+  - DEC-LUNAR-073 (the color dot on a day cell uses only 3 levels: none / has reminder-ritual / is a major festival; avoids overcrowding with too many kinds of color dots)
+  - DEC-LUNAR-074 (the month header shows both the solar month name and the corresponding lunar month of the first day in the grid, updated on scroll)
 language: typescript 5.x
 service: apps/web/
 new_files:
@@ -40,58 +40,58 @@ allowed_tools:
   - file_write: apps/web/components/** apps/web/lib/calendarData.ts apps/web/app/calendar/**
   - bash: cd apps/web && pnpm test
 disallowed_tools:
-  - "goi convertSolar2Lunar tung o rieng le trong vong lap render (vi pham DEC-LUNAR-070 / NFR-Performance render < 100ms)"
-  - "fetch network de lay du lieu lich (vi pham NFR-Offline)"
+  - "calling convertSolar2Lunar per cell individually inside the render loop (violates DEC-LUNAR-070 / NFR-Performance render < 100ms)"
+  - "fetching over the network to get calendar data (violates NFR-Offline)"
 effort_hours: 9
 sub_tasks:
-  - "1.5h: calendarData.ts - ham buildMonthGrid(year, month) goi amlich-core mot lan, tra mang DayCell[]"
-  - "1.0h: CalendarGrid.tsx - layout 7 cot, header thu, dieu huong thang truoc/sau"
-  - "1.5h: DayCell.tsx - hien thi ngay duong lon, ngay am nho goc, can-chi, tiet khi, cham le/nhac"
-  - "1.0h: DayDetailPanel.tsx - modal/slide-up hien thi DayInfo day du khi cham o ngay"
-  - "1.0h: app/calendar/page.tsx - route, state thang hien tai, wiring voi storage (reminders)"
-  - "1.5h: useMemo / worker thread cho buildMonthGrid, do render time < 100ms"
-  - "1.5h: unit tests calendarData.ts (fixtures thang 1/2025 Tet, thang co tiet khi, thang co ngay nhac)"
-risk_if_skipped: "Khong co giao dien lich thi nguoi dung khong the nhin tong quan ngay am trong thang, la man hinh chinh cua app MVP. FR-LUNAR-014 (shareable cards) phu thuoc truc tiep vao component DayCell cua FR nay de render thiet ke thiep."
+  - "1.5h: calendarData.ts - the buildMonthGrid(year, month) function calls amlich-core once, returns a DayCell[] array"
+  - "1.0h: CalendarGrid.tsx - 7-column layout, weekday header, previous/next month navigation"
+  - "1.5h: DayCell.tsx - show the large solar date, small lunar date in the corner, can-chi, tiet khi, ritual/reminder dot"
+  - "1.0h: DayDetailPanel.tsx - modal/slide-up showing the full DayInfo when a day cell is tapped"
+  - "1.0h: app/calendar/page.tsx - route, current-month state, wiring with storage (reminders)"
+  - "1.5h: useMemo / worker thread for buildMonthGrid, measure render time < 100ms"
+  - "1.5h: unit tests for calendarData.ts (fixtures for Jan/2025 Tet, a month with a tiet khi, a month with a reminder day)"
+risk_if_skipped: "Without the calendar view, the user cannot see an overview of the lunar dates in the month - the main screen of the MVP app. FR-LUNAR-014 (shareable cards) depends directly on this FR's DayCell component to render the card design."
 ---
 
 ## §1 - Description (BCP-14 normative)
 
-Thanh phan nay PHẢI hiển thị lưới lịch tháng hai hệ thống (dương + âm) trên màn hình chính, đạt chuẩn hiệu năng render dưới 100ms theo NFR-Performance.
+This component **MUST** display the dual-system month calendar grid (solar + lunar) on the main screen, meeting the render performance standard of under 100ms per NFR-Performance.
 
-1. PHẢI hiển thị lưới 7 cột (Chủ Nhật đến Thứ Bảy), mỗi hàng là một tuần dương lịch, mỗi ô tương ứng một ngày dương lịch trong tháng (FR-A05).
-2. PHẢI hiển thị trong mỗi ô: ngày dương (số lớn, nổi bật), ngày âm lịch tương ứng (số nhỏ, góc dưới trái), can-chi ngày (chữ nhỏ bên dưới ngày dương) (FR-A05, DEC-LUNAR-070).
-3. PHẢI đánh dấu tiết khí của ngày bằng nhãn nhỏ hoặc icon trên ô khi ngày đó là ngày bắt đầu một tiết khí trong 24 tiết khí (FR-A05, FR-A04 từ FR-LUNAR-002).
-4. PHẢI hiển thị chấm màu nhỏ trên ô ngày khi ngày đó có ít nhất một nhắc đang bật hoặc là ngày lễ/dịp trong danh sách festival content (DEC-LUNAR-073).
-5. PHẢI phân biệt 3 mức chấm màu: không có gì (ô trắng), có nhắc/lễ thông thường (chấm màu primary), là lễ lớn trong danh sách dịp chính (chấm màu accent) - không dùng quá 3 cấp độ (DEC-LUNAR-073).
-6. PHẢI tính toàn bộ `DayInfo[]` cho tháng trong một lần gọi hàm `buildMonthGrid(year, month)` trước khi render, không được gọi `convertSolar2Lunar` riêng lẻ từng ô trong vòng lặp render (DEC-LUNAR-070, NFR-Performance).
-7. PHẢI memo hóa kết quả `buildMonthGrid` theo `[year, month]` bằng `useMemo` hoặc cơ chế tương đương, tránh tính lại khi component re-render không đổi tháng (DEC-LUNAR-071).
-8. PHẢI hiển thị header tháng gồm tên tháng dương lịch (ví dụ "Tháng 1/2025") và tháng âm lịch tương ứng của ngày đầu lưới (DEC-LUNAR-074).
-9. PHẢI có nút dẫn hướng sang tháng trước và tháng sau; chuyển tháng PHẢI cập nhật header và grid mà không reload trang.
-10. PHẢI xử lý đúng các tháng bắt đầu không phải Chủ Nhật bằng cách để trống ô đầu hàng, và tháng có 28/29/30/31 ngày.
-11. PHẢI highlight ngày hôm nay (ngày dương hiện tại) bằng style riêng biệt (ví dụ vòng tròn tím đậm).
-12. PHẢI đáp ứng NFR-Performance: thời gian từ lúc người dùng nhấn "tháng sau" đến khi lưới mới hiển thị đầy đủ PHẢI dưới 100ms đo trên thiết bị mid-range (DEC-LUNAR-071).
-13. PHẢI xử lý sự kiện tap/click trên ô ngày bằng cách mở `DayDetailPanel` hiển thị thông tin đầy đủ của ngày đó từ `DayInfo` đã tính sẵn (DEC-LUNAR-072).
-14. `DayDetailPanel` PHẢI hiển thị ít nhất: ngày dương đầy đủ, ngày âm đầy đủ (tháng nhuận nếu có), can-chi ngày/tháng/năm, tiết khí nếu có, danh sách nhắc trong ngày đó; các trường Hoàng đạo/Trực/28 sao NÊN được dành placeholder cho FR-LUNAR-011 khi sẵn sàng (DEC-LUNAR-072).
-15. KHÔNG ĐƯỢC gọi network để lấy dữ liệu lịch; mọi tính toán phải offline từ `amlich-core` (NFR-Offline).
-16. NÊN hỗ trợ vuốt ngang (swipe left/right) để chuyển tháng trên thiết bị cảm ứng.
+1. **MUST** display a 7-column grid (Sunday to Saturday), each row a solar week, each cell corresponding to one solar day of the month (FR-A05).
+2. **MUST** display in each cell: the solar date (large, prominent number), the corresponding lunar date (small number, bottom-left corner), and the day's can-chi (small text below the solar date) (FR-A05, DEC-LUNAR-070).
+3. **MUST** mark the day's tiet khi with a small label or icon on the cell when that day is the start day of one of the 24 tiet khi (FR-A05, FR-A04 from FR-LUNAR-002).
+4. **MUST** show a small color dot on the day cell when that day has at least one active reminder or is a festival/occasion day in the festival content list (DEC-LUNAR-073).
+5. **MUST** distinguish 3 dot levels: none (blank cell), an ordinary reminder/ritual (primary color dot), a major festival in the main occasions list (accent color dot) - do not use more than 3 levels (DEC-LUNAR-073).
+6. **MUST** compute the entire `DayInfo[]` for the month in a single call to `buildMonthGrid(year, month)` before rendering, and must not call `convertSolar2Lunar` per cell individually inside the render loop (DEC-LUNAR-070, NFR-Performance).
+7. **MUST** memoize the `buildMonthGrid` result by `[year, month]` using `useMemo` or an equivalent mechanism, avoiding recomputation when the component re-renders without changing the month (DEC-LUNAR-071).
+8. **MUST** display a month header containing the solar month name (for example "January 2025") and the corresponding lunar month of the grid's first day (DEC-LUNAR-074).
+9. **MUST** have buttons to navigate to the previous and next month; changing the month **MUST** update the header and grid without reloading the page.
+10. **MUST** correctly handle months that do not start on Sunday by leaving the first cells of the row empty, and months with 28/29/30/31 days.
+11. **MUST** highlight today (the current solar date) with a distinct style (for example a deep purple ring).
+12. **MUST** meet NFR-Performance: the time from when the user taps "next month" to when the new grid is fully displayed **MUST** be under 100ms measured on a mid-range device (DEC-LUNAR-071).
+13. **MUST** handle tap/click events on a day cell by opening the `DayDetailPanel` showing that day's full information from the precomputed `DayInfo` (DEC-LUNAR-072).
+14. The `DayDetailPanel` **MUST** display at least: the full solar date, the full lunar date (leap month if any), the day/month/year can-chi, the tiet khi if any, and the list of reminders on that day; the Hoang dao/Truc/28 mansions fields **SHOULD** be placeholders for FR-LUNAR-011 when ready (DEC-LUNAR-072).
+15. **MUST NOT** call the network to get calendar data; all computation must be offline from `amlich-core` (NFR-Offline).
+16. **SHOULD** support horizontal swipe (swipe left/right) to change months on touch devices.
 
 ---
 
 ## §2 - Why this design (rationale for humans)
 
-**Tại sao tính toàn bộ tháng trong một lần (DEC-LUNAR-070)?** Gọi `convertSolar2Lunar` cho từng ô trong vòng lặp render nghĩa là React phải chờ tính toán xong cho từng ô mới render được - với 31 ngày và mỗi conversion dù < 5ms, tổng thời gian đồng bộ có thể lên đến 150ms, vi phạm NFR-Performance. Hàm `buildMonthGrid` tính một mảng phẳng trước, render chỉ đọc từ mảng đó.
+**Why compute the whole month in a single pass (DEC-LUNAR-070)?** Calling `convertSolar2Lunar` for each cell inside the render loop means React has to wait for the computation to finish per cell before it can render - with 31 days and each conversion under 5ms, the total synchronous time can reach 150ms, violating NFR-Performance. The `buildMonthGrid` function computes a flat array first, and the render only reads from that array.
 
-**Tại sao dùng `useMemo` thay vì tính trong `useEffect` (DEC-LUNAR-071)?** `useEffect` chạy sau render, nghĩa là người dùng sẽ thấy grid trắng rồi mới điền vào - tạo hiệu ứng "flicker". `useMemo` chạy đồng bộ trong render, giá trị sẵn sàng khi DOM được paint. Với 31 ngày và thuật toán < 5ms/ngày, tổng < 155ms là ngưỡng chấp nhận được; nếu cần đẩy thêm, chuyển sang Web Worker trong bước tối ưu.
+**Why use `useMemo` instead of computing in `useEffect` (DEC-LUNAR-071)?** `useEffect` runs after render, meaning the user sees a blank grid and then it fills in - creating a "flicker" effect. `useMemo` runs synchronously during render, and the value is ready when the DOM is painted. With 31 days and an algorithm under 5ms/day, a total under 155ms is an acceptable threshold; if more speed is needed, move to a Web Worker in the optimization step.
 
-**Tại sao giới hạn 3 cấp chấm màu (DEC-LUNAR-073)?** Giao diện lịch dễ bị rối nếu mỗi loại nhắc có màu khác nhau. Ba cấp (trắng / nhắc thường / lễ lớn) đủ để người dùng quét nhanh mà không cần đọc từng ô. Thiết kế tím của sub-brand FR-LUNAR-009 cung cấp màu primary và accent.
+**Why limit to 3 dot levels (DEC-LUNAR-073)?** A calendar UI gets cluttered easily if every kind of reminder has a different color. Three levels (blank / ordinary reminder / major festival) are enough for the user to scan quickly without reading each cell. The purple design of the FR-LUNAR-009 sub-brand supplies the primary and accent colors.
 
-**Tại sao `DayDetailPanel` là placeholder cho FR-LUNAR-011 (DEC-LUNAR-072)?** FR-LUNAR-011 (Hoàng đạo/Trực/28 sao) phụ thuộc FR-LUNAR-002 và thuộc Phase 2. Nếu FR-007 gắn cứng layout với FR-011, việc thiếu FR-011 sẽ block FR-007. Thiết kế placeholder cho phép FR-007 ship trong Phase 1 slice 3, và FR-011 chỉ cần fill vào slot định sẵn khi sẵn sàng.
+**Why is `DayDetailPanel` a placeholder for FR-LUNAR-011 (DEC-LUNAR-072)?** FR-LUNAR-011 (Hoang dao/Truc/28 mansions) depends on FR-LUNAR-002 and belongs to Phase 2. If FR-007 hard-wired its layout to FR-011, the absence of FR-011 would block FR-007. A placeholder design lets FR-007 ship in Phase 1 slice 3, and FR-011 only needs to fill the reserved slot when ready.
 
-**Tại sao header hiển thị tháng âm của ngày đầu lưới (DEC-LUNAR-074)?** Một tháng dương lịch thường trải qua 2 tháng âm lịch. Hiển thị tháng âm của ngày đầu tháng dương là quy ước trực quan nhất, phù hợp với cách người Việt nói "tháng Giêng năm Ất Tỵ" - người dùng hiểu ngay đang ở tháng âm nào.
+**Why does the header show the lunar month of the grid's first day (DEC-LUNAR-074)?** A solar month usually spans 2 lunar months. Showing the lunar month of the solar month's first day is the most intuitive convention, matching how Vietnamese people say "the first lunar month of the At Ty year" - the user immediately understands which lunar month they are in.
 
-**Tại sao không dùng thư viện lịch sẵn có?** Mọi thư viện lịch React phổ biến tính theo dương lịch. Tích hợp ngày âm + can-chi + tiết khí + chấm nhắc vào slot ô của thư viện ngoài đòi hỏi override sâu, dễ xung đột với update. Tự viết `CalendarGrid` với 7 cột đơn giản hơn và kiểm soát hoàn toàn.
+**Why not use an existing calendar library?** Every popular React calendar library computes by the solar calendar. Integrating the lunar date + can-chi + tiet khi + reminder dots into a third-party library's cell slot requires deep overrides that easily conflict with updates. Writing a simple 7-column `CalendarGrid` ourselves is easier and gives full control.
 
-**Tại sao cần test fixtures tháng 1/2025?** Ngày 29/01/2025 là Mùng 1 Tết Ất Tỵ - nếu grid hiển thị sai ngày âm 1/1 cho ngày này thì toàn bộ tháng sai. Fixture đã có sẵn trong FR-LUNAR-003 (golden validation), tái dùng cho component test.
+**Why test fixtures for Jan/2025?** 29/01/2025 is the first day of Tet At Ty - if the grid shows the wrong lunar date 1/1 for this day, the whole month is wrong. The fixture already exists in FR-LUNAR-003 (golden validation), reused for the component test.
 
 ---
 
@@ -201,21 +201,21 @@ export function CalendarGrid({ year, month, reminders, onMonthChange }: Calendar
 
 ## §4 - Acceptance criteria
 
-1. Grid lịch tháng 1/2025 hiển thị ngày 29/01/2025 có nhãn ngày âm "1/1" (Mùng 1 Tết Ất Tỵ), can-chi đúng theo fixtures FR-LUNAR-003.
-2. Grid tháng 3/1985 hiển thị đúng nhãn tháng nhuận 2 trong header và trên các ô ngày thuộc tháng nhuận 2/1985 (edge case tháng nhuận).
-3. Thời gian render từ lúc gọi `buildMonthGrid` đến khi DOM paint xong dưới 100ms đo bằng `performance.now()` trong unit test trên môi trường jsdom.
-4. Chuyển sang tháng sau bằng nút hoặc swipe, grid mới xuất hiện trong vòng 100ms (đo thủ công trên iPhone SE gen 3).
-5. Ô ngày có nhắc đang bật hiển thị chấm màu primary; ô ngày lễ lớn (Rằm tháng Giêng, Tết, Vu Lan, Trung Thu, v.v.) hiển thị chấm màu accent; ô không có gì hiển thị trắng - tổng không quá 3 loại chấm.
-6. Ô ngày hôm nay (solarDay == today) có style highlight riêng biệt (vòng tròn tím đậm hoặc tương đương từ design token FR-LUNAR-009).
-7. Tap vào bất kỳ ô ngày nào mở `DayDetailPanel` hiển thị đúng ngày âm, can-chi ngày/tháng/năm, tiết khí (nếu có), và danh sách nhắc trong ngày.
-8. `DayDetailPanel` có nút đóng; sau khi đóng panel, grid không bị re-render (không tính lại `buildMonthGrid`).
-9. Tháng bắt đầu vào Thứ Tư (ví dụ 01/01/2025 là Thứ Tư) hiển thị 3 ô trống padding đầu hàng; tháng 28 ngày không có hàng thừa.
-10. Không có network request nào được gửi trong suốt quá trình render lịch (kiểm bằng mock fetch trong test).
-11. Header hiển thị đúng tên tháng âm của ngày đầu tiên trong lưới (không phải ngày 1 dương lịch nếu ô đó là padding).
-12. Khi không có nhắc nào được tạo, grid vẫn hiển thị đầy đủ 28-31 ô ngày với ngày âm và can-chi đúng.
-13. `buildMonthGrid` chỉ được gọi một lần khi `[year, month]` không thay đổi dù component re-render nhiều lần (kiểm bằng mock đếm số lần gọi).
-14. Tiết khí "Lập Xuân" hiển thị đúng trên ô ngày 3/2/2025 (hoặc ngày chính xác từ FR-LUNAR-002).
-15. Grid hoạt động đúng ở cả hai chế độ: light (mặc định) và dark nếu design system FR-LUNAR-009 hỗ trợ.
+1. The Jan/2025 month grid shows 29/01/2025 with the lunar date label "1/1" (first day of Tet At Ty), and the can-chi correct per the FR-LUNAR-003 fixtures.
+2. The Mar/1985 grid shows the correct leap month 2 label in the header and on the day cells belonging to leap month 2 of 1985 (leap-month edge case).
+3. The render time from calling `buildMonthGrid` to the DOM finishing paint is under 100ms measured with `performance.now()` in a unit test in the jsdom environment.
+4. Moving to the next month by button or swipe, the new grid appears within 100ms (measured manually on an iPhone SE gen 3).
+5. A day cell with an active reminder shows a primary color dot; a major festival cell (Ram of the first lunar month, Tet, Vu Lan, Trung Thu, etc.) shows an accent color dot; a cell with nothing shows blank - no more than 3 dot kinds total.
+6. Today's cell (solarDay == today) has a distinct highlight style (a deep purple ring or equivalent from the FR-LUNAR-009 design token).
+7. Tapping any day cell opens the `DayDetailPanel` showing the correct lunar date, the day/month/year can-chi, the tiet khi (if any), and the list of reminders on that day.
+8. The `DayDetailPanel` has a close button; after closing the panel, the grid is not re-rendered (does not recompute `buildMonthGrid`).
+9. A month starting on Wednesday (for example 01/01/2025 is a Wednesday) shows 3 empty padding cells at the start of the row; a 28-day month has no extra row.
+10. No network request is sent during the calendar render (checked with mock fetch in the test).
+11. The header shows the correct lunar month name of the first day in the grid (not the solar 1st if that cell is padding).
+12. When no reminders have been created, the grid still shows all 28-31 day cells with the correct lunar date and can-chi.
+13. `buildMonthGrid` is called only once when `[year, month]` does not change, even if the component re-renders many times (checked with a mock counting the number of calls).
+14. The tiet khi "Lap Xuan" shows correctly on the cell for 3/2/2025 (or the exact day from FR-LUNAR-002).
+15. The grid works correctly in both modes: light (default) and dark if the FR-LUNAR-009 design system supports it.
 
 ---
 
@@ -307,7 +307,7 @@ describe("computeReminderDatesForMonth", () => {
 
 ## §6 - Implementation skeleton
 
-API contract ở §3 là skeleton đầy đủ. Điểm tricky nhất cần ghim:
+The API contract in §3 is a full skeleton. The trickiest point to pin down:
 
 ```typescript
 // apps/web/lib/calendarData.ts
@@ -380,11 +380,11 @@ function isTietKhiStart(jdn: number): boolean {
 
 ## §7 - Dependencies
 
-Upstream: `FR-LUNAR-001` cung cấp `convertSolar2Lunar` (engine lõi, trả tuple) và `jdFromDate`; `FR-LUNAR-002` cung cấp `canChiDay/canChiMonth/canChiYear`, `zodiacOf`, và `tietKhiAt` (24 tiết khí - KHÔNG phải `getTietKhi`); `FR-LUNAR-010` cung cấp app shell, routing, và storage layer mà `CalendarGrid` dùng để đọc danh sách `Reminder` đang bật.
+Upstream: `FR-LUNAR-001` provides `convertSolar2Lunar` (the core engine, returns a tuple) and `jdFromDate`; `FR-LUNAR-002` provides `canChiDay/canChiMonth/canChiYear`, `zodiacOf`, and `tietKhiAt` (24 tiet khi - NOT `getTietKhi`); `FR-LUNAR-010` provides the app shell, routing, and the storage layer that `CalendarGrid` uses to read the list of active `Reminder`s.
 
-Downstream: `FR-LUNAR-014` (shareable cards) phụ thuộc `DayCell` component và `DayCellData` type từ FR này để render thiết kế thiệp.
+Downstream: `FR-LUNAR-014` (shareable cards) depends on the `DayCell` component and the `DayCellData` type from this FR to render the card design.
 
-Cross-cutting: `FR-LUNAR-009` (purple design system) cung cấp color tokens và typography cho `DayCell` và `DayDetailPanel`; `FR-LUNAR-011` (Hoàng đạo/Trực/28 sao) sẽ fill vào các placeholder fields `hoangDao`, `truc`, `sao28` trong `DayCellData` ở Phase 2 khi sẵn sàng.
+Cross-cutting: `FR-LUNAR-009` (purple design system) provides the color tokens and typography for `DayCell` and `DayDetailPanel`; `FR-LUNAR-011` (Hoang dao/Truc/28 mansions) will fill the placeholder fields `hoangDao`, `truc`, `sao28` in `DayCellData` in Phase 2 when ready.
 
 ---
 
@@ -445,13 +445,13 @@ Cross-cutting: `FR-LUNAR-009` (purple design system) cung cấp color tokens và
 
 ## §9 - Open questions
 
-Đã giải quyết:
-- Cách tính toàn bộ tháng một lần: `buildMonthGrid` gọi `convertSolar2Lunar` cho mỗi ngày.
-- Placeholder cho FR-LUNAR-011: các field `hoangDao`, `truc`, `sao28` trong `DayCellData` để `null` cho đến Phase 2.
+Resolved:
+- How to compute the whole month in one pass: `buildMonthGrid` calls `convertSolar2Lunar` for each day.
+- Placeholder for FR-LUNAR-011: the `hoangDao`, `truc`, `sao28` fields in `DayCellData` stay `null` until Phase 2.
 
-Còn deferred:
-- Tối ưu Web Worker: nếu benchmark thực tế cho thấy `useMemo` vẫn block main thread trên thiết bị cũ, chuyển `buildMonthGrid` sang `Web Worker` và dùng `useTransition` - deferred theo Caveats (PRD §14 Phase 2 performance tuning).
-- Số hàng tối ưu: một số tháng cần 6 hàng (42 ô). Có thể dùng layout cuộn nếu 6 hàng quá chật trên màn hình nhỏ - deferred, quyết định lúc UI review thực tế.
+Still deferred:
+- Web Worker optimization: if the real benchmark shows that `useMemo` still blocks the main thread on old devices, move `buildMonthGrid` to a `Web Worker` and use `useTransition` - deferred per Caveats (PRD §14 Phase 2 performance tuning).
+- Optimal row count: some months need 6 rows (42 cells). A scrolling layout could be used if 6 rows are too cramped on a small screen - deferred, decided at the real UI review.
 
 ---
 
@@ -459,29 +459,29 @@ Còn deferred:
 
 | Failure | Detection | Outcome | Recovery |
 |---|---|---|---|
-| `convertSolar2Lunar` trả sai tháng nhuận | Unit test fixtures tháng 3/1985 | Grid hiển thị sai ngày âm | Sửa bug ở FR-LUNAR-001 trước khi deploy |
-| `buildMonthGrid` gọi network | Jest mock fetch spy | Test fail | Xóa bỏ bất kỳ fetch call nào trong calendarData.ts |
-| Render > 100ms trên mid-range device | `performance.now()` trong test | NFR-Performance vi phạm | Chuyển sang Web Worker hoặc tối ưu vòng lặp |
-| Ô padding sai (sai ngày bắt đầu tuần) | Test tháng 1/2025 bắt đầu Thứ Tư | Grid lệch hàng | Dùng `startPaddingFor()` (Intl + timeZone Asia/Ho_Chi_Minh trên UTC noon), KHÔNG dùng `Date#getDay()` |
-| `useMemo` không hoạt động, tính lại mỗi render | Mock đếm số lần gọi | Hiệu năng kém | Thêm key stability, kiểm tra deps |
-| Tháng 2 nhuận năm nhuận dương lịch (29 ngày) | Test tháng 2/2024 | Grid thiếu ngày 29 | Dùng `new Date(year, month, 0).getDate()` thay vì hardcode 28/30/31 |
-| Chấm màu sai cấp (festival vs reminder nhầm) | Test fixture có festivalDates + reminderDates | UI gây nhầm lẫn | Tách rõ hai Set, ưu tiên `isFestival` khi cả hai true |
-| DayDetailPanel re-render grid | React Profiler | Hiệu năng kém | Tách state panel ra khỏi grid component |
-| Swipe xung đột với scroll dọc | Test thủ công thiết bị | UX khó dùng | Dùng threshold góc vuốt (angle > 45 deg = scroll) |
-| Token màu FR-LUNAR-009 chưa sẵn sàng | Build lỗi import | Grid không có style tím | Dùng fallback CSS variable default trong DayCell |
-| Ngày 1/1/1900 hoặc 31/12/2199 (edge year) | Unit test boundary | Crash hoặc sai | Clamp year trong [1900, 2199] và hiển thị cảnh báo |
-| Tháng có 0 nhắc, festivalDates trống | Test tháng không có dịp | Grid hiển thị đúng nhưng trống | Luôn truyền Set rỗng thay vì undefined |
+| `convertSolar2Lunar` returns the wrong leap month | Unit test fixtures for Mar/1985 | Grid shows the wrong lunar date | Fix the bug in FR-LUNAR-001 before deploy |
+| `buildMonthGrid` calls the network | Jest mock fetch spy | Test fails | Remove any fetch call in calendarData.ts |
+| Render > 100ms on a mid-range device | `performance.now()` in the test | NFR-Performance violated | Move to a Web Worker or optimize the loop |
+| Wrong padding cells (wrong start-of-week day) | Test for Jan/2025 starting on Wednesday | Grid rows misaligned | Use `startPaddingFor()` (Intl + timeZone Asia/Ho_Chi_Minh on UTC noon), NOT `Date#getDay()` |
+| `useMemo` not working, recomputing every render | Mock counting the number of calls | Poor performance | Add key stability, check deps |
+| Leap February in a leap solar year (29 days) | Test for Feb/2024 | Grid missing the 29th | Use `new Date(year, month, 0).getDate()` instead of hardcoding 28/30/31 |
+| Wrong dot level (festival vs reminder confused) | Test fixture with festivalDates + reminderDates | UI causes confusion | Separate the two Sets clearly, prioritize `isFestival` when both are true |
+| DayDetailPanel re-renders the grid | React Profiler | Poor performance | Separate the panel state from the grid component |
+| Swipe conflicts with vertical scroll | Manual device test | Hard-to-use UX | Use a swipe-angle threshold (angle > 45 deg = scroll) |
+| FR-LUNAR-009 color tokens not ready | Import build error | Grid has no purple style | Use a fallback CSS variable default in DayCell |
+| Day 1/1/1900 or 31/12/2199 (edge year) | Unit test boundary | Crash or wrong result | Clamp year to [1900, 2199] and show a warning |
+| Month with 0 reminders, festivalDates empty | Test for a month with no occasion | Grid shows correctly but empty | Always pass an empty Set instead of undefined |
 
 ---
 
 ## §11 - Implementation notes
 
-- `buildMonthGrid` phải dùng `tz = 7.0` (không phải `0` hoặc timezone của browser) khi gọi `convertSolar2Lunar`, vì engine lõi tính theo kinh tuyến 105 độ E - đây là nguồn sai phổ biến nhất khi port.
-- Start-padding KHÔNG được dùng `new Date(year, month - 1, 1).getDay()`: nó lấy thứ trong tuần theo timezone của runtime, nên SSR/static-export (chạy UTC) cho kết quả lệch so với Asia/Ho_Chi_Minh. §6 đã ship `startPaddingFor()` dùng `Intl.DateTimeFormat({ timeZone: "Asia/Ho_Chi_Minh" })` đọc trên `Date.UTC(year, month-1, 1, 12)` (UTC noon để tránh edge DST) - đây là code chuẩn, không phải chỉ ghi chú. Tương tự, `daysInMonth` dùng `Date.UTC(...).getUTCDate()` thay vì biến thể local.
-- Placeholder fields `hoangDao`, `truc`, `sao28` trong `DayCellData` kiểu `null` thay vì `undefined` để JSON serialization không drop chúng - quan trọng nếu grid data được truyền qua postMessage sang Worker.
-- `DayDetailPanel` phải là portal (React `createPortal`) gắn vào `document.body` để tránh bị clip bởi `overflow: hidden` của grid container.
-- Tiết khí từ FR-LUNAR-002 là `tietKhiAt(jdn, tz)` (KHÔNG có `getTietKhi`), và nó trả tiết khí của MỌI ngày (luôn có `name`), không phải chỉ ngày bắt đầu. Lưới chỉ nên hiển thị nhãn tiết trên NGÀY BẮT ĐẦU tiết; §6 dùng `isTietKhiStart(jdn)` so sánh `tietKhiAt(jdn).index` với `tietKhiAt(jdn-1).index` (khác nhau = ngày bắt đầu) rồi mới gán `tietKhi`, còn lại để `null`. AC #14 (Lập Xuân trên 3/2/2025) kiểm tra đúng hành vi này.
-- Khi chuyển tháng bằng swipe, cần debounce để tránh chuyển 2 tháng cùng lúc nếu người dùng vuốt nhanh.
-- Test `computeReminderDatesForMonth` phải cover trường hợp reminder RAM (Rằm 15 AL) với tháng dương không khớp hoàn toàn với tháng âm - một phần nhắc của tháng dương 1 có thể rơi vào tháng âm 12 năm trước.
+- `buildMonthGrid` must use `tz = 7.0` (not `0` or the browser timezone) when calling `convertSolar2Lunar`, because the core engine computes by the 105 degrees E meridian - this is the most common source of error when porting.
+- The start-padding must NOT use `new Date(year, month - 1, 1).getDay()`: it reads the weekday by the runtime timezone, so SSR/static-export (running UTC) gives a result off from Asia/Ho_Chi_Minh. §6 already ships `startPaddingFor()` using `Intl.DateTimeFormat({ timeZone: "Asia/Ho_Chi_Minh" })` read on `Date.UTC(year, month-1, 1, 12)` (UTC noon to avoid the DST edge) - this is standard code, not just a note. Similarly, `daysInMonth` uses `Date.UTC(...).getUTCDate()` instead of the local variant.
+- The placeholder fields `hoangDao`, `truc`, `sao28` in `DayCellData` are of type `null` instead of `undefined` so that JSON serialization does not drop them - important if the grid data is passed via postMessage to a Worker.
+- The `DayDetailPanel` must be a portal (React `createPortal`) attached to `document.body` to avoid being clipped by the grid container's `overflow: hidden`.
+- The tiet khi from FR-LUNAR-002 is `tietKhiAt(jdn, tz)` (there is NO `getTietKhi`), and it returns the tiet khi for EVERY day (always has a `name`), not just the start day. The grid should show the tiet label only on the START DAY of the tiet; §6 uses `isTietKhiStart(jdn)` comparing `tietKhiAt(jdn).index` with `tietKhiAt(jdn-1).index` (different = start day) before assigning `tietKhi`, leaving the rest `null`. AC #14 (Lap Xuan on 3/2/2025) tests exactly this behavior.
+- When changing months by swipe, debounce is needed to avoid changing 2 months at once if the user swipes quickly.
+- The `computeReminderDatesForMonth` test must cover the case of a RAM reminder (Ram 15 lunar) with a solar month that does not fully match the lunar month - part of a solar month 1 reminder can fall into lunar month 12 of the previous year.
 
-*Hết FR-LUNAR-007.*
+*End of FR-LUNAR-007.*

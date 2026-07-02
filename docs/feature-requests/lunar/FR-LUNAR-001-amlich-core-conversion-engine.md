@@ -1,6 +1,6 @@
 ---
 id: FR-LUNAR-001
-title: "Core lunar engine - port thuật toán Hồ Ngọc Đức sang TypeScript, convertSolar2Lunar / convertLunar2Solar theo giờ Việt Nam (UTC+7, 105E), offline, zero-dependency"
+title: "Core lunar engine - port the Ho Ngoc Duc algorithm to TypeScript, convertSolar2Lunar / convertLunar2Solar in Vietnam time (UTC+7, 105E), offline, zero-dependency"
 module: LUNAR
 priority: MUST
 status: ready_to_implement
@@ -20,12 +20,12 @@ source_pages:
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#5 (NFR-Offline, NFR-Performance)"
   - "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md#6 (Lunar spec 6.1-6.5)"
 source_decisions:
-  - DEC-LUNAR-010 (mọi tính toán dùng kinh tuyến 105E với timeZone = 7.0; đây là rule 5 của Hồ Ngọc Đức và là nguyên nhân VN khác TQ)
-  - DEC-LUNAR-011 (kỷ luật ba epoch tách bạch: index-k epoch 2415021.076998695, Meeus epoch 2415020.75933, getLunarMonth11 integer 2415021 - không được dùng lẫn)
-  - DEC-LUNAR-012 (zero runtime network: tính ngày hoàn toàn trên thiết bị, không gọi API; package zero-dependency)
-  - DEC-LUNAR-013 (synodic constants tách vai trò: 29.530588853 cho index-k, 29.53058868 cho đa thức Meeus bên trong NewMoon)
-  - DEC-LUNAR-014 (chuyển Julian/Gregorian tại JD 2299161 trong jdFromDate để dùng cho cả dải 1900-2199 và xa hơn)
-  - DEC-LUNAR-015 (API trả về tuple [day, month, year, isLeap] giữ nguyên chu ký gốc Đức; isLeap là phần tử thứ tư, không tách struct ở lớp core)
+  - DEC-LUNAR-010 (all calculations use meridian 105E with timeZone = 7.0; this is Ho Ngoc Duc's rule 5 and the reason VN differs from China)
+  - DEC-LUNAR-011 (strict discipline of three separate epochs: index-k epoch 2415021.076998695, Meeus epoch 2415020.75933, getLunarMonth11 integer 2415021 - must not be mixed)
+  - DEC-LUNAR-012 (zero runtime network: dates computed entirely on-device, no API calls; zero-dependency package)
+  - DEC-LUNAR-013 (synodic constants split by role: 29.530588853 for index-k, 29.53058868 for the Meeus polynomial inside NewMoon)
+  - DEC-LUNAR-014 (Julian/Gregorian switch at JD 2299161 in jdFromDate to cover the whole 1900-2199 range and beyond)
+  - DEC-LUNAR-015 (API returns the tuple [day, month, year, isLeap] keeping Duc's original signature; isLeap is the fourth element, no struct split at the core layer)
 language: typescript 5.x
 service: packages/amlich-core/
 new_files:
@@ -42,63 +42,63 @@ allowed_tools:
   - file_write: packages/amlich-core/{src,test}/**
   - bash: cd packages/amlich-core && pnpm test
 disallowed_tools:
-  - "gọi network hoặc fetch trong quá trình tính ngày (vi phạm DEC-LUNAR-012 / NFR-Offline)"
-  - "hard-code timeZone khác 7.0 hoặc kinh tuyến khác 105E (vi phạm DEC-LUNAR-010 / FR-A01)"
-  - "thêm runtime dependency vào package.json của amlich-core (vi phạm DEC-LUNAR-012 - zero-dependency)"
+  - "network or fetch calls during date computation (violates DEC-LUNAR-012 / NFR-Offline)"
+  - "hard-coding a timeZone other than 7.0 or a meridian other than 105E (violates DEC-LUNAR-010 / FR-A01)"
+  - "adding a runtime dependency to the amlich-core package.json (violates DEC-LUNAR-012 - zero-dependency)"
 effort_hours: 16
 sub_tasks:
-  - "2.0h: jdFromDate + jdToDate với Julian/Gregorian switch tại JD 2299161 (DEC-LUNAR-014)"
-  - "3.0h: NewMoon(k) - đa thức Meeus T/T2/T3, chuỗi hiệu chỉnh C1, deltat; hằng số 2415020.75933 + 29.53058868"
-  - "2.0h: SunLongitude(jdn) + getSunLongitude(dayNumber, tz) trả 0-11 với J2000 2451545.0 / 36525, dr=PI/180"
-  - "1.5h: getNewMoonDay(k, tz) + getLunarMonth11(yy, tz) dùng integer 2415021"
-  - "2.0h: getLeapMonthOffset(a11, tz) - quét các tháng từ a11 tìm tháng không chứa Trung khí"
-  - "2.5h: convertSolar2Lunar(dd,mm,yy,tz) - epoch index-k 2415021.076998695, gán lunarMonth/Year/leap"
-  - "2.0h: convertLunar2Solar(lunarDay,lunarMonth,lunarYear,lunarLeap,tz) - nghịch đảo, fallback offset"
-  - "1.0h: index.ts barrel + JSDoc cho mọi hằng số, freeze constants"
-risk_if_skipped: "Đây là tài sản lõi, mọi FR khác build trên nó - FR-LUNAR-002 (can-chi), FR-LUNAR-003 (validation), FR-LUNAR-004 (recurrence), FR-LUNAR-007 (lịch tháng), FR-LUNAR-010 (app shell) đều import trực tiếp. Sai bất kỳ hằng số nào trong 6.2 là sai toàn bộ lịch, và lỗi sẽ lan ra mọi nhắc. Không có engine thì không có sản phẩm."
+  - "2.0h: jdFromDate + jdToDate with Julian/Gregorian switch at JD 2299161 (DEC-LUNAR-014)"
+  - "3.0h: NewMoon(k) - Meeus polynomial T/T2/T3, the C1 correction series, deltat; constants 2415020.75933 + 29.53058868"
+  - "2.0h: SunLongitude(jdn) + getSunLongitude(dayNumber, tz) returning 0-11 with J2000 2451545.0 / 36525, dr=PI/180"
+  - "1.5h: getNewMoonDay(k, tz) + getLunarMonth11(yy, tz) using integer 2415021"
+  - "2.0h: getLeapMonthOffset(a11, tz) - scan the months from a11 to find the month containing no Principal Term"
+  - "2.5h: convertSolar2Lunar(dd,mm,yy,tz) - index-k epoch 2415021.076998695, assign lunarMonth/Year/leap"
+  - "2.0h: convertLunar2Solar(lunarDay,lunarMonth,lunarYear,lunarLeap,tz) - inverse, fallback offset"
+  - "1.0h: index.ts barrel + JSDoc for every constant, freeze constants"
+risk_if_skipped: "This is the core asset that every other FR builds on - FR-LUNAR-002 (can-chi), FR-LUNAR-003 (validation), FR-LUNAR-004 (recurrence), FR-LUNAR-007 (month calendar), FR-LUNAR-010 (app shell) all import it directly. Getting any constant in 6.2 wrong makes the entire calendar wrong, and the error spreads to every reminder. Without the engine there is no product."
 ---
 
 ## §1 - Description (BCP-14 normative)
 
-Engine PHẢI chuyển đổi solar và lunar hai chiều cho mọi ngày trong dải 1900-2199 theo giờ Việt Nam, hoàn toàn offline, và port đúng từng hằng số của Hồ Ngọc Đức. Hợp đồng:
+The engine MUST convert between solar and lunar in both directions for every date in the 1900-2199 range in Vietnam time, fully offline, and port every one of Ho Ngoc Duc's constants exactly. Contract:
 
-1. PHẢI cung cấp `convertSolar2Lunar(dd, mm, yy, tz)` trả về `[lunarDay, lunarMonth, lunarYear, lunarLeap]` cho mọi ngày dương hợp lệ trong 1900-2199, với `tz = 7.0` là mặc định Việt Nam (FR-A01, DEC-LUNAR-010).
-2. PHẢI cung cấp `convertLunar2Solar(lunarDay, lunarMonth, lunarYear, lunarLeap, tz)` trả về `[dd, mm, yy]`, là nghịch đảo chính xác của `convertSolar2Lunar` trong toàn dải (FR-A01, diễn giải trong FR-LUNAR-003).
-3. PHẢI tính mọi thời điểm theo kinh tuyến 105E với `timeZone = 7.0`; KHÔNG ĐƯỢC dùng 120E hay UTC+8, vì đây là rule 5 quyết định sự khác biệt VN và TQ (DEC-LUNAR-010, PRD 6.1).
-4. PHẢI xác định đúng tháng nhuận: tháng đầu tiên sau tháng 11 mà KHÔNG chứa Trung khí (Principal Term) là tháng nhuận, mang tên tháng trước nó kèm cờ `lunarLeap = 1` (FR-A02, PRD 6.1 rule 4).
-5. PHẢI đặt `jdFromDate(dd, mm, yy)` xử lý chuyển Julian sang Gregorian tại `JD 2299161`: ngày từ 15/10/1582 trở đi dùng Gregorian, trước đó dùng Julian (DEC-LUNAR-014).
-6. PHẢI tính `NewMoon(k)` bằng đa thức Meeus với `T = k / 1236.85`, các lũy thừa `T2`, `T3`, epoch `2415020.75933`, hệ số synodic per-k `29.53058868`, chuỗi hiệu chỉnh `C1` và số hạng `deltat` (PRD 6.2, 6.3, DEC-LUNAR-013).
-7. PHẢI tính `SunLongitude(jdn)` bằng epoch J2000 `2451545.0` chia `36525`, với `dr = PI / 180`, trả về radian, và `getSunLongitude(dayNumber, tz) = INT(SunLongitude(dayNumber - 0.5 - tz / 24) / PI * 6)` trả về nguyên 0-11 (PRD 6.3).
-8. PHẢI tính `getNewMoonDay(k, tz) = INT(NewMoon(k) + 0.5 + tz / 24)` trả về JDN của ngày chứa điểm Sóc thứ k (PRD 6.3).
-9. PHẢI tính `getLunarMonth11(yy, tz)` dùng hằng số nguyên `LUNAR_MONTH11_EPOCH_INT = 2415021` (không phải bản thập phân) để tìm ngày bắt đầu tháng 11 âm chứa Đông chí (PRD 6.2, DEC-LUNAR-011).
-10. PHẢI tính `getLeapMonthOffset(a11, tz)` bằng cách quét các tháng kế tiếp từ `a11`, đếm số tháng đến khi gặp tháng có `getSunLongitude` lặp lại (không tăng) - đó là tháng không chứa Trung khí (PRD 6.3).
-11. PHẢI tách bạch ba epoch và hai synodic constant trong code, mọi hằng số có JSDoc ghi rõ vai trò và giá trị; KHÔNG ĐƯỢC dùng epoch này cho công thức của epoch khác (DEC-LUNAR-011, DEC-LUNAR-013).
-12. PHẢI dùng `EPOCH_INDEX_K = 2415021.076998695` trong `convertSolar2Lunar` và `getLeapMonthOffset` khi suy ra chỉ số k từ một JDN (PRD 6.2).
-13. PHẢI hoạt động hoàn toàn offline: KHÔNG ĐƯỢC gọi network, fetch, hay đọc đồng hồ hệ thống để tính ngày; hàm là pure và deterministic theo input (FR-A06, NFR-Offline, DEC-LUNAR-012).
-14. PHẢI đặt `package.json` của amlich-core với `dependencies` rỗng; KHÔNG ĐƯỢC thêm runtime dependency (DEC-LUNAR-012).
-15. PHẢI đặt mốc hiệu năng: một lần `convertSolar2Lunar` < 5ms trên thiết bị mục tiêu (NFR-Performance); các hàm là O(1) không cấp phát trong vòng nóng.
-16. PHẢI freeze tất cả hằng số (ví dụ `Object.freeze` hoặc `as const`) để không bị sửa nhầm lúc runtime (DEC-LUNAR-011).
-17. PHẢI export `INVALID_SOLAR: SolarDate` (giá trị `[0, 0, 0]`) và `isInvalidSolar(s): boolean` để caller kiểm sentinel đúng cách, không so sánh `=== null` (CONTRACT.md).
-18. NÊN cung cấp `jdToDate(jd)` công khai để FR-LUNAR-002 và FR-LUNAR-003 tính can-chi và round-trip từ JDN mà không tự cài lại (DEC-LUNAR-015).
-19. NÊN trả về `lunarLeap` là `0 | 1` thay vì boolean ở lớp core để giữ nguyên chu ký gốc của Đức; lớp UI mới map sang nhãn "nhuận" (FR-A02, DEC-LUNAR-015).
+1. MUST provide `convertSolar2Lunar(dd, mm, yy, tz)` returning `[lunarDay, lunarMonth, lunarYear, lunarLeap]` for every valid solar date in 1900-2199, with `tz = 7.0` as the Vietnam default (FR-A01, DEC-LUNAR-010).
+2. MUST provide `convertLunar2Solar(lunarDay, lunarMonth, lunarYear, lunarLeap, tz)` returning `[dd, mm, yy]`, the exact inverse of `convertSolar2Lunar` across the whole range (FR-A01, discussed in FR-LUNAR-003).
+3. MUST compute every moment at meridian 105E with `timeZone = 7.0`; MUST NOT use 120E or UTC+8, because this is rule 5 that determines the difference between VN and China (DEC-LUNAR-010, PRD 6.1).
+4. MUST identify the leap month correctly: the first month after month 11 that contains no Principal Term is the leap month, taking the name of the month before it with the flag `lunarLeap = 1` (FR-A02, PRD 6.1 rule 4).
+5. MUST make `jdFromDate(dd, mm, yy)` handle the Julian-to-Gregorian switch at `JD 2299161`: dates from 15/10/1582 onward use Gregorian, earlier dates use Julian (DEC-LUNAR-014).
+6. MUST compute `NewMoon(k)` with the Meeus polynomial using `T = k / 1236.85`, the powers `T2`, `T3`, epoch `2415020.75933`, per-k synodic coefficient `29.53058868`, the `C1` correction series, and the `deltat` term (PRD 6.2, 6.3, DEC-LUNAR-013).
+7. MUST compute `SunLongitude(jdn)` using the J2000 epoch `2451545.0` divided by `36525`, with `dr = PI / 180`, returning radians, and `getSunLongitude(dayNumber, tz) = INT(SunLongitude(dayNumber - 0.5 - tz / 24) / PI * 6)` returning an integer 0-11 (PRD 6.3).
+8. MUST compute `getNewMoonDay(k, tz) = INT(NewMoon(k) + 0.5 + tz / 24)` returning the JDN of the day containing the k-th Soc point (PRD 6.3).
+9. MUST compute `getLunarMonth11(yy, tz)` using the integer constant `LUNAR_MONTH11_EPOCH_INT = 2415021` (not the decimal version) to find the start day of lunar month 11 containing the Dong chi (PRD 6.2, DEC-LUNAR-011).
+10. MUST compute `getLeapMonthOffset(a11, tz)` by scanning the successive months from `a11`, counting months until it reaches a month where `getSunLongitude` repeats (does not increase) - that is the month containing no Principal Term (PRD 6.3).
+11. MUST keep the three epochs and two synodic constants separate in the code, with every constant carrying JSDoc stating its role and value clearly; MUST NOT use one epoch in the formula of another (DEC-LUNAR-011, DEC-LUNAR-013).
+12. MUST use `EPOCH_INDEX_K = 2415021.076998695` in `convertSolar2Lunar` and `getLeapMonthOffset` when deriving the index k from a JDN (PRD 6.2).
+13. MUST work fully offline: MUST NOT call network, fetch, or read the system clock to compute dates; the functions are pure and deterministic on their input (FR-A06, NFR-Offline, DEC-LUNAR-012).
+14. MUST set the amlich-core `package.json` with empty `dependencies`; MUST NOT add a runtime dependency (DEC-LUNAR-012).
+15. MUST set a performance target: one `convertSolar2Lunar` call < 5ms on the target device (NFR-Performance); the functions are O(1) with no allocation in the hot path.
+16. MUST freeze all constants (for example `Object.freeze` or `as const`) so they cannot be modified by accident at runtime (DEC-LUNAR-011).
+17. MUST export `INVALID_SOLAR: SolarDate` (the value `[0, 0, 0]`) and `isInvalidSolar(s): boolean` so callers check the sentinel correctly and do not compare `=== null` (CONTRACT.md).
+18. SHOULD provide a public `jdToDate(jd)` so FR-LUNAR-002 and FR-LUNAR-003 can compute can-chi and round-trip from a JDN without re-implementing it (DEC-LUNAR-015).
+19. SHOULD return `lunarLeap` as `0 | 1` rather than a boolean at the core layer to keep Duc's original signature; the UI layer then maps it to a "leap" label (FR-A02, DEC-LUNAR-015).
 
 ---
 
 ## §2 - Why this design (rationale for humans)
 
-**Tại sao port tay thay vì dùng thư viện có sẵn?** PRD 6.5 khuyến nghị mạnh tự port sang TypeScript vì chỉ khoảng 300 dòng, kiểm soát hoàn toàn, và đúng chuẩn Việt Nam. Các thư viện giàu tính năng như `lunar-typescript` tính theo 120E nên cho ngày Sóc và tháng nhuận sai với VN. Tự port cho phép ghim đúng từng hằng số ở 6.2 và chứng minh độ chính xác bằng FR-LUNAR-003 (DEC-LUNAR-010, DEC-LUNAR-012).
+**Why port by hand instead of using an existing library?** PRD 6.5 strongly recommends porting to TypeScript because it is only about 300 lines, gives full control, and matches the Vietnamese standard. Feature-rich libraries like `lunar-typescript` compute at 120E, so they give the wrong Soc day and leap month for VN. Porting by hand lets you pin every constant in 6.2 exactly and prove accuracy through FR-LUNAR-003 (DEC-LUNAR-010, DEC-LUNAR-012).
 
-**Tại sao 105E và timeZone = 7.0 là bất di bất dịch?** Đây là rule 5 của Hồ Ngọc Đức. Khi điểm Sóc hoặc Trung khí rơi sát nửa đêm, chênh một giờ giữa Hà Nội và Bắc Kinh đẩy ngày sang ngày khác, làm tháng 11 chứa Đông chí khác nhau, và kéo theo toàn bộ chuỗi tháng lệch. Năm 1984 Đông chí rơi 21/12 giờ Hà Nội nhưng 22/12 giờ Bắc Kinh, nên Tết 1985 VN sớm hơn TQ một tháng. Nếu hard-code sai múi giờ, cả lịch sai ở 1985 và ở 2007/2030/2053 (DEC-LUNAR-010, PRD 6.4).
+**Why are 105E and timeZone = 7.0 non-negotiable?** This is Ho Ngoc Duc's rule 5. When a Soc point or Principal Term falls near midnight, a one-hour difference between Hanoi and Beijing pushes the day to a different date, makes month 11 (the one containing Dong chi) different, and shifts the whole chain of months. In 1984 the Dong chi fell on 21/12 Hanoi time but 22/12 Beijing time, so Tet 1985 in VN was one month earlier than in China. Hard-coding the wrong timezone makes the whole calendar wrong in 1985 and in 2007/2030/2053 (DEC-LUNAR-010, PRD 6.4).
 
-**Tại sao phải tách ba epoch?** Đây là cái bẫy phổ biến nhất khi port. `convertSolar2Lunar` dùng epoch index-k `2415021.076998695` để suy k từ JDN. Bên trong `NewMoon` lại dùng epoch Meeus `2415020.75933` với đa thức. `getLunarMonth11` dùng số nguyên `2415021`. Ba giá trị gần giống nhau nhưng không thay thế cho nhau được; dùng nhầm một trong ba sẽ làm lệch ngày ở một số năm mà test toàn dải mới bắt được (DEC-LUNAR-011).
+**Why must the three epochs be separate?** This is the most common trap when porting. `convertSolar2Lunar` uses the index-k epoch `2415021.076998695` to derive k from a JDN. Inside `NewMoon` it uses the Meeus epoch `2415020.75933` with the polynomial. `getLunarMonth11` uses the integer `2415021`. The three values are nearly identical but not interchangeable; using one of the three by mistake shifts the date in certain years that only a full-range test catches (DEC-LUNAR-011).
 
-**Tại sao hai synodic constant khác nhau?** `29.530588853` dùng để quy đổi giữa JDN và chỉ số tuần trăng k (index-k). `29.53058868` là hệ số per-k bên trong đa thức Meeus của `NewMoon`. Hai con số phục vụ hai vai trò toán học khác nhau; gộp làm một sẽ sai vị trí điểm Sóc (DEC-LUNAR-013).
+**Why two different synodic constants?** `29.530588853` is used to convert between a JDN and the lunation index k (index-k). `29.53058868` is the per-k coefficient inside the Meeus polynomial of `NewMoon`. The two numbers serve two different mathematical roles; merging them into one gives the wrong Soc position (DEC-LUNAR-013).
 
-**Tại sao tháng nhuận xác định bằng "không chứa Trung khí"?** Theo 6.1 rule 4, năm nhuận có 13 tháng; tháng nhuận là tháng đầu tiên sau tháng 11 mà không chứa Trung khí (Principal Term). `getSunLongitude` trả về 0-11 cho biết cung hoàng đạo mặt trời; nếu hai điểm Sóc liên tiếp cho cùng một giá trị thì tháng giữa không chứa Trung khí và là tháng nhuận. `getLeapMonthOffset` quét để tìm offset đó (PRD 6.3).
+**Why is the leap month determined by "contains no Principal Term"?** Per 6.1 rule 4, a leap year has 13 months; the leap month is the first month after month 11 that contains no Principal Term. `getSunLongitude` returns 0-11 indicating the sun's zodiac sector; if two consecutive Soc points give the same value, the month between them contains no Principal Term and is the leap month. `getLeapMonthOffset` scans to find that offset (PRD 6.3).
 
-**Tại sao zero-dependency và offline?** NFR-Offline yêu cầu tính ngày không cần mạng, và FR-A06 nói rõ không gọi network để tính ngày. Một package thuần hàm, không dependency, deterministic theo input là cách duy nhất đảm bảo app vẫn chạy khi máy bay chế độ hoặc mất sóng, và là điều kiện để FR-LUNAR-013 (Swift Widget) có thể re-implement hoặc bridge cùng logic (DEC-LUNAR-012).
+**Why zero-dependency and offline?** NFR-Offline requires dates to be computed without network, and FR-A06 states plainly that no network call is used to compute dates. A pure-function package with no dependencies, deterministic on its input, is the only way to guarantee the app still runs in airplane mode or without signal, and it is the precondition for FR-LUNAR-013 (the Swift Widget) to re-implement or bridge the same logic (DEC-LUNAR-012).
 
-**Tại sao trả về tuple `[day, month, year, leap]`?** Giữ nguyên chu ký gốc của Đức giảm rủi ro dịch sai khi port, và để FR-LUNAR-003 đối chiếu trực tiếp với các bản tham chiếu. Lớp core không biết về "nhãn nhuận" hay format hiển thị; đó là việc của FR-LUNAR-007 và FR-LUNAR-009. Tách mối quan tâm giữ core nhỏ và kiểm thử được (DEC-LUNAR-015).
+**Why return the tuple `[day, month, year, leap]`?** Keeping Duc's original signature reduces the risk of a translation error when porting, and lets FR-LUNAR-003 compare directly against reference implementations. The core layer knows nothing about a "leap label" or display formatting; that is the job of FR-LUNAR-007 and FR-LUNAR-009. Separating concerns keeps the core small and testable (DEC-LUNAR-015).
 
 ---
 
@@ -391,23 +391,23 @@ export function getLeapMonthOffset(a11: number, tz: number): number {
 
 ## §4 - Acceptance criteria
 
-1. `convertSolar2Lunar(29, 1, 2025, 7)` trả về `[1, 1, 2025, 0]` (Tết 2025, fixture 6.6).
-2. `convertSolar2Lunar(10, 2, 2024, 7)` trả về `[1, 1, 2024, 0]` (Tết 2024).
-3. `convertSolar2Lunar(2, 2, 1984, 7)` trả về `[1, 1, 1984, 0]` (mốc Đức công bố).
-4. `convertLunar2Solar(1, 1, 2025, 0, 7)` trả về `[29, 1, 2025]` (nghịch đảo AC #1).
-5. Round-trip: với một mẫu ngày dương bất kỳ trong 1900-2199, `convertLunar2Solar(...convertSolar2Lunar(d, m, y, 7), 7)` trả lại đúng `[d, m, y]`.
-6. `jdFromDate(15, 10, 1582)` trả về `2299161` (ngày switch, nhánh Gregorian); `jdFromDate(4, 10, 1582)` trả về `2299160` qua nhánh Julian (ngày Julian liền trước switch - lưu ý 14/10/1582 KHÔNG tồn tại liền kề vì Julian và Gregorian lệch 10 ngày tại mốc 1582, `jdFromDate(14, 10, 1582)` rơi vào nhánh Julian và trả `2299170`) (DEC-LUNAR-014).
-7. `jdToDate(jdFromDate(dd, mm, yy))` trả lại `[dd, mm, yy]` cho mọi ngày test (nghịch đảo JDN).
-8. `getSunLongitude` luôn trả về số nguyên trong `[0, 11]` cho mọi JDN trong dải.
-9. `getNewMoonDay(k, 7)` cho ngày JDN nguyên (không phải số thực) với mọi k tương ứng 1900-2199.
-10. Năm 1985 phát hiện tháng 2 nhuận: tồn tại tháng âm `[*, 2, 1985, 1]` và `convertLunar2Solar` của nó rơi vào khoảng 21/03 đến 19/04/1985 (fixture 6.6).
-11. Tết VN 1985 = 21/01/1985: `convertLunar2Solar(1, 1, 1985, 0, 7)` trả về `[21, 1, 1985]` (sớm hơn TQ một tháng, PRD 6.4).
-12. Hằng số trong module bị freeze: gán lại `EPOCH_INDEX_K` ở runtime ném lỗi (strict mode) hoặc không có tác dụng (DEC-LUNAR-011, §1 #16).
-13. `package.json` của amlich-core có `dependencies` rỗng (DEC-LUNAR-012).
-14. Hiệu năng: trung bình một lần `convertSolar2Lunar` < 5ms khi đo qua 10.000 lần gọi (NFR-Performance).
-15. Không có lỗi gọi network trong suốt test suite (offline guard; DEC-LUNAR-012).
-16. `convertLunar2Solar` với cờ nhuận không khớp (ví dụ tháng không phải tháng nhuận của năm đó) trả về `[0, 0, 0]` để báo caller áp fallback (PRD 10, liên quan FR-LUNAR-004).
-17. `INVALID_SOLAR` bằng `[0, 0, 0]`; `isInvalidSolar(INVALID_SOLAR)` trả về `true`; `isInvalidSolar([29, 1, 2025])` trả về `false` (CONTRACT.md, §1 #17).
+1. `convertSolar2Lunar(29, 1, 2025, 7)` returns `[1, 1, 2025, 0]` (Tet 2025, fixture 6.6).
+2. `convertSolar2Lunar(10, 2, 2024, 7)` returns `[1, 1, 2024, 0]` (Tet 2024).
+3. `convertSolar2Lunar(2, 2, 1984, 7)` returns `[1, 1, 1984, 0]` (the reference point Duc published).
+4. `convertLunar2Solar(1, 1, 2025, 0, 7)` returns `[29, 1, 2025]` (inverse of AC #1).
+5. Round-trip: for any sample solar date in 1900-2199, `convertLunar2Solar(...convertSolar2Lunar(d, m, y, 7), 7)` returns exactly `[d, m, y]`.
+6. `jdFromDate(15, 10, 1582)` returns `2299161` (the switch day, Gregorian branch); `jdFromDate(4, 10, 1582)` returns `2299160` via the Julian branch (the Julian day immediately before the switch - note that 14/10/1582 does NOT exist adjacent to it because Julian and Gregorian are 10 days apart at the 1582 reference point, `jdFromDate(14, 10, 1582)` falls into the Julian branch and returns `2299170`) (DEC-LUNAR-014).
+7. `jdToDate(jdFromDate(dd, mm, yy))` returns `[dd, mm, yy]` for every test date (JDN inverse).
+8. `getSunLongitude` always returns an integer in `[0, 11]` for every JDN in the range.
+9. `getNewMoonDay(k, 7)` yields an integer JDN (not a real number) for every k corresponding to 1900-2199.
+10. Year 1985 detects a leap month 2: there exists a lunar month `[*, 2, 1985, 1]` and its `convertLunar2Solar` falls between 21/03 and 19/04/1985 (fixture 6.6).
+11. VN Tet 1985 = 21/01/1985: `convertLunar2Solar(1, 1, 1985, 0, 7)` returns `[21, 1, 1985]` (one month earlier than China, PRD 6.4).
+12. Constants in the module are frozen: reassigning `EPOCH_INDEX_K` at runtime throws (strict mode) or has no effect (DEC-LUNAR-011, §1 #16).
+13. The amlich-core `package.json` has empty `dependencies` (DEC-LUNAR-012).
+14. Performance: the average `convertSolar2Lunar` call is < 5ms when measured over 10,000 calls (NFR-Performance).
+15. No network-call error during the whole test suite (offline guard; DEC-LUNAR-012).
+16. `convertLunar2Solar` with a non-matching leap flag (for example a month that is not the leap month of that year) returns `[0, 0, 0]` to tell the caller to apply a fallback (PRD 10, related to FR-LUNAR-004).
+17. `INVALID_SOLAR` equals `[0, 0, 0]`; `isInvalidSolar(INVALID_SOLAR)` returns `true`; `isInvalidSolar([29, 1, 2025])` returns `false` (CONTRACT.md, §1 #17).
 
 ---
 
@@ -532,17 +532,17 @@ describe("INVALID_SOLAR / isInvalidSolar (CONTRACT.md, AC #17)", () => {
 
 ## §6 - Implementation skeleton
 
-API contract ở §3 là skeleton đầy đủ; toàn bộ logic đã port nguyên vẹn. Chi tiết duy nhất đáng ghim lại là thứ tự suy k trong `convertSolar2Lunar`: tính `k` từ `EPOCH_INDEX_K`, lấy `getNewMoonDay(k + 1)`, và nếu nó vượt qua `dayNumber` thì lùi về `getNewMoonDay(k)`. Đây là chỗ dễ sai off-by-one nhất; FR-LUNAR-003 round-trip sweep là lưới an toàn bắt mọi lệch ở bước này. Hằng số trong §3 PHẢI được `Object.freeze` ở barrel `index.ts`.
+The API contract in §3 is a full skeleton; the entire logic is ported verbatim. The one detail worth pinning down is the order of deriving k in `convertSolar2Lunar`: compute `k` from `EPOCH_INDEX_K`, take `getNewMoonDay(k + 1)`, and if it goes past `dayNumber`, step back to `getNewMoonDay(k)`. This is the spot most prone to an off-by-one; the FR-LUNAR-003 round-trip sweep is the safety net that catches any drift at this step. The constants in §3 MUST be `Object.freeze`d in the `index.ts` barrel.
 
 ---
 
 ## §7 - Dependencies
 
-Upstream: không có. Đây là primitive thấp nhất của hệ thống; depends_on rỗng.
+Upstream: none. This is the lowest primitive of the system; depends_on is empty.
 
-Downstream: FR-LUNAR-002 dùng `jdToDate` và `getSunLongitude` cho can-chi và tiết khí; FR-LUNAR-003 dùng toàn bộ API làm golden harness; FR-LUNAR-004 gọi `convertLunar2Solar` mỗi năm cho recurrence engine; FR-LUNAR-007 dùng `convertSolar2Lunar` để vẽ lịch tháng; FR-LUNAR-008 neo các dịp vào ngày âm; FR-LUNAR-010 import core vào app shell; FR-LUNAR-013 re-implement hoặc bridge logic tối thiểu sang Swift. Tất cả tên trong `blocks` khớp frontmatter.
+Downstream: FR-LUNAR-002 uses `jdToDate` and `getSunLongitude` for can-chi and tiet khi; FR-LUNAR-003 uses the whole API as the golden harness; FR-LUNAR-004 calls `convertLunar2Solar` every year for the recurrence engine; FR-LUNAR-007 uses `convertSolar2Lunar` to render the month calendar; FR-LUNAR-008 anchors occasions to lunar dates; FR-LUNAR-010 imports the core into the app shell; FR-LUNAR-013 re-implements or bridges minimal logic to Swift. Every name in `blocks` matches the frontmatter.
 
-Cross-cutting: các hằng số ở §3 là nguồn sự thật duy nhất cho mọi FR phía sau; sửa ở đây ảnh hưởng toàn hệ. Hiệu năng < 5ms của FR này là điều kiện cho NFR-Performance render < 100ms của FR-LUNAR-007.
+Cross-cutting: the constants in §3 are the single source of truth for every downstream FR; changing them here affects the whole system. This FR's < 5ms performance is the precondition for FR-LUNAR-007's NFR-Performance render of < 100ms.
 
 ---
 
@@ -576,12 +576,12 @@ Cross-cutting: các hằng số ở §3 là nguồn sự thật duy nhất cho m
 
 ## §9 - Open questions
 
-Đã giải quyết trong phạm vi FR này: dải 1900-2199, múi giờ 105E, ba epoch, format tuple, sentinel `[0,0,0]` cho nhuận không khớp.
+Resolved within the scope of this FR: the 1900-2199 range, meridian 105E, three epochs, tuple format, and the `[0,0,0]` sentinel for a non-matching leap flag.
 
-Defer (gắn với Caveats PRD):
-- Độ chính xác ở các năm rất xa (trước ~1200 hoặc sau 2199) khi điểm Sóc rơi sát nửa đêm có thể lệch 1 ngày; bản thuật toán công bố là bản đơn giản hóa. Không mở rộng dải trong FR này; FR-LUNAR-003 chỉ cam kết 1900-2199 và đánh dấu các năm nghi ngờ nếu phát hiện.
-- Hong Kong Observatory cảnh báo discrepancy quanh 28/9/2057 (chuẩn TQ 120E); chỉ liên quan khi cross-check TQ, không ảnh hưởng kết quả VN. Ghi nhận, không xử lý ở core.
-- Có cung cấp thêm hàm tiện ích (ví dụ tính tuổi âm, số ngày giữa hai ngày âm) hay không - defer sang các FR cần nó, không đưa vào core ở slice 1.
+Deferred (tied to the PRD Caveats):
+- Accuracy in very distant years (before ~1200 or after 2199) when a Soc point falls near midnight may be off by 1 day; the published algorithm is a simplified version. This FR does not extend the range; FR-LUNAR-003 only commits to 1900-2199 and marks suspect years if any are found.
+- The Hong Kong Observatory warns of a discrepancy around 28/9/2057 (China standard 120E); this is only relevant when cross-checking against China, and does not affect the VN result. Noted, not handled in the core.
+- Whether to provide extra utility functions (for example computing lunar age, or the number of days between two lunar dates) - deferred to the FRs that need them, not added to the core in slice 1.
 
 ---
 
@@ -589,34 +589,34 @@ Defer (gắn với Caveats PRD):
 
 | Failure | Detection | Outcome | Recovery |
 |---|---|---|---|
-| Dùng nhầm epoch (ví dụ Meeus epoch trong convertSolar2Lunar) | round-trip sweep FR-LUNAR-003 fail một số năm | lệch ngày không hệ thống | sửa về đúng epoch theo §3 |
-| Gộp hai synodic constant làm một | điểm Sóc lệch, fixture Tết fail | sai ngày đầu tháng | tách 29.530588853 và 29.53058868 |
-| Hard-code tz != 7.0 hoặc 120E | 1985 và 2007/2030/2053 fail | toàn bộ lịch theo TQ | khóa VN_TIMEZONE = 7.0 |
-| Quên Julian/Gregorian switch | jdFromDate sai trước 1582 | JDN lệch với ngày cổ | nhánh `jd < 2299161` -> Julian |
-| Off-by-one ở biên switch trong jdToDate (`jd > 2299161` thay vì `>=`) | round-trip sweep 1900-2199 KHÔNG bắt được (mọi JDN >> biên); chỉ lộ ở AC test ngày switch | `jdToDate(2299161)` trả 5/10/1582 thay 15/10/1582 | dùng `jd >= GREGORIAN_SWITCH_JD` (đồng nghĩa canonical `jd > 2299160`); test ngày switch ở §5 |
-| getSunLongitude không chuẩn hóa về [0,2PI) | trả về ngoài [0,11] | tháng nhuận sai | modulo 2PI trong SunLongitude |
-| Off-by-one khi suy k | ngày đầu tháng lệch 1 | lunarDay sai | lùi getNewMoonDay(k) khi vượt dayNumber |
-| getLeapMonthOffset vòng vô hạn | treo khi năm lỗi dữ liệu | hang | chặn `i < 14` trong vòng do-while |
-| Cờ nhuận không khớp trong L2S | trả về [0,0,0] | caller chưa xử lý | FR-LUNAR-004 áp fallback tháng thường |
-| Float precision tích lũy ở năm xa | round-trip lệch 1 ngày năm xa | sai ngày hiếm | giữ dải 1900-2199, đánh dấu nghi ngờ |
-| Hằng số bị sửa ở runtime | gán lại ném hoặc vô hiệu | sai im lặng | Object.freeze + test AC #12 |
-| Thêm dependency vô tình | package.json deps khác rỗng | mất zero-dep | test AC #13 guard |
-| Gọi network trong test | offline guard bắt | mất NFR-Offline | xóa mọi fetch/IO khỏi core |
-| Input ngoài dải dương lịch (ví dụ yy < 1900) | trả về vẫn dùng nhưng chưa test | không đảm bảo | caller chặn dải trước khi gọi |
+| Wrong epoch used (for example the Meeus epoch in convertSolar2Lunar) | FR-LUNAR-003 round-trip sweep fails in some years | non-systematic date drift | fix to the correct epoch per §3 |
+| Two synodic constants merged into one | Soc point drifts, Tet fixture fails | wrong first day of the month | separate 29.530588853 and 29.53058868 |
+| Hard-coded tz != 7.0 or 120E | 1985 and 2007/2030/2053 fail | the whole calendar follows China | lock VN_TIMEZONE = 7.0 |
+| Missing Julian/Gregorian switch | jdFromDate wrong before 1582 | JDN off for ancient dates | branch `jd < 2299161` -> Julian |
+| Off-by-one at the switch boundary in jdToDate (`jd > 2299161` instead of `>=`) | the 1900-2199 round-trip sweep does NOT catch it (every JDN >> the boundary); only exposed by the AC test on the switch day | `jdToDate(2299161)` returns 5/10/1582 instead of 15/10/1582 | use `jd >= GREGORIAN_SWITCH_JD` (equivalent to the canonical `jd > 2299160`); the switch-day test in §5 |
+| getSunLongitude not normalized to [0,2PI) | returns outside [0,11] | wrong leap month | modulo 2PI inside SunLongitude |
+| Off-by-one when deriving k | first day of the month off by 1 | wrong lunarDay | step back getNewMoonDay(k) when it goes past dayNumber |
+| getLeapMonthOffset infinite loop | hangs on a year with corrupt data | hang | guard `i < 14` in the do-while |
+| Non-matching leap flag in L2S | returns [0,0,0] | caller has not handled it | FR-LUNAR-004 applies a regular-month fallback |
+| Float precision accumulating in distant years | round-trip off by 1 day in distant years | rare wrong date | keep the 1900-2199 range, mark suspect |
+| Constant modified at runtime | reassignment throws or is a no-op | silent error | Object.freeze + AC #12 test |
+| Dependency added by accident | package.json deps not empty | loses zero-dep | AC #13 test guard |
+| Network call in a test | offline guard catches it | loses NFR-Offline | remove any fetch/IO from the core |
+| Input outside the solar range (for example yy < 1900) | the return value is still used but untested | not guaranteed | caller bounds the range before calling |
 
 ---
 
 ## §11 - Implementation notes
 
-- Ba epoch là cái bẫy lớn nhất: `EPOCH_INDEX_K = 2415021.076998695` cho convertSolar2Lunar và getLeapMonthOffset, `MEEUS_NEW_MOON_EPOCH = 2415020.75933` chỉ bên trong NewMoon, `LUNAR_MONTH11_EPOCH_INT = 2415021` là số nguyên cho getLunarMonth11. Đặt ba hằng số cạnh nhau trong constants.ts với JSDoc vai trò để không ai dùng nhầm.
-- Hai synodic constant cũng một dạng bẫy: `SYNODIC_INDEX_K = 29.530588853` chỉ để quy đổi JDN và k; `MEEUS_SYNODIC_PER_K = 29.53058868` là hệ số per-k trong đa thức Meeus. Không gộp.
-- `getSunLongitude` PHẢI nhận `dayNumber - 0.5 - tz/24` chứ không phải `dayNumber`; trừ 0.5 vì JDN bắt đầu lúc trưa, trừ tz/24 để quy về giờ địa phương 105E. Sai dấu ở đây làm Trung khí lệch.
-- `getNewMoonDay` làm tròn `NewMoon(k) + 0.5 + tz/24` xuống để ra JDN nguyên của ngày chứa điểm Sóc; cộng 0.5 và tz/24 cùng lý do trên.
-- Vòng `getLeapMonthOffset` so sánh `getSunLongitude` của các điểm Sóc liên tiếp; khi giá trị lặp lại (không tăng) thì tháng giữa không chứa Trung khí và là tháng nhuận. Phải chặn `i < 14` để không treo khi dữ liệu bất thường.
-- `convertLunar2Solar` trả `[0,0,0]` khi cờ nhuận không khớp năm; đây là sentinel có chủ ý để FR-LUNAR-004 áp quy tắc fallback (giờ tháng nhuận cũng vào tháng thường), không phải lỗi ném.
-- Round-trip sweep 1900-2199 là lưới an toàn rẻ nhất: nó bắt mọi off-by-one ở suy k, mọi lệch epoch, và mọi lỗi múi giờ mà fixture Tết lẻ không chạm tới. Chạy nó trong CI mỗi commit chạm vào core.
-- Freeze hằng số ở barrel và kiểm tra bằng AC #12; một lần sửa nhầm giá trị runtime là sai im lặng cả lịch, khó debug nhất trong các loại lỗi.
+- The three epochs are the biggest trap: `EPOCH_INDEX_K = 2415021.076998695` for convertSolar2Lunar and getLeapMonthOffset, `MEEUS_NEW_MOON_EPOCH = 2415020.75933` only inside NewMoon, `LUNAR_MONTH11_EPOCH_INT = 2415021` as the integer for getLunarMonth11. Place the three constants next to each other in constants.ts with JSDoc on their roles so nobody uses one by mistake.
+- The two synodic constants are the same kind of trap: `SYNODIC_INDEX_K = 29.530588853` is only for converting between a JDN and k; `MEEUS_SYNODIC_PER_K = 29.53058868` is the per-k coefficient in the Meeus polynomial. Do not merge them.
+- `getSunLongitude` MUST take `dayNumber - 0.5 - tz/24`, not `dayNumber`; subtract 0.5 because a JDN starts at noon, subtract tz/24 to bring it to local time at 105E. A sign error here shifts the Principal Term.
+- `getNewMoonDay` floors `NewMoon(k) + 0.5 + tz/24` to get the integer JDN of the day containing the Soc point; adding 0.5 and tz/24 for the same reason as above.
+- The `getLeapMonthOffset` loop compares the `getSunLongitude` of successive Soc points; when the value repeats (does not increase), the month between them contains no Principal Term and is the leap month. It must guard `i < 14` so it does not hang on abnormal data.
+- `convertLunar2Solar` returns `[0,0,0]` when the leap flag does not match the year; this is a deliberate sentinel for FR-LUNAR-004 to apply a fallback rule (a leap-month time then goes to the regular month), not a thrown error.
+- The 1900-2199 round-trip sweep is the cheapest safety net: it catches every off-by-one in deriving k, every epoch drift, and every timezone error that the sparse Tet fixtures never touch. Run it in CI on every commit that touches the core.
+- Freeze the constants in the barrel and check with AC #12; a single accidental runtime edit of a value silently corrupts the whole calendar and is the hardest of all error types to debug.
 
 ---
 
-*Hết FR-LUNAR-001.*
+*End of FR-LUNAR-001.*

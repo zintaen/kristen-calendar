@@ -12,57 +12,57 @@ authoring_md_compliance: 2026-06-27 (rule 36 - 6 ISS minimum; determinism + veri
 
 ## §1 - Verdict summary
 
-FR-LUNAR-011 đặc tả module `dayquality` tính chất lượng ngày theo phong thủy dân gian Việt Nam. Phạm vi: 14 điều khoản BCP-14 trong §1 (bao gồm kiểu DayQuality đầy đủ trường, 12 thần trực nhật + 12 Trực + 28 sao + giờ Hoàng đạo, pure function, không network, re-export); 8 lý do thiết kế trong §2; contract TypeScript đầy đủ trong §3 với 5 kiểu chính và 2 hàm public; 15 AC kiểm tra được trong §4; 7 test case cụ thể dùng fake mock trong §5; bảng 15 hàng trong §10. FR map trực tiếp tới PRD FR-E02, FR-E03, PRD §8 (Hoàng đạo/Hắc đạo/Trực/28 sao), và NFR-Offline (không gọi mạng).
+FR-LUNAR-011 specifies the `dayquality` module that computes day quality by Vietnamese folk geomancy. Scope: 14 BCP-14 clauses in §1 (including the full-field DayQuality type, the 12 than truc nhat + 12 Truc + 28 sao + auspicious hours, pure function, no network, re-export); 8 design rationales in §2; the full TypeScript contract in §3 with 5 main types and 2 public functions; 15 testable ACs in §4; 7 concrete test cases using a fake mock in §5; a 15-row table in §10. The FR maps directly to PRD FR-E02, FR-E03, PRD §8 (auspicious/inauspicious/Truc/28 sao), and NFR-Offline (no network calls).
 
 ## §2 - Findings (all resolved during authoring)
 
-### ISS-001 - Chưa có định nghĩa kiểu chính thức DayQuality
+### ISS-001 - No official DayQuality type yet
 
-Không có kiểu TS nào thì FR-012 và FR-013 không biết nhận dữ liệu gì. Resolved: §3 định nghĩa đầy đủ `DayQuality`, `GioInfo`, `TrucInfo`, `Sao28Info`, `ThanTrucNhat`, `Truc`, `Sao28`; AC #12 yêu cầu re-export từ index.ts.
+Without any TS type, FR-012 and FR-013 do not know what data to receive. Resolved: §3 fully defines `DayQuality`, `GioInfo`, `TrucInfo`, `Sao28Info`, `ThanTrucNhat`, `Truc`, `Sao28`; AC #12 requires re-export from index.ts.
 
-### ISS-002 - Base JDN cho 28 sao có thể sai nguồn mà không ai phát hiện
+### ISS-002 - The base JDN for the 28 sao could use the wrong source without anyone noticing
 
-Nếu `BASE_JDN_GIAC` sai, tất cả ngày trong 1900-2199 sai sao. Resolved: DEC-LUNAR-114 yêu cầu lock bằng fixture test (AC #5 chuỗi 28 ngày); §11 yêu cầu comment nguồn đối chiếu cụ thể; §10 hàng thứ 2 nêu rõ kết quả và cách phục hồi.
+If `BASE_JDN_GIAC` is wrong, every day in 1900-2199 gets the wrong sao. Resolved: DEC-LUNAR-114 requires locking it with a fixture test (AC #5 a 28-day sequence); §11 requires a comment naming the specific reference source; §10 row 2 states the result and how to recover.
 
-### ISS-003 - Không có cơ chế đảm bảo disclaimer "tham khảo phong thủy dân gian" có mặt
+### ISS-003 - No mechanism to ensure the "for folk geomancy reference" disclaimer is present
 
-PRD Caveats nói rõ phải gắn nhãn này nhưng nếu để UI tự thêm thì rất dễ bị bỏ. Resolved: DEC-LUNAR-111 đặt `disclaimer` là `readonly` literal type trong `DayQuality`; AC #3 kiểm tra cho mọi ngày; §2 lý giải tại sao phải ở cấp root.
+The PRD Caveats state this label must be attached, but leaving it to the UI to add makes it easy to drop. Resolved: DEC-LUNAR-111 makes `disclaimer` a `readonly` literal type in `DayQuality`; AC #3 checks it for every day; §2 explains why it must be at the root level.
 
-### ISS-004 - Nguy cơ dùng thư viện thứ ba (lunar-typescript) cho can-chi làm lệch với core
+### ISS-004 - Risk of using a third-party library (lunar-typescript) for can-chi and drifting from the core
 
-PRD §6.5 cảnh báo lunar-typescript theo chuẩn TQ 120E - dùng nó làm nguồn chính thì can-chi có thể lệch với FR-001 epoch. Resolved: DEC-LUNAR-112 cấm import thứ ba runtime; §1 #7 bắt buộc tính `(jdn + 9) mod 60` từ `jdFromDate` của FR-001; §2 giải thích tại sao.
+PRD §6.5 warns that lunar-typescript follows the Chinese 120E standard - using it as the primary source could drift can-chi from the FR-001 epoch. Resolved: DEC-LUNAR-112 bans third-party runtime imports; §1 #7 requires computing `(jdn + 9) mod 60` from FR-001's `jdFromDate`; §2 explains why.
 
-### ISS-005 - `getMonthDayQualities` chưa được định nghĩa, FR-012 không có API để list ngày Hoàng đạo
+### ISS-005 - `getMonthDayQualities` not yet defined, FR-012 has no API to list auspicious days
 
-Nếu chỉ có `getDayQuality` từng ngày thì FR-012 phải gọi ~30 lần vòng lặp. Resolved: §3 định nghĩa `getMonthDayQualities(year, month): DayQuality[]`; AC #6 kiểm tra nhất quán; AC #11 kiểm tra hiệu năng < 50ms.
+If there is only per-day `getDayQuality`, FR-012 must loop ~30 times. Resolved: §3 defines `getMonthDayQualities(year, month): DayQuality[]`; AC #6 checks consistency; AC #11 checks performance < 50ms.
 
-### ISS-006 - Chưa có fixture chống khai quá xúc tích cho giờ Hoàng đạo
+### ISS-006 - No fixture guarding against an over-terse encoding of the auspicious hours
 
-Nếu bảng GIO_HOANG_DAO_TABLE sai cột mà không có fixture cụ thể thì không phát hiện được. Resolved: AC #2 đảm bảo đúng 6 Hoàng + 6 Hắc mỗi ngày; §8 ví dụ JSON có 12 canh đầy đủ với isHoang flag; test trong §5 kiểm tra AC #2 trực tiếp.
+If the GIO_HOANG_DAO_TABLE has a wrong column without a concrete fixture, it goes undetected. Resolved: AC #2 ensures exactly 6 auspicious + 6 inauspicious per day; §8 example JSON has all 12 canh with the isHoang flag; the §5 test checks AC #2 directly.
 
 ## §3 - Resolution
 
-Sau 6 phát hiện và sửa: kiểu DayQuality có đầy đủ trường với disclaimer literal type, BASE_JDN_GIAC được lock bằng fixture, can-chi ngày tính nhất quán với core, `getMonthDayQualities` có contract rõ, disclaimer ở cấp root, và bảng giờ Hoàng đạo có AC kiểm tra số lượng. **Score = 10/10.** Sẵn sàng transition draft -> ready_to_implement.
+After 6 findings and fixes: the DayQuality type has all fields with a disclaimer literal type, BASE_JDN_GIAC is locked with a fixture, the day can-chi is computed consistently with the core, `getMonthDayQualities` has a clear contract, the disclaimer is at the root level, and the auspicious-hours table has an AC checking the count. **Score = 10/10.** Ready to transition draft -> ready_to_implement.
 
 ## §4 - Independent adversarial pass (2026-06-27) - BLOCKER found + fixed
 
-Bản self-audit ở trên đã BỎ SÓT một blocker. Reviewer độc lập (không viết spec) phát hiện:
+The self-audit above MISSED a blocker. An independent reviewer (who did not write the spec) found:
 
-- **BLOCKER - Địa chi ngày lệch 8 so với core.** ISS-004 ở trên "giải quyết" bằng cách yêu cầu §1 #7 tính `(jdn + 9) mod 60` rồi lấy địa chi `mod 12`. Nhưng FR-LUNAR-002 (chủ sở hữu can-chi, DEC-LUNAR-020) định nghĩa `chi = (jdn + 1) mod 12`. `(jdn + 9) mod 12` lệch đúng +8 so với `(jdn + 1) mod 12` (kiểm bằng quét: chênh hằng số 8). Vì `THAN_TRUC_NHAT_TABLE`, Trực, và giờ Hoàng đạo đều khóa theo địa chi ngày (PRD §8), TOÀN BỘ output day quality sai và mâu thuẫn với can-chi mà lịch (FR-007 qua FR-002) hiển thị. `can = (jdn + 9) mod 10` thì trùng khớp, nên lỗi chỉ ở địa chi - khó thấy hơn.
-  - **Fix đã áp dụng:** DEC-LUNAR-112 viết lại (gọi `canChiDay(jdn)` của FR-002, dùng `chiIndex = (jdn + 1) mod 12`); §1 #7 viết lại; §2 rationale viết lại; §3 contract thêm comment cách lấy can-chi từ core; §6 skeleton sửa công thức; thêm AC #16 (cross-check địa chi với `canChiDay` qua quét 60 ngày) + AC #17 (fixture Tết 2025); thêm 2 test trong §5 import `canChiDay`/`jdFromDate` từ core; thêm 1 hàng §10. Lỗi tương ứng cũng được sửa ở FR-LUNAR-013 (Swift).
-  - **Score điều chỉnh (pre-fix, independent): 5/10.** Sau fix: nhất quán với FR-002.
+- **BLOCKER - the day earthly branch is off by 8 versus the core.** ISS-004 above "resolves" it by requiring §1 #7 to compute `(jdn + 9) mod 60` and then take the earthly branch `mod 12`. But FR-LUNAR-002 (owner of can-chi, DEC-LUNAR-020) defines `chi = (jdn + 1) mod 12`. `(jdn + 9) mod 12` is off by exactly +8 versus `(jdn + 1) mod 12` (verified by sweep: a constant offset of 8). Because `THAN_TRUC_NHAT_TABLE`, Truc, and the auspicious hours all key off the day earthly branch (PRD §8), the ENTIRE day-quality output is wrong and contradicts the can-chi that the calendar (FR-007 via FR-002) displays. `can = (jdn + 9) mod 10` matches, so the bug is only in the earthly branch - harder to see.
+  - **Fix applied:** DEC-LUNAR-112 rewritten (call FR-002's `canChiDay(jdn)`, use `chiIndex = (jdn + 1) mod 12`); §1 #7 rewritten; §2 rationale rewritten; §3 contract adds a comment on getting can-chi from the core; §6 skeleton fixes the formula; added AC #16 (cross-check the earthly branch against `canChiDay` via a 60-day sweep) + AC #17 (Tet 2025 fixture); added 2 tests in §5 importing `canChiDay`/`jdFromDate` from the core; added 1 §10 row. The matching bug is also fixed in FR-LUNAR-013 (Swift).
+  - **Adjusted score (pre-fix, independent): 5/10.** After fix: consistent with FR-002.
 
 ## §5 - Readiness pass (2026-06-28)
 
-Pass thu hai do reviewer doc lap (khong phai author). Bay gio FR da san sang cho agent thuc thi khong co nguon ngu canh:
+A second pass by an independent reviewer (not the author). The FR is now ready for context-free agent implementation:
 
-- **getTietKhiForDate da bi xoa hoan toan.** §1 #3, §1 #7, §6 (skeleton), §7 (dependencies) tat ca da dung ten dung la `tietKhiStartDiaChi(jdn, tz?): number` tu CONTRACT.md. Cong thuc Truc trong §3 comment block la `(canChiDay(jdn).chiIndex - tietKhiStartDiaChi(jdn) + 12) % 12`. Khong con tham chieu nao den `getTietKhiForDate`.
-- **Export khop CONTRACT.md.** `getDayQuality(solarDate: Date): DayQuality` va `getMonthDayQualities(year: number, month: number): readonly DayQuality[]` dung ten va chu ky chinh xac theo P2/P3 surface cua CONTRACT.md. `interface DayQuality` va `interface GioInfo` nam trong §3.
-- **Bat bien dia chi.** `canChiDay(jdn).chiIndex = (jdn+1)%12` la bat bien xac nhan trong §1 #7, §3 comment, §6; cach tinh sai `(jdn+9)%60%12` bi cam ro rang; AC #16/#17 + 2 test trong §5 bat lo nay.
-- **Traceability hoan chinh.** Moi MUST clause trong §1 deu co AC tuong ung trong §4 va test trong §5. `getMonthDayQualities` return type duoc cap nhat sang `readonly DayQuality[]` ca trong §3 lan §1 #14.
+- **getTietKhiForDate fully removed.** §1 #3, §1 #7, §6 (skeleton), §7 (dependencies) all now use the correct name `tietKhiStartDiaChi(jdn, tz?): number` from CONTRACT.md. The Truc formula in the §3 comment block is `(canChiDay(jdn).chiIndex - tietKhiStartDiaChi(jdn) + 12) % 12`. There is no remaining reference to `getTietKhiForDate`.
+- **Exports match CONTRACT.md.** `getDayQuality(solarDate: Date): DayQuality` and `getMonthDayQualities(year: number, month: number): readonly DayQuality[]` use the exact name and signature per the CONTRACT.md P2/P3 surface. `interface DayQuality` and `interface GioInfo` are in §3.
+- **Earthly-branch invariant.** `canChiDay(jdn).chiIndex = (jdn+1)%12` is the confirmed invariant in §1 #7, the §3 comment, §6; the wrong `(jdn+9)%60%12` computation is clearly banned; AC #16/#17 + 2 tests in §5 catch this bug.
+- **Complete traceability.** Every MUST clause in §1 has a matching AC in §4 and a test in §5. The `getMonthDayQualities` return type is updated to `readonly DayQuality[]` in both §3 and §1 #14.
 
-**Verdict: PASS. San sang thuc thi.**
+**Verdict: PASS. Ready for implementation.**
 
-*Het audit FR-LUNAR-011.*
+*End of audit FR-LUNAR-011.*
 
-*Hết audit FR-LUNAR-011.*
+*End of audit FR-LUNAR-011.*
