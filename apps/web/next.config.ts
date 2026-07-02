@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
+  // Trace files from the monorepo root so the standalone build includes workspace packages.
+  outputFileTracingRoot: path.join(__dirname, "../../"),
   output: process.env.BUILD_STANDALONE === "1" ? "standalone" : "export",
   trailingSlash: true,
   images: { unoptimized: true },

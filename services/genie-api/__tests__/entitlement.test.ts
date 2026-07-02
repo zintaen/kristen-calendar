@@ -78,11 +78,10 @@ describe("webhook - xac minh HMAC", () => {
   });
 
   it("MAC dung duoc chap nhan", async () => {
+    process.env.ZALO_PAY_KEY2 = "test_zalo_key";
     const dataStr = JSON.stringify({ orderId: "123", amount: 50000 });
-    const fakePayload = {
-      data: dataStr,
-      mac: "valid_mac_for_test"
-    };
+    const mac = crypto.createHmac("sha256", "test_zalo_key").update(dataStr).digest("hex");
+    const fakePayload = { data: dataStr, mac };
 
     const req = new Request("http://localhost/api/webhook/payment/zalopay", {
       method: "POST",
@@ -93,5 +92,45 @@ describe("webhook - xac minh HMAC", () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.return_code).toBe(1);
+  });
+
+  it("khong con backdoor MAC (valid_mac_for_test bi tu choi)", async () => {
+    process.env.ZALO_PAY_KEY2 = "test_zalo_key";
+    const dataStr = JSON.stringify({ orderId: "123", amount: 50000 });
+    const req = new Request("http://localhost/api/webhook/payment/zalopay", {
+      method: "POST",
+      body: JSON.stringify({ data: dataStr, mac: "valid_mac_for_test" })
+    });
+    const response = await handleZaloPayWebhook(req);
+    expect(response.status).toBe(401);
+  });
+});
+
+describe("App Store webhook - fail closed without a verified JWS", () => {
+  const post = (body: string) =>
+    handleAppStoreWebhook(new Request("http://localhost/api/webhook/payment/appstore", { method: "POST", body }));
+
+  it("body khong phai JSON -> 400", async () => {
+    const res = await post("not-json");
+    expect(res.status).toBe(400);
+  });
+
+  it("thieu signedPayload -> 401", async () => {
+    const res = await post(JSON.stringify({ foo: "bar" }));
+    expect(res.status).toBe(401);
+  });
+
+  it("JWS khong dung 3 doan -> 401", async () => {
+    const res = await post(JSON.stringify({ signedPayload: "only.two" }));
+    expect(res.status).toBe(401);
+  });
+
+  it("JWS gia (3 doan, chu ky sai) KHONG BAO GIO cap quyen", async () => {
+    // Fake but well-formed JWS. With no verified signature the handler must never return 200:
+    // 401 if the signature is rejected, 500 if the verifier/root cert is unavailable.
+    const fake = Buffer.from(JSON.stringify({ alg: "ES256" })).toString("base64url") + ".ey000." + "sig";
+    const res = await post(JSON.stringify({ signedPayload: fake }));
+    expect(res.status).not.toBe(200);
+    expect([401, 500]).toContain(res.status);
   });
 });

@@ -85,9 +85,12 @@ struct LunarTimelineProvider: TimelineProvider {
     }
     
     private func generateFallbackCache(for date: Date) -> DayInfoCache {
-        let calendar = Calendar.current
+        // DEC-LUNAR-043: read the calendar day at Asia/Ho_Chi_Minh, never the device timezone,
+        // so the fallback matches the app (and the official VN calendar) even off VN time.
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Ho_Chi_Minh") ?? TimeZone(secondsFromGMT: 7 * 3600)!
         let components = calendar.dateComponents([.year, .month, .day], from: date)
-        
+
         let d = components.day ?? 1
         let m = components.month ?? 1
         let y = components.year ?? 2025
@@ -101,7 +104,7 @@ struct LunarTimelineProvider: TimelineProvider {
         // It will just display basic info until the user opens the app.
         
         return DayInfoCache(
-            dateISO: "\(y)-\(m)-\(d)",
+            dateISO: String(format: "%04d-%02d-%02d", y, m, d),
             lunarDayMonth: "\(lDay) tháng \(lMonth)",
             canChiNgay: canChi,
             isHoangDao: true,

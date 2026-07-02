@@ -49,5 +49,16 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>world.cyberskill.genieamlich</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>genieamlich</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

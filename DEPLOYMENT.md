@@ -1,141 +1,190 @@
-# Kristen Calendar / Genie Âm Lịch - Deployment Guide
+# Deployment guide - Genie Am Lich (kristen-calendar)
 
-This guide outlines the steps required to deploy the Genie Âm Lịch web application, API backend, Supabase database, and Edge Functions to a production environment.
+Step-by-step production deploy for DevOps. Target: a single Linux server running Docker Compose behind
+Caddy (automatic HTTPS), with Supabase Cloud as the managed database. Local development is in
+[DEVELOPMENT.md](DEVELOPMENT.md).
 
-## 🏗 Infrastructure Overview
+## Production architecture
 
-The production deployment consists of three main components:
-1.  **Supabase (Database, Auth, Edge Functions)**: Hosted on Supabase Cloud.
-2.  **API Backend (Node.js)**: Hosted on a platform like Vercel, Render, or a VPS (Docker) proxying AI requests.
-3.  **Web Frontend (Next.js)**: Hosted on Vercel.
-
----
-
-## Step 1: Deploy Supabase (Database & Auth)
-
-We will link your local Supabase project to a production Supabase Cloud project and run the migrations.
-
-1.  **Create a Supabase Project**: Go to [supabase.com](https://supabase.com) and create a new project.
-2.  **Login to CLI**:
-    ```bash
-    npx supabase login
-    ```
-3.  **Link the Project**:
-    ```bash
-    cd services/genie-api
-    npx supabase link --project-ref <your-production-project-ref>
-    ```
-    *(You can find your project ref in the Supabase Dashboard URL: `https://supabase.com/dashboard/project/<project-ref>`)*
-4.  **Push Migrations to Production**:
-    ```bash
-    npx supabase db push
-    ```
-    This command will apply all schema migrations (tables, RLS policies, functions) to your production database.
-5.  **Configure Auth Providers**: In the Supabase Dashboard, go to **Authentication > Providers**. 
-    *   Enable **Apple** and **Google**.
-    *   Configure the OAuth Client IDs and Secrets.
-    *   Ensure the redirect URLs (e.g., `https://your-vercel-domain.com/auth/callback`) are correctly configured.
-
----
-
-## Step 2: Deploy Supabase Edge Functions (Push Notifications)
-
-The `send-notification` Edge Function handles sending FCM/APNs push notifications when triggered.
-
-1.  **Set Edge Function Secrets**:
-    You need to provide your Firebase Service Account JSON and Apple APNs configuration to the Supabase project securely.
-    ```bash
-    cd services/genie-api
-    npx supabase secrets set FIREBASE_SERVICE_ACCOUNT_KEY='{...your json...}'
-    ```
-2.  **Deploy the Function**:
-    ```bash
-    npx supabase functions deploy send-notification --project-ref <your-production-project-ref>
-    ```
-
----
-
-## Step 3: Deploy the API Backend
-
-The API handles the LLM proxying (Anthropic, LM Studio) and complex background tasks.
-
-### Option A: Deploying via Docker (VPS / Railway / Render)
-
-You can use the provided Dockerfile or run `docker-compose` on a VPS.
-
-1.  Provision a Linux server (Ubuntu/Debian) or use a PaaS like Render.
-2.  Set the following environment variables in your production host:
-    *   `SUPABASE_URL`: Your production Supabase URL.
-    *   `SUPABASE_SERVICE_ROLE_KEY`: Your production Service Role key.
-    *   `ANTHROPIC_API_KEY`: Your Anthropic API Key.
-    *   `REDIS_URL`: A production Redis connection string (e.g., Upstash).
-3.  Run the API via Docker:
-    ```bash
-    docker build -t genie-api ./services/genie-api
-    docker run -p 3000:3000 --env-file .env.prod genie-api
-    ```
-
-### Option B: Deploying to Vercel (If refactored to serverless)
-
-If the Express app is wrapped for Serverless, you can deploy the `services/genie-api` folder directly to Vercel. Be sure to configure the Environment Variables in the Vercel Dashboard.
-
----
-
-## Step 4: Deploy the Web Frontend
-
-The Next.js frontend is best deployed on Vercel.
-
-1.  **Push your code to GitHub**.
-2.  **Import to Vercel**: Create a new project in Vercel and select the GitHub repository.
-3.  **Set the Framework Preset**: Next.js.
-4.  **Set the Root Directory**: `apps/web`.
-5.  **Configure Environment Variables**:
-    *   `NEXT_PUBLIC_SUPABASE_URL`: Your production Supabase URL.
-    *   `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your production Supabase Anon Key.
-    *   `NEXT_PUBLIC_GOOGLE_CLIENT_ID`: Your Google OAuth Client ID (for Calendar sync).
-    *   `NEXT_PUBLIC_APPLE_CLIENT_ID`: Your Apple Service ID (for Web Login).
-6.  **Deploy**: Click Deploy. Vercel will automatically run `pnpm install` and `pnpm build`.
-
----
-
-## Step 5: Final Configuration & Post-Deployment
-
-### 1. Seed Production Data
-
-Once the API and Database are live, you need to seed the initial master account for production. 
-Update your `.env` locally with the production `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, then run:
-
-```bash
-cd services/genie-api
-node --env-file=../../.env.prod --import tsx scripts/seed-master.ts
+```
+                Internet (443/80)
+                       |
+                   [ Caddy ]  <- auto TLS for your domain
+                   /        \
+        /api/*, /health      everything else
+              |                    |
+          [ api ]              [ genie-web ]      [ redis ]
+      Hono, port 3000       Next.js standalone     rate limits,
+      (Genie, ZNS, sync)     port 3000             ZNS idempotency
+              |
+        Supabase Cloud (Postgres + Auth + RLS)   <- managed, external
 ```
 
-### 2. Configure Google Identity Services & Apple Developer Portal
+Only Caddy is exposed to the internet. `api`, `genie-web`, and `redis` stay on the internal Docker
+network. The Zalo Mini App is shipped separately (Zalo Studio), not on this server.
 
-> [!CAUTION]  
-> If you skip this, social login and Calendar Sync will fail in production!
+## Prerequisites
 
-**Google:**
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
-2. Navigate to **APIs & Services > Credentials**.
-3. Edit your Web Application OAuth Client ID.
-4. Add your production Vercel domain to **Authorized JavaScript origins** and **Authorized redirect URIs**.
+1. A Linux server (2 vCPU / 2+ GB RAM is enough to start) with a public IP.
+2. A domain name you control, e.g. `os.your-domain.com`.
+3. A Supabase Cloud project (https://supabase.com).
+4. An Anthropic API key.
+5. (Later) a registered Zalo Official Account for ZNS - not required for first deploy.
 
-**Apple:**
-1. Go to the [Apple Developer Portal](https://developer.apple.com/).
-2. Navigate to **Certificates, Identifiers & Profiles > Identifiers**.
-3. Create a **Service ID** for your web domain.
-4. Configure "Sign In with Apple" for this Service ID, providing your Vercel domain and return URL.
+## Step 1 - Provision the server
 
-### 3. Native App Deployment (App Store / Google Play)
+Install Docker Engine + the Compose plugin (Ubuntu example):
 
-1.  Update `apps/web/capacitor.config.ts` if needed (e.g., changing the app name or package ID).
-2.  Ensure your `google-services.json` (Android) and `GoogleService-Info.plist` (iOS) are placed correctly in the native IDEs for Push Notifications.
-3.  Build the production web assets:
-    ```bash
-    cd apps/web
-    pnpm run build
-    npx cap sync
-    ```
-4.  Open the IDEs (`npx cap open ios` / `npx cap open android`).
-5.  Follow the standard Apple and Google guidelines for signing, generating bundles/APKs, configuring Push Notification Entitlements (iOS), and submitting to the respective stores.
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER   # log out/in so docker runs without sudo
+docker compose version          # confirm the plugin is present
+```
+
+Open ports 80 and 443 in the firewall/security group. No other inbound ports are needed.
+
+## Step 2 - Set up Supabase Cloud
+
+1. Create a project. Note the Project URL (`https://xxxx.supabase.co`), the `anon` key, and the
+   `service_role` key (Project Settings -> API).
+2. Link and push the database schema from your machine (migrations live in `services/genie-api`):
+
+```bash
+supabase link --project-ref <your-project-ref>
+supabase db push
+```
+
+This applies all migrations (family sharing + RLS, consent log, entitlements, ZNS send log, etc.) to
+the cloud database. Re-run `supabase db push` whenever new migrations land.
+
+## Step 3 - Point DNS at the server
+
+Create an A record for your domain pointing at the server's public IP. Caddy needs this resolvable
+before it can issue a certificate.
+
+```
+os.your-domain.com   A   <server-public-ip>
+```
+
+## Step 4 - Configure the environment
+
+On the server:
+
+```bash
+git clone <repo-url> kristen-calendar
+cd kristen-calendar
+cp .env.example .env
+```
+
+Edit `.env` with production values:
+
+```env
+# Reverse proxy
+DOMAIN=os.your-domain.com
+ACME_EMAIL=you@your-domain.com
+
+# Supabase Cloud
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<service_role key>
+
+# AI
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Public (baked into the web bundle at build time - origin only, no /api suffix)
+NEXT_PUBLIC_API_URL=https://os.your-domain.com
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+
+# ZNS (fill when the Zalo OA is live)
+ZNS_TEMPLATE_ID=
+CRON_SECRET=<long random string>
+
+# Payments (FR-020). Leave blank until you sell subscriptions; both webhooks fail closed when unset.
+ZALO_PAY_KEY2=<Zalo Pay key2>
+APPLE_BUNDLE_ID=world.cyberskill.genieamlich
+APPLE_APP_APPLE_ID=<numeric App Store app id>
+APP_STORE_ENVIRONMENT=Sandbox            # switch to Production at launch
+APP_STORE_ONLINE_CHECKS=false
+# APP_STORE_PRODUCT_TIERS={"com.cyberskill.genie.premium.monthly":"premium"}
+```
+
+Important: `NEXT_PUBLIC_*` values are compiled into the browser bundle at BUILD time, so you must
+rebuild the web image after changing them (Step 6 does this).
+
+## Step 5 - Deploy
+
+Two prerequisites before the first build:
+
+- Lockfile: the API image installs with `pnpm install --frozen-lockfile`, so `pnpm-lock.yaml`
+  must already match `package.json`. After any dependency change (for example the App Store
+  verification library added for FR-020), run `pnpm install` once at the repo root and commit the
+  updated `pnpm-lock.yaml`, or the Docker build fails with a frozen-lockfile mismatch.
+- Apple root certificate (only if you accept App Store payments): download Apple Root CA - G3 to
+  `services/genie-api/certs/apple/` on the host (see that folder's README). The compose file mounts
+  that directory read-only into the api container. Without it the App Store webhook fails closed.
+
+```bash
+docker compose up -d --build
+```
+
+This builds the API and web images, starts Caddy, api, genie-web, and redis. Caddy requests a
+Let's Encrypt certificate for `DOMAIN` on first start (DNS from Step 3 must already resolve).
+
+## Step 6 - Verify
+
+```bash
+docker compose ps                       # all services healthy
+curl -I https://os.your-domain.com/     # 200, valid TLS
+curl https://os.your-domain.com/health  # OK (proxied to the api)
+docker compose logs -f caddy            # watch certificate issuance if TLS is slow
+```
+
+Open the domain in a browser: today's lunar date, the consent sheet, and the Genie button should work.
+
+## Secrets and rotation
+
+- `.env` (and any `services/genie-api/.env`) are gitignored. Never commit real secrets.
+- ACTION REQUIRED from the earlier setup: a real `SUPABASE_SERVICE_ROLE_KEY` was once committed in
+  `.env.docker` and pushed. That file is now emptied, but the key remains in git history. Rotate it:
+  Supabase dashboard -> Project Settings -> API -> roll the service_role key, update `.env`, then
+  `git rm --cached .env.docker && git commit -m "chore: stop tracking .env.docker"` (it is gitignored now).
+- Rotate the Anthropic key too if it was ever committed.
+
+## Updating (redeploy)
+
+```bash
+git pull
+supabase db push          # if there are new migrations
+docker compose up -d --build
+```
+
+Compose recreates only changed services. To roll back, `git checkout <previous-tag>` then
+`docker compose up -d --build` again.
+
+## Operations
+
+- Logs: `docker compose logs -f api` (or `genie-web`, `caddy`, `redis`).
+- Restart one service: `docker compose restart api`.
+- Redis data persists in the `redis_data` volume; Caddy certs in `caddy_data` - do not delete these
+  volumes casually.
+- Backups: the source of truth is Supabase Cloud - enable Point-in-Time Recovery / scheduled backups
+  in the Supabase dashboard. The containers here are stateless apart from the two named volumes above.
+- Health: both api and genie-web expose Docker healthchecks; `docker compose ps` shows status.
+
+## Zalo Mini App + ZNS (separate track)
+
+The Zalo client is built and submitted through Zalo Studio, not this server:
+
+```bash
+cd zalo && pnpm build       # then deploy via pnpm deploy:zalo / Zalo Studio
+```
+
+ZNS reminders (FR-017) run from the `api` service on a schedule. They need a registered Zalo OA, an
+approved ZNS template (set `ZNS_TEMPLATE_ID`), and `CRON_SECRET`. Start via a ZNS distributor
+(for example VietGuys) to shorten OA onboarding, per the founder decision.
+
+## Scaling later
+
+This single-host setup is sized for the first users. When you outgrow it: put the web behind a CDN,
+move Redis to a managed instance, and run multiple `api` replicas behind Caddy. Supabase Cloud scales
+independently. None of that changes the app code.

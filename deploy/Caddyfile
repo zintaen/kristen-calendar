@@ -1,0 +1,25 @@
+# Caddy reverse proxy for production (docker-compose.yml).
+# Caddy obtains and renews a Let's Encrypt certificate automatically for $DOMAIN.
+# DOMAIN and ACME_EMAIL are injected from the environment by Docker Compose.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode gzip zstd
+
+	# Backend API and health check -> genie-api service.
+	# The API serves its routes under /api/* (e.g. /api/genie) plus /health.
+	handle /api/* {
+		reverse_proxy api:3000
+	}
+	handle /health {
+		reverse_proxy api:3000
+	}
+
+	# Everything else -> Next.js web app (standalone server).
+	handle {
+		reverse_proxy genie-web:3000
+	}
+}

@@ -103,8 +103,8 @@ Documentation writing convention: Vietnamese prose with full diacritics; technic
 - `docs/feature-requests/BACKLOG.md` - phasing, headline metrics, founder decisions.
 - `docs/AGENT-GUIDE.md` - core invariants, build discipline, writing conventions.
 - `docs/BUILD-RUNBOOK.md` - the build order for each slice plus gate commands.
-- `docs/DEPLOYMENT.md` - Deployment guide, external account requirements (Claude, Zalo), environment configuration and RevenueCat (In-app purchase).
-- `docs/DEVELOPMENT.md` - Local setup and development guide.
+- `DEPLOYMENT.md` - Deployment guide, external account requirements (Claude, Zalo), environment configuration and RevenueCat (In-app purchase).
+- `DEVELOPMENT.md` - Local setup and development guide.
 - `AGENTS.md` (repo root, set by Stephen) - CyberOS BRAIN/memory protocol.
 
 ## Glossary (for newcomers)

@@ -1,13 +1,21 @@
 import { App } from "@capacitor/app";
-import { getDayQuality, convertSolar2Lunar } from "@cyberskill/amlich-core";
+import { getDayQuality, convertSolar2Lunar, todayInHCM } from "@cyberskill/amlich-core";
 
 const APP_GROUP_KEY = "dayInfoCache";
+// Canonical App Group container - MUST match DayInfoCache.appGroupSuite and the Siri intents
+// (GenieIntents.swift) and the target .entitlements, or the native readers see empty storage.
+const APP_GROUP_SUITE = "group.world.cyberskill.genie";
 
-export async function writeWidgetCache(date: Date = new Date()): Promise<void> {
-  // Compute Day Quality from amlich-core
-  const dq = getDayQuality(date);
-  const lunarDate = convertSolar2Lunar(date.getDate(), date.getMonth() + 1, date.getFullYear());
-  
+export async function writeWidgetCache(now: Date = new Date()): Promise<void> {
+  // DEC-LUNAR-043: derive "today" at Asia/Ho_Chi_Minh, NEVER the device-local calendar day.
+  // A device set to a non-VN timezone would otherwise cache the wrong day between VN 00:00-07:00.
+  const [d, m, y] = todayInHCM(now);
+  // getDayQuality reads UTC getters, so hand it a Date whose UTC calendar day IS the VN day
+  // (noon UTC keeps it clear of any drift to an adjacent day).
+  const vnDate = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  const dq = getDayQuality(vnDate);
+  const lunarDate = convertSolar2Lunar(d, m, y);
+
   // Create cache payload matching DayInfoCache Swift struct
   const cache = {
     dateISO:       dq.date,

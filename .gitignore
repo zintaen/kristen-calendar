@@ -13,3 +13,7 @@ ios/App/Pods/
 
 # CyberOS
 .cyberos-memory/
+.env.docker
+.env.*
+!.env.example
+!*.example

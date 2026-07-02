@@ -24,4 +24,4 @@ WORKDIR /app/services/genie-api
 RUN chown -R node:node /app
 USER node
 
-CMD ["pnpm", "tsx", "index.ts"]
+CMD ["pnpm", "exec", "tsx", "index.ts"]

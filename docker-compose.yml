@@ -1,58 +1,110 @@
+# Production stack: Caddy (auto-HTTPS) -> Next.js web + Hono API, with Redis.
+# Supabase is managed (Supabase Cloud) - configured via .env.
+#
+# Usage:
+#   cp .env.example .env      # then fill in prod values (DOMAIN, ACME_EMAIL, Supabase, Anthropic)
+#   docker compose up -d --build
+#
+# Only Caddy is exposed to the internet (80/443). web/api/redis stay on the internal network.
 
 services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+      - ACME_EMAIL=${ACME_EMAIL}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - genie-web
+      - api
+    networks:
+      - genie-net
+
   api:
     build:
       context: .
       dockerfile: services/genie-api/Dockerfile
-    ports:
-      - "3000:3000"
+    restart: unless-stopped
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - LM_STUDIO_URL=${LM_STUDIO_URL:-}
+      - ZNS_TEMPLATE_ID=${ZNS_TEMPLATE_ID:-}
+      - CRON_SECRET=${CRON_SECRET:-}
+      # Payments (FR-020). Both webhooks fail closed when unset, so the stack still boots without them.
+      - ZALO_PAY_KEY2=${ZALO_PAY_KEY2:-}
+      - APPLE_BUNDLE_ID=${APPLE_BUNDLE_ID:-world.cyberskill.genieamlich}
+      - APPLE_APP_APPLE_ID=${APPLE_APP_APPLE_ID:-}
+      - APP_STORE_ENVIRONMENT=${APP_STORE_ENVIRONMENT:-Sandbox}
+      - APP_STORE_ONLINE_CHECKS=${APP_STORE_ONLINE_CHECKS:-false}
+      - APP_STORE_PRODUCT_TIERS=${APP_STORE_PRODUCT_TIERS:-}
+      - APPLE_ROOT_CERTS_DIR=/certs/apple
+    volumes:
+      # Apple Root CA - G3 for App Store receipt verification. Place the .cer on the host at
+      # services/genie-api/certs/apple/ before deploying (see that folder's README). Read-only.
+      - ./services/genie-api/certs:/certs:ro
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
-    environment:
-      - PORT=3000
-      - SUPABASE_URL=${SUPABASE_URL:-http://host.docker.internal:54321}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
-      - NODE_ENV=production
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: unless-stopped
+      start_period: 15s
+    depends_on:
+      - redis
+    networks:
+      - genie-net
 
   genie-web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000/api}
-        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-http://localhost:54321}
+        # PUBLIC values baked into the browser bundle at build time. Origin only - no /api suffix.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-    ports:
-      - "8080:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3000/api}
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 20s
     depends_on:
       - api
-    restart: unless-stopped
-    # Zalo Mini app dev server (optional local preview)
-    # To test Zalo Mini App, you usually run `pnpm dev` inside the `zalo` folder. 
-    # Dockerizing the Zalo builder is often unnecessary because the Zalo Studio handles packaging.
+    networks:
+      - genie-net
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
+    networks:
+      - genie-net
+
+volumes:
+  caddy_data:
+  caddy_config:
+  redis_data:
+
+networks:
+  genie-net:
+    driver: bridge

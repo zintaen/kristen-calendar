@@ -27,53 +27,37 @@ struct LunarCalcSwift {
         return jd
     }
 
+    /// Ho Ngoc Duc / Jean Meeus truncated new-moon series (the EXACT algorithm used by
+    /// @cyberskill/amlich-core). Verified day-for-day against the core across 1900-2100.
+    /// Do NOT substitute the full Meeus formula - it diverges from the official VN calendar.
     static func newMoon(k: Int) -> Double {
-        let T = (Double(k) / 1236.85)
+        let T = Double(k) / 1236.85
         let T2 = T * T
         let T3 = T2 * T
         let dr = DR
-        
-        let jd = MEEUS_EPOCH + MEEUS_SYNODIC * Double(k)
-               + 0.0001337 * T2
-               - 0.000000150 * T3
-               + 0.00000000073 * T2 * T2
 
-        let M = 2.5534 + 29.10535608 * Double(k)
-              - 0.0000218 * T2
-              - 0.00000011 * T3
+        var Jd1 = MEEUS_EPOCH + MEEUS_SYNODIC * Double(k) + 0.0001178 * T2 - 0.000000155 * T3
+        Jd1 += 0.00033 * sin((166.56 + 132.87 * T - 0.009173 * T2) * dr)
 
-        let Mprime = 201.5643 + 385.81693528 * Double(k)
-                   + 0.0107438 * T2
-                   + 0.00001239 * T3
-                   - 0.000000058 * T2 * T2
+        let M   = 359.2242 + 29.10535608 * Double(k) - 0.0000333 * T2 - 0.00000347 * T3
+        let Mpr = 306.0253 + 385.81691806 * Double(k) + 0.0107306 * T2 + 0.00001236 * T3
+        let F   = 21.2964 + 390.67050646 * Double(k) - 0.0016528 * T2 - 0.00000239 * T3
 
-        let F = 160.7108 + 390.67050274 * Double(k)
-              - 0.0016341 * T2
-              - 0.00000227 * T3
-              + 0.000000011 * T2 * T2
+        var C1 = (0.1734 - 0.000393 * T) * sin(M * dr) + 0.0021 * sin(2 * dr * M)
+        C1 = C1 - 0.4068 * sin(Mpr * dr) + 0.0161 * sin(2 * dr * Mpr)
+        C1 = C1 - 0.0004 * sin(3 * dr * Mpr) + 0.0104 * sin(2 * dr * F)
+        C1 = C1 - 0.0051 * sin((M + Mpr) * dr) - 0.0074 * sin((M - Mpr) * dr)
+        C1 = C1 + 0.0004 * sin((2 * F + M) * dr) - 0.0004 * sin((2 * F - M) * dr)
+        C1 = C1 - 0.0006 * sin((2 * F + Mpr) * dr) + 0.0010 * sin((2 * F - Mpr) * dr)
+        C1 = C1 + 0.0005 * sin((2 * Mpr + M) * dr)
 
-        let omega = 124.7746 - 1.5637558 * Double(k)
-                  + 0.0020691 * T2
-                  + 0.00000215 * T3
-
-        let E = 1.0 - 0.002516 * T - 0.0000074 * T2
-
-        var corr = -0.4284 * E * sin(dr * Mprime)
-                 + 0.1717 * E * sin(dr * M)
-                 + 0.0118 * E * sin(dr * 2 * Mprime)
-                 + 0.0089 * sin(dr * 2 * F)
-                 + 0.0086 * E * E * sin(dr * 2 * Mprime)
-                 - 0.0076 * E * sin(dr * (Mprime - M))
-                 - 0.0074 * E * sin(dr * (Mprime + M))
-                 + 0.0066 * E * sin(dr * (Mprime - 2 * F))
-                 - 0.0040 * sin(dr * (Mprime + 2 * F))
-                 - 0.0020 * E * sin(dr * (M - 2 * F))
-                 + 0.0017 * sin(dr * omega)
-                 - 0.0015 * E * sin(dr * (2 * Mprime - M))
-                 + 0.0014 * E * sin(dr * (2 * Mprime + M))
-
-        let W = 0.00033 * sin(dr * (166.56 + 132.87 * T - 0.009173 * T2))
-        return jd + corr + W
+        let deltat: Double
+        if T < -11 {
+            deltat = 0.001 + 0.000839 * T + 0.0002261 * T2 - 0.00000845 * T3 - 0.000000081 * T * T3
+        } else {
+            deltat = -0.000278 + 0.000265 * T + 0.000262 * T2
+        }
+        return Jd1 + C1 - deltat
     }
 
     static func sunLongitude(jdn: Double) -> Double {
@@ -115,47 +99,46 @@ struct LunarCalcSwift {
     }
 
     static func getLeapMonthOffset(a11: Int) -> Int {
-        let k = Int(floor(Double(a11 - LUNAR_MONTH_11_INT) / SYNODIC_MONTH_K))
-        var last = 0
-        var arc = 0
-        
-        var leapMonth = 0
+        // Canonical Ho Ngoc Duc: seed k from EPOCH_INDEX_K + 0.5, pre-seed arc BEFORE the
+        // loop (i = 1 is the month after lunar month 11), exit when two consecutive months
+        // carry the same major solar term. Verified against amlich-core across 1900-2100.
+        let k = Int(floor((Double(a11) - EPOCH_INDEX_K) / SYNODIC_MONTH_K + 0.5))
         var i = 1
-        
-        while i <= 14 {
-            let nm = getNewMoonDay(k: k + i)
-            arc = getSunLongitude(dayNumber: Double(nm))
-            if arc == last && leapMonth == 0 {
-                leapMonth = i
-            }
+        var arc = getSunLongitude(dayNumber: Double(getNewMoonDay(k: k + i)))
+        var last = 0
+        repeat {
             last = arc
             i += 1
-        }
-        return leapMonth - 1
+            arc = getSunLongitude(dayNumber: Double(getNewMoonDay(k: k + i)))
+        } while arc != last && i < 14
+        return i - 1
     }
 
     static func convertSolar2Lunar(day: Int, month: Int, year: Int) -> (lunarDay: Int, lunarMonth: Int, lunarYear: Int, isLeap: Bool) {
         let dayNumber = jdFromDate(day: day, month: month, year: year)
-        var k = Int(floor((Double(dayNumber) - EPOCH_INDEX_K) / SYNODIC_MONTH_K))
+        let k = Int(floor((Double(dayNumber) - EPOCH_INDEX_K) / SYNODIC_MONTH_K))
         var monthStart = getNewMoonDay(k: k + 1)
-        
         if monthStart > dayNumber {
             monthStart = getNewMoonDay(k: k)
-        } else {
-            k += 1
         }
-        
+
+        // lunarYear MUST be seeded inside the branch (yy vs yy+1). A date after the
+        // winter-solstice month-11 new moon belongs to the NEXT lunar year (yy+1); the
+        // month-11/12 correction below then subtracts 1 back where appropriate. Hardcoding
+        // year here silently shifts the displayed lunar year by 1 for Nov/Dec dates.
         var a11 = getLunarMonth11(year: year)
         var b11 = a11
+        var lunarYear: Int
         if a11 >= monthStart {
+            lunarYear = year
             a11 = getLunarMonth11(year: year - 1)
         } else {
+            lunarYear = year + 1
             b11 = getLunarMonth11(year: year + 1)
         }
-        
+
         let lunarDay = dayNumber - monthStart + 1
-        var diff = Int(floor((Double(monthStart - a11)) / 29.0))
-        var lunarYear = year
+        let diff = Int(floor((Double(monthStart - a11)) / 29.0))
         var lunarMonth = diff + 11
         var isLeap = false
         
