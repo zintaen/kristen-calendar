@@ -11,6 +11,7 @@ vi.mock("@cyberskill/amlich-core", () => ({
   canChiYear: vi.fn().mockReturnValue({ label: "Ất Tỵ", chiIndex: 5 }),
   zodiacOf: vi.fn().mockReturnValue("Rắn"),
   VN_TZ: 7.0,
+  todayInHCM: vi.fn().mockReturnValue([29, 1, 2025]),
 }));
 
 beforeAll(() => {

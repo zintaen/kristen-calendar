@@ -4,7 +4,7 @@ import {
   deleteReminder 
 } from "../storage";
 import type { Reminder } from "@cyberskill/amlich-core";
-import { nextOccurrences, convertLunar2Solar, jdFromDate, jdToDate, VN_TZ } from "@cyberskill/amlich-core";
+import { nextOccurrences, convertLunar2Solar, jdFromDate, jdToDate, todayInHCM, VN_TZ } from "@cyberskill/amlich-core";
 import { reschedule } from "../notifications/scheduler";
 import { createNotificationService } from "../notificationGlue";
 
@@ -129,7 +129,7 @@ export class ReminderStore implements ReminderStoreContract {
     
     for (const r of this.reminders) {
       if (!r.enabled) continue;
-      const next = nextOccurrences(r, { fromYear: now.getFullYear(), count: 1, engineVersion: "1.0.0" });
+      const next = nextOccurrences(r, { fromYear: todayInHCM(now)[2], count: 1, engineVersion: "1.0.0" });
       if (next.length > 0) {
         const occ = next[0];
         
@@ -169,7 +169,7 @@ export const globalReminderStore = new ReminderStore();
 
 // Export solar preview helper for UI
 export function solarPreviewFromLunar(lunarDay: number, lunarMonth: number, isLeap: boolean): string {
-  const currentYear = new Date().getFullYear();
+  const currentYear = todayInHCM()[2];
   // Call convertLunar2Solar to get JDN
   const [jdn, isLeapResult] = convertLunar2Solar(lunarDay, lunarMonth, currentYear, isLeap ? 1 : 0, VN_TZ);
   const [d, m, y] = jdToDate(jdn);

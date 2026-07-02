@@ -7,10 +7,11 @@ import { getReminders } from "../../lib/storage";
 import type { Reminder } from "../../lib/storage";
 import { computeReminderDatesForMonth, type DayCellData } from "../../lib/calendarData";
 import { buildFestivalDateSet } from "@cyberskill/genie-content";
+import { todayInHCM } from "@cyberskill/amlich-core";
 
 export default function CalendarPage() {
-  const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
-  const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth() + 1);
+  const [currentYear, setCurrentYear] = useState(() => todayInHCM()[2]);
+  const [currentMonth, setCurrentMonth] = useState(() => todayInHCM()[1]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [selectedDay, setSelectedDay] = useState<DayCellData | null>(null);
 

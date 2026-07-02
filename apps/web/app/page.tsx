@@ -2,19 +2,18 @@
 
 import React from "react";
 import { Typography } from "@cyberskill/genie-ui";
-import { jdFromDate, convertSolar2Lunar, canChiDay, canChiMonth, canChiYear, zodiacOf, VN_TZ } from "@cyberskill/amlich-core";
+import { jdFromDate, convertSolar2Lunar, canChiDay, canChiMonth, canChiYear, zodiacOf, todayInHCM, VN_TZ } from "@cyberskill/amlich-core";
 import { UpcomingList } from "../components/reminders/UpcomingList";
 
 export default function HomePage() {
-  const today = new Date();
-  const d = today.getDate();
-  const m = today.getMonth() + 1;
-  const y = today.getFullYear();
+  // VN-locked today (DEC-LUNAR-043): device TZ must not shift the displayed lunar date.
+  const [d, m, y] = todayInHCM();
+  const weekdayIdx = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
   
   const [lDay, lMonth, lYear, lLeap] = convertSolar2Lunar(d, m, y, VN_TZ);
   const jdn = jdFromDate(d, m, y);
   
-  const solarDateStr = `Thứ ${today.getDay() === 0 ? "Chủ Nhật" : today.getDay() + 1}, ${d} tháng ${m} năm ${y}`;
+  const solarDateStr = `Thứ ${weekdayIdx === 0 ? "Chủ Nhật" : weekdayIdx + 1}, ${d} tháng ${m} năm ${y}`;
   const lunarDateStr = `Mùng ${lDay} tháng ${lMonth} năm ${canChiYear(lYear).label}${lLeap === 1 ? " (Nhuận)" : ""}`;
   const canChiDayStr = canChiDay(jdn).label;
   

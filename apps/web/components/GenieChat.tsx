@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { fetchGenie, GenieContext } from "../lib/genie-client";
 import { UpgradePrompt } from "./UpgradePrompt";
-import { convertSolar2Lunar } from "@cyberskill/amlich-core";
+import { convertSolar2Lunar, todayInHCM } from "@cyberskill/amlich-core";
 import { entitlementClient, EntitlementResponse } from "../lib/entitlement-client";
 import { useMutation } from "@tanstack/react-query";
 
@@ -43,8 +43,7 @@ export function GenieChat() {
 
   const { mutate: sendMessage, isPending: isLoading } = useMutation({
     mutationFn: async ({ text, userMsgId }: { text: string; userMsgId: string }) => {
-      const now = new Date();
-      const lunar = convertSolar2Lunar(now.getDate(), now.getMonth() + 1, now.getFullYear(), 7);
+      const lunar = convertSolar2Lunar(...todayInHCM(), 7); // VN-locked today (DEC-LUNAR-043)
       const context: GenieContext = {
         lunarDate: `${lunar[0]}/${lunar[1]}/${lunar[2]}`,
         questionType: "phong_tuc_hoi_dap"
@@ -107,8 +106,8 @@ export function GenieChat() {
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div 
+          <div key={msg.id} data-testid={msg.role === "genie" ? "genie-message" : "genie-user-message"} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div
               className={`max-w-[80%] p-3 rounded-2xl ${
                 msg.role === "user" 
                   ? "bg-purple-600 text-white rounded-tr-sm" 
@@ -151,8 +150,9 @@ export function GenieChat() {
 
       <div className="p-3 bg-white border-t border-gray-200">
         <div className="flex space-x-2">
-          <input 
-            type="text" 
+          <input
+            type="text"
+            data-testid="genie-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
