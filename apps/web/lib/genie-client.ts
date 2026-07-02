@@ -30,24 +30,29 @@ export interface GenieErrorResponse {
   requestId: string;
 }
 
+import { config } from "./config";
+import { Preferences } from '@capacitor/preferences';
+
 export interface GenieClientOptions {
-  apiBase?: string; // mặc định "/api/genie" or "http://localhost:4000/api/genie" for dev
+  apiBase?: string;
 }
 
 export async function fetchGenie(
   request: GenieRequest,
   options?: GenieClientOptions
 ): Promise<GenieResponse> {
-  const apiBase = options?.apiBase || "http://localhost:4000/api/genie";
+  const apiBase = options?.apiBase || config.getApiUrl("/api/genie");
 
   let response: Response;
   try {
+    const { value } = await Preferences.get({ key: 'token' });
+    const token = value || "";
+
     response = await fetch(apiBase, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // Pass dummy auth for now
-        "Authorization": "Bearer local-dev-user"
+        "Authorization": token ? `Bearer ${token}` : ""
       },
       body: JSON.stringify(request)
     });

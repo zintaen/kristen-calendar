@@ -44,7 +44,7 @@ function getUserJwt(request: Request): string | null {
 // POST /api/sync/push
 export async function handlePush(request: Request): Promise<Response> {
   const jwt = getUserJwt(request);
-  if (!jwt) return new Response("Unauthorized", { status: 401 });
+  if (!jwt) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const body = await request.json() as SyncPushBody;
@@ -59,7 +59,7 @@ export async function handlePush(request: Request): Promise<Response> {
 // GET /api/sync/pull
 export async function handlePull(request: Request): Promise<Response> {
   const jwt = getUserJwt(request);
-  if (!jwt) return new Response("Unauthorized", { status: 401 });
+  if (!jwt) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const client = getSupabaseClient(jwt);
@@ -98,14 +98,14 @@ export async function handlePull(request: Request): Promise<Response> {
 // PATCH /api/sync/share
 export async function handleShare(request: Request): Promise<Response> {
   const jwt = getUserJwt(request);
-  if (!jwt) return new Response("Unauthorized", { status: 401 });
+  if (!jwt) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const body = await request.json() as SharePatchBody;
     const client = getSupabaseClient(jwt);
     const { data: { user }, error: userErr } = await client.auth.getUser();
     if (userErr || !user) {
-      return new Response("Unauthorized", { status: 401 });
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const entitlement = await getEntitlement(user.id);
@@ -151,7 +151,7 @@ export async function handleShare(request: Request): Promise<Response> {
 // POST /api/sync/invite
 export async function handleInvite(request: Request): Promise<Response> {
   const jwt = getUserJwt(request);
-  if (!jwt) return new Response("Unauthorized", { status: 401 });
+  if (!jwt) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const body = await request.json() as { reminderId: string };
@@ -189,7 +189,7 @@ export async function handleInvite(request: Request): Promise<Response> {
 // POST /api/sync/invite/accept
 export async function handleInviteAccept(request: Request): Promise<Response> {
   const jwt = getUserJwt(request);
-  if (!jwt) return new Response("Unauthorized", { status: 401 });
+  if (!jwt) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const body = await request.json() as { token: string };
@@ -200,7 +200,7 @@ export async function handleInviteAccept(request: Request): Promise<Response> {
 
     const client = getSupabaseClient(jwt);
     const { data: { user } } = await client.auth.getUser(jwt);
-    if (!user) return new Response("Unauthorized", { status: 401 });
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     const serviceClient = getServiceSupabaseClient();
     
@@ -260,12 +260,12 @@ export async function handleInviteAccept(request: Request): Promise<Response> {
 // DELETE /api/sync/account
 export async function handleDeleteAccount(request: Request): Promise<Response> {
   const jwt = getUserJwt(request);
-  if (!jwt) return new Response("Unauthorized", { status: 401 });
+  if (!jwt) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const client = getSupabaseClient(jwt);
     const { data: { user } } = await client.auth.getUser(jwt);
-    if (!user) return new Response("Unauthorized", { status: 401 });
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     // Since reminders table has ON DELETE CASCADE from users, 
     // ideally we would delete the user. But maybe we just delete their reminders.

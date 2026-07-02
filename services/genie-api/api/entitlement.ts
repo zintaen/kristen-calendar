@@ -20,12 +20,12 @@ function getUserJwt(request: Request): string | null {
 
 export async function handleGetEntitlement(request: Request): Promise<Response> {
   const jwt = getUserJwt(request);
-  if (!jwt) return new Response("Unauthorized", { status: 401 });
+  if (!jwt) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const client = getSupabaseClient(jwt);
     const { data: { user }, error: userErr } = await client.auth.getUser();
-    if (userErr || !user) return new Response("Unauthorized", { status: 401 });
+    if (userErr || !user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     const entitlement = await getEntitlement(user.id);
     const now = new Date();
@@ -64,12 +64,12 @@ export async function handleGetEntitlement(request: Request): Promise<Response> 
 
 export async function handleStartTrial(request: Request): Promise<Response> {
   const jwt = getUserJwt(request);
-  if (!jwt) return new Response("Unauthorized", { status: 401 });
+  if (!jwt) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const client = getSupabaseClient(jwt);
     const { data: { user }, error: userErr } = await client.auth.getUser();
-    if (userErr || !user) return new Response("Unauthorized", { status: 401 });
+    if (userErr || !user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     const entitlement = await getEntitlement(user.id);
     if (entitlement.trialUsed) {

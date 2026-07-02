@@ -3,6 +3,7 @@
 import React from "react";
 import { Typography } from "@cyberskill/genie-ui";
 import { jdFromDate, convertSolar2Lunar, canChiDay, canChiMonth, canChiYear, zodiacOf, VN_TZ } from "@cyberskill/amlich-core";
+import { UpcomingList } from "../components/reminders/UpcomingList";
 
 export default function HomePage() {
   const today = new Date();
@@ -41,9 +42,7 @@ export default function HomePage() {
       {/* Reminders section placeholder */}
       <div className="w-full max-w-sm mt-8">
         <Typography variant="heading-3" className="text-gray-800 mb-4">Sự kiện sắp tới</Typography>
-        <div className="bg-white rounded-xl p-4 text-sm text-gray-500 italic text-center border border-gray-100 shadow-sm">
-          Chưa có lời nhắc nào (FR-006 chưa implement)
-        </div>
+        <UpcomingList />
       </div>
       
       {/* Good Day Picker Link */}

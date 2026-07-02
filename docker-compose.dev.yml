@@ -1,10 +1,8 @@
-version: '3.8'
-
 services:
   api:
-    image: node:20-alpine
+    image: node:24-slim
     working_dir: /app/services/genie-api
-    command: sh -c "pnpm install && pnpm dev"
+    command: sh -c "corepack enable && pnpm install && pnpm dev"
     volumes:
       - .:/app
     ports:
@@ -14,15 +12,18 @@ services:
       - SUPABASE_URL=${SUPABASE_URL:-http://host.docker.internal:54321}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - LM_STUDIO_URL=${LM_STUDIO_URL}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - NODE_ENV=development
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
       - redis
+    networks:
+      - genie-net
 
   genie-web:
-    image: node:20-alpine
+    image: node:24-slim
     working_dir: /app/apps/web
     command: sh -c "corepack enable && pnpm install && pnpm dev"
     volumes:
@@ -30,14 +31,22 @@ services:
     ports:
       - "8080:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3000/api}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3000}
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-http://localhost:54321}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       - NODE_ENV=development
     depends_on:
       - api
+    networks:
+      - genie-net
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    networks:
+      - genie-net
+
+networks:
+  genie-net:
+    driver: bridge

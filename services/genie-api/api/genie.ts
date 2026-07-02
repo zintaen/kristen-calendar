@@ -6,6 +6,7 @@ import { buildGenieMessages, sanitizeQuestion, GenieContext } from "../lib/promp
 import { checkAndIncrementGenieUsage } from "../lib/rate-limiter";
 import { getEntitlement, isFeatureAllowed, TIER_FEATURES, Tier } from "../lib/entitlement";
 import { stripSensitiveFields, checkCrossBorderTransfer } from "../lib/data-minimization";
+import { getSupabaseClient } from "../lib/supabase";
 
 export interface GenieRequest {
   question: string;
@@ -48,11 +49,19 @@ export async function POST(
   try {
     // 1. Auth & Validation
     const authHeader = request.headers.get("Authorization");
-    // For now we assume some dummy session token if not in testing, but if it's strictly required
-    // we would check it. Let's just accept it and hash it.
     let userId = "anonymous";
+    let jwt = "";
+    
     if (authHeader && authHeader.startsWith("Bearer ")) {
-      userId = authHeader.substring(7);
+      jwt = authHeader.substring(7);
+      if (jwt) {
+        // Authenticate with Supabase to get the real user ID
+        const client = getSupabaseClient(jwt);
+        const { data: { user }, error: userErr } = await client.auth.getUser();
+        if (!userErr && user) {
+          userId = user.id;
+        }
+      }
     }
     
     // Hash userId to avoid logging PII
@@ -129,35 +138,73 @@ export async function POST(
     const sanitizedQuestion = sanitizeQuestion(body.question);
     const { system, messages } = buildGenieMessages(body.context, sanitizedQuestion);
 
-    // 4. Gọi Claude API
-    const anthropic = deps?.anthropic || new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    
+    // 4. Gọi Claude API hoặc LM Studio
+    const lmStudioUrl = process.env.LM_STUDIO_URL;
+    let answer = "";
+    let usage = { inputTokens: 0, outputTokens: 0, cacheReadInputTokens: 0, cacheCreationInputTokens: 0 };
+    let latencyMs = 0;
     const startTime = Date.now();
-    
-    // Note: in testing, this might throw if mock is configured to throw
-    const completion = await anthropic.messages.create({
-      model: "claude-haiku-4-5",
-      max_tokens: 1024,
-      system: system, // System prompt block has ephemeral cache_control
-      messages: messages as Anthropic.MessageParam[],
-    });
 
-    const latencyMs = Date.now() - startTime;
-    
-    const answer = completion.content[0].type === "text" ? completion.content[0].text : "";
-    
+    if (lmStudioUrl) {
+      // Gọi qua LM Studio (OpenAI format)
+      const openaiMessages = [
+        { role: "system", content: system[0].text },
+        ...messages
+      ];
+      
+      const response = await fetch(lmStudioUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "local-model",
+          messages: openaiMessages,
+          temperature: 0.7,
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`LM Studio returned ${response.status}`);
+      }
+
+      const data = await response.json();
+      answer = data.choices[0]?.message?.content || "";
+      latencyMs = Date.now() - startTime;
+      
+      usage = {
+        inputTokens: data.usage?.prompt_tokens || 0,
+        outputTokens: data.usage?.completion_tokens || 0,
+        cacheReadInputTokens: 0,
+        cacheCreationInputTokens: 0,
+      };
+    } else {
+      // Gọi qua Anthropic API
+      const anthropic = deps?.anthropic || new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      
+      // Note: in testing, this might throw if mock is configured to throw
+      const completion = await anthropic.messages.create({
+        model: "claude-3-5-haiku-latest",
+        max_tokens: 1024,
+        system: system, // System prompt block has ephemeral cache_control
+        messages: messages as Anthropic.MessageParam[],
+      });
+
+      latencyMs = Date.now() - startTime;
+      
+      answer = completion.content[0].type === "text" ? completion.content[0].text : "";
+      
+      usage = {
+        inputTokens: completion.usage.input_tokens,
+        outputTokens: completion.usage.output_tokens,
+        cacheReadInputTokens: (completion.usage as any).cache_read_input_tokens || 0,
+        cacheCreationInputTokens: (completion.usage as any).cache_creation_input_tokens || 0,
+      };
+    }
+
     // Add fail-safe footer if missing
     const footer = "Tham khao theo phong tuc dan gian";
     const finalAnswer = answer.includes("Tham khao") || answer.includes(footer) 
       ? answer 
       : `${answer}\n\n(*) ${footer} - co the khac nhau tuy vung mien.`;
-
-    const usage = {
-      inputTokens: completion.usage.input_tokens,
-      outputTokens: completion.usage.output_tokens,
-      cacheReadInputTokens: (completion.usage as any).cache_read_input_tokens || 0,
-      cacheCreationInputTokens: (completion.usage as any).cache_creation_input_tokens || 0,
-    };
 
     // Logging only safe fields
     console.log(JSON.stringify({

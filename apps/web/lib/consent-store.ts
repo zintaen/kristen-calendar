@@ -3,6 +3,8 @@ export type { ConsentFlags, ConsentType };
 
 const STORAGE_KEY = "genie_amlich_consent";
 
+import { config } from "./config";
+
 export class ConsentStore {
   // Doc consentFlags tu localStorage
   getFlags(): ConsentFlags {
@@ -34,7 +36,7 @@ export class ConsentStore {
   }
 
   // Dong bo len cloud (chi khi cloudSync da duoc cap truoc do)
-  async syncToCloud(flags: ConsentFlags, jwt: string, apiUrl: string = "http://localhost:4000"): Promise<void> {
+  async syncToCloud(flags: ConsentFlags, jwt: string, apiUrl: string = config.apiBaseUrl): Promise<void> {
     // Only sync if cloudSync is allowed
     if (!flags.cloudSync) return;
 

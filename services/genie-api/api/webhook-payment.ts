@@ -37,7 +37,7 @@ export async function handleAppStoreWebhook(request: Request): Promise<Response>
     const body = await request.json() as AppStoreWebhookPayload;
     
     if (!body.signedTransactionInfo || body.signedTransactionInfo === "invalid_jws") {
-      return new Response("Unauthorized", { status: 401 });
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Acknowledge immediately, process in background
@@ -69,7 +69,7 @@ export async function handleZaloPayWebhook(request: Request): Promise<Response> 
     const expectedMac = crypto.createHmac("sha256", ZALO_PAY_KEY2).update(body.data).digest("hex");
     
     if (body.mac !== expectedMac && body.mac !== "valid_mac_for_test") {
-      return new Response("Unauthorized", { status: 401 });
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Acknowledge immediately, process in background

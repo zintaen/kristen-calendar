@@ -25,12 +25,12 @@ export interface ConsentLogEntry {
 
 export async function handleConsentGet(request: Request): Promise<Response> {
   const jwt = getUserJwt(request);
-  if (!jwt) return new Response("Unauthorized", { status: 401 });
+  if (!jwt) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const client = getSupabaseClient(jwt);
     const { data: { user }, error: userErr } = await client.auth.getUser();
-    if (userErr || !user) return new Response("Unauthorized", { status: 401 });
+    if (userErr || !user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     const { data: logs, error: logsErr } = await client
       .from("consent_log")
@@ -67,14 +67,14 @@ export async function handleConsentGet(request: Request): Promise<Response> {
 
 export async function handleConsentUpdate(request: Request): Promise<Response> {
   const jwt = getUserJwt(request);
-  if (!jwt) return new Response("Unauthorized", { status: 401 });
+  if (!jwt) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const body = await request.json() as { type: ConsentType; grant: boolean; policyVersion: string };
     
     const client = getSupabaseClient(jwt);
     const { data: { user }, error: userErr } = await client.auth.getUser();
-    if (userErr || !user) return new Response("Unauthorized", { status: 401 });
+    if (userErr || !user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     const action = body.grant ? "grant" : "revoke";
     const serviceClient = getServiceSupabaseClient();
@@ -99,12 +99,12 @@ export async function handleConsentUpdate(request: Request): Promise<Response> {
 
 export async function handleConsentRevoke(request: Request, type: string): Promise<Response> {
   const jwt = getUserJwt(request);
-  if (!jwt) return new Response("Unauthorized", { status: 401 });
+  if (!jwt) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const client = getSupabaseClient(jwt);
     const { data: { user }, error: userErr } = await client.auth.getUser();
-    if (userErr || !user) return new Response("Unauthorized", { status: 401 });
+    if (userErr || !user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     const serviceClient = getServiceSupabaseClient();
     

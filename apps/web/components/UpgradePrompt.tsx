@@ -3,6 +3,8 @@ import { entitlementClient, EntitlementResponse } from "../lib/entitlement-clien
 import { Preferences } from '@capacitor/preferences';
 import { IAPService } from "../lib/monetization/IAPService";
 import { PurchasesOfferings, PurchasesPackage } from '@revenuecat/purchases-capacitor';
+import { config } from "../lib/config";
+import { useRouter } from "next/navigation";
 
 interface UpgradePromptProps {
   featureName: string;
@@ -27,13 +29,15 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
     IAPService.getOfferings().then(offs => setOfferings(offs));
   }, []);
 
+  const router = useRouter();
+
   const handleStartTrial = async () => {
     setLoading(true);
     setError("");
     try {
       const { value } = await Preferences.get({ key: 'token' });
       const token = value || "";
-      const res = await fetch("/api/entitlement/trial", {
+      const res = await fetch(config.getApiUrl("/api/entitlement/trial"), {
         method: "POST",
         headers: {
           "Authorization": token ? `Bearer ${token}` : ""
@@ -42,6 +46,11 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
 
       if (!res.ok) {
         const errorData = await res.json();
+        if (res.status === 401) {
+          onClose();
+          router.push("/login");
+          return;
+        }
         throw new Error(errorData.error || "Failed to start trial");
       }
 

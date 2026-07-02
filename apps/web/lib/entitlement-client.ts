@@ -1,4 +1,5 @@
 import { Preferences } from '@capacitor/preferences';
+import { config } from "./config";
 
 export type Tier = "free" | "premium" | "family";
 
@@ -40,7 +41,7 @@ export class EntitlementClient {
     try {
       const { value } = await Preferences.get({ key: 'token' });
       const token = value || "";
-      const res = await fetch("/api/entitlement", {
+      const res = await fetch(config.getApiUrl("/api/entitlement"), {
         headers: {
           "Authorization": token ? `Bearer ${token}` : ""
         }

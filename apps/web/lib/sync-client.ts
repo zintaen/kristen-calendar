@@ -1,5 +1,6 @@
 import { RemindersUpsertRow } from "./conflict-resolver";
 import { consentStore } from "./consent-store";
+import { config } from "./config";
 
 export interface SyncClientOptions {
   userJwt: string;
@@ -25,7 +26,7 @@ export class SyncClient {
   constructor(options: SyncClientOptions) {
     this.userJwt = options.userJwt;
     this.deviceId = options.deviceId;
-    this.apiUrl = options.apiUrl || "http://localhost:4000";
+    this.apiUrl = options.apiUrl || config.apiBaseUrl;
     this.onConflict = options.onConflict;
   }
 

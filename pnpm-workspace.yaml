@@ -3,3 +3,11 @@ packages:
   - "apps/*"
   - "services/*"
   - "zalo"
+
+supportedArchitectures:
+  os:
+    - darwin
+    - linux
+  cpu:
+    - x64
+    - arm64

@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { getSettings, saveSettings, type UserSettings } from "../../lib/storage";
+import { entitlementClient, EntitlementResponse } from "../../lib/entitlement-client";
+import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [entitlement, setEntitlement] = useState<EntitlementResponse | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     getSettings().then(setSettings).catch(console.error);
+    entitlementClient.get().then(setEntitlement).catch(console.error);
   }, []);
 
   if (!settings) return null;
@@ -22,6 +27,32 @@ export default function SettingsPage() {
     <div className="p-4 max-w-lg mx-auto bg-gray-50 min-h-screen space-y-6">
       <h1 className="text-2xl font-bold text-purple-900 pt-6">Cài Đặt</h1>
       
+      {entitlement && (
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-purple-100 space-y-3">
+          <h2 className="font-semibold text-gray-800">Tài Khoản & Gói Cước</h2>
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-600">Gói hiện tại:</span>
+            <span className="font-medium text-purple-700 uppercase">{entitlement.tier}</span>
+          </div>
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-600">Hạn sử dụng:</span>
+            <span className="font-medium text-gray-900">
+              {entitlement.validUntil 
+                ? new Date(entitlement.validUntil).toLocaleDateString('vi-VN') 
+                : (entitlement.tier === 'free' ? 'Vô hạn' : 'Vĩnh viễn')}
+            </span>
+          </div>
+          {entitlement.tier === 'free' && (
+            <button 
+              onClick={() => router.push('/store')} // Thay bằng router hoặc trigger popup
+              className="w-full mt-2 bg-purple-100 text-purple-700 py-2 rounded font-medium hover:bg-purple-200 transition"
+            >
+              Nâng cấp Premium
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="bg-white p-4 rounded-lg shadow-sm border border-purple-100 space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Giờ thông báo mặc định</label>

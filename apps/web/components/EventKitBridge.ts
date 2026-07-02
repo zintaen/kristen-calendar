@@ -11,7 +11,8 @@ export interface CalendarEvent {
 
 export async function requestCalendarPermission(): Promise<"granted" | "denied" | "unavailable"> {
   if (!Capacitor.isNativePlatform() || !Calendar) {
-    return "unavailable";
+    // Fallback cho Web: Luôn cho phép (Mock)
+    return "granted";
   }
   
   try {
@@ -25,7 +26,20 @@ export async function requestCalendarPermission(): Promise<"granted" | "denied" 
 
 export async function getCalendarEvents(startDate: Date, endDate: Date): Promise<CalendarEvent[]> {
   if (!Capacitor.isNativePlatform() || !Calendar) {
-    return [];
+    // Fallback cho Web: Trả về một vài sự kiện giả lập để test tính năng tránh ngày bận
+    console.log("Mocking calendar events for web...");
+    return [
+      {
+        title: "Mock: Họp công ty",
+        startDate: new Date(startDate.getTime() + 1000 * 60 * 60 * 10), // +10h
+        endDate: new Date(startDate.getTime() + 1000 * 60 * 60 * 12),   // +12h
+      },
+      {
+        title: "Mock: Gặp khách hàng",
+        startDate: new Date(startDate.getTime() + 1000 * 60 * 60 * 24 * 2), // +2 days
+        endDate: new Date(startDate.getTime() + 1000 * 60 * 60 * 24 * 2 + 1000 * 60 * 60 * 2),
+      }
+    ];
   }
 
   try {

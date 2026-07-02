@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 import { Typography } from "@cyberskill/genie-ui";
 import { AffiliateResolverImpl, type AffiliateOffer } from "@cyberskill/amlich-core";
 
+import { config } from "../../lib/config";
+
 interface AffiliateWidgetProps {
   eventId: string;
 }
@@ -20,7 +22,7 @@ export function AffiliateWidget({ eventId }: AffiliateWidgetProps) {
 
   const handleOfferClick = async (offer: AffiliateOffer) => {
     // Fire and forget log
-    fetch("/api/commerce/click", {
+    fetch(config.getApiUrl("/api/commerce/click"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

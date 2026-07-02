@@ -2,7 +2,13 @@ import { getServiceSupabaseClient } from "./supabase";
 import Redis from "ioredis";
 
 // Create a singleton Redis client
-const redisClient = process.env.REDIS_URL ? new Redis(process.env.REDIS_URL) : null;
+const redisClient = process.env.REDIS_URL ? new Redis(process.env.REDIS_URL, { family: 4 }) : null;
+
+if (redisClient) {
+  redisClient.on('error', (err) => {
+    console.error('[Redis] Connection error:', err.message);
+  });
+}
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -67,6 +73,7 @@ export async function checkAndIncrementGenieUsage(
 ): Promise<RateLimitResult> {
   const now = new Date();
   const resetAt = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
+  const yearMonth = now.toISOString().substring(0, 7);
 
   if (quota <= 0) {
     return { allowed: false, remaining: 0, resetAt };
