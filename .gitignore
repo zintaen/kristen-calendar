@@ -12,8 +12,10 @@ ios/App/Pods/
 *.log
 
 # CyberOS
-.cyberos-memory/
 .env.docker
 .env.*
 !.env.example
 !*.example
+
+# CyberOS vendored machine + local BRAIN at .cyberos/memory/store (regenerable via init; tenant data). Do not commit.
+.cyberos/

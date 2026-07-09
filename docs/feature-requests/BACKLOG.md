@@ -60,3 +60,11 @@ All foundational decisions are locked; no decision blocks shipping any longer:
 ---
 
 _See `lunar/README.md` for the full FR catalog, build order, and PRD traceability, and `lunar/manifest.json` for machine-readable status._
+
+## Conventions (CyberOS)
+
+One backlog for both classes: rows are `- [status] FR-ID-slug - title`;
+`class: improvement` rows carry an `(improvement)` suffix, product rows are untagged.
+FR frontmatter `status` is the record of truth; this file is the index.
+
+- improvement programs: see `improvement/` (moved from `docs/improvement/`; class: improvement work - convert items to FRs on pickup)
