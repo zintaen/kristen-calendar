@@ -23,7 +23,7 @@ source_decisions:
   - DEC-LUNAR-091 (every text/background color pair must reach APCA Lc >= 75 measured by apca-w3 before ship; prefer Lc 90 for body text >= 18px/400 weight; WCAG 2.x AA 4.5:1 runs in parallel as a legal-safety net)
   - DEC-LUNAR-092 (the sole typography is Be Vietnam Pro, imported from Google Fonts or bundled locally; it is the CyberSkill typeface, with full Vietnamese diacritic support)
   - DEC-LUNAR-093 (a warm background (warm cream bg, ~#FDF6EC or equivalent) is chosen as the default background instead of pure white #FFFFFF to harmonize with the CyberSkill "warm earth" DNA; deep purple on cream reaches a better APCA than light purple on white)
-  - DEC-LUNAR-094 (the purple pack color tokens are organized in 3 layers: primitive (raw hex), semantic (UI role: text, bg, border, accent), component (button-primary-bg etc.); the semantic and component layers override the CyberSkill base primitive layer)
+  - "DEC-LUNAR-094 (the purple pack color tokens are organized in 3 layers: primitive (raw hex), semantic (UI role: text, bg, border, accent), component (button-primary-bg etc.); the semantic and component layers override the CyberSkill base primitive layer)"
 language: typescript 5.x
 service: packages/ui/
 new_files:

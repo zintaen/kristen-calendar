@@ -8,31 +8,31 @@ The `LUNAR` module is the kristen-calendar product, commercial name "Genie Am Li
 
 | FR | Priority | Status | Phase·Slice | Hours | Title |
 |---|---|---|---|---:|---|
-| [FR-LUNAR-001](FR-LUNAR-001-amlich-core-conversion-engine.md) | MUST | ready_to_implement | P0·1 | 16 | Core lunar engine - port the Ho Ngoc Duc algorithm to TypeScript, convertSolar2Lunar / convertLunar2Solar in Vietnamese time, offline, zero-dependency |
-| [FR-LUNAR-002](FR-LUNAR-002-canchi-zodiac-tietkhi.md) | MUST | ready_to_implement | P0·1 | 10.5 | Can-chi, Vietnamese zodiac (Meo/Trau), 24 tiet khi + 12 Trung khi |
-| [FR-LUNAR-003](FR-LUNAR-003-validation-golden-fixtures.md) | MUST | ready_to_implement | P0·1 | 14 | Golden validation harness - cross-check the Ho Ngoc Duc calendar 100% for 1900-2199, edge years 1985/2007/2030/2053, round-trip |
-| [FR-LUNAR-004](FR-LUNAR-004-reminder-model-recurrence-engine.md) | MUST | ready_to_implement | P1·2 | 12 | Reminder data model + recurrence engine - store the lunar date, auto-generate the solar date each year, leap-month fallback, timezone lock |
-| [FR-LUNAR-005](FR-LUNAR-005-local-notifications-rolling-64.md) | MUST | ready_to_implement | P1·2 | 10 | Local notification scheduler - rolling-64 on iOS via @capacitor/local-notifications, deep-link userInfo |
-| [FR-LUNAR-006](FR-LUNAR-006-reminder-management.md) | MUST | ready_to_implement | P1·3 | 10 | Reminder management - Ram/Mung Mot toggled separately, enter death anniversaries, custom reminders, lead-time + reminder hour, upcoming list |
-| [FR-LUNAR-007](FR-LUNAR-007-month-calendar-grid.md) | MUST | ready_to_implement | P1·3 | 9 | Month calendar grid - large solar date + small lunar date in the corner + can-chi + tiet khi + festival dot, tap to view detail |
-| [FR-LUNAR-008](FR-LUNAR-008-festival-ritual-content.md) | MUST | ready_to_implement | P1·3 | 7 | Festival + ritual content - 13 lunar occasions (meaning, offering tray, checklist), a folk-custom reference label |
-| [FR-LUNAR-009](FR-LUNAR-009-purple-theme-apca-design-system.md) | MUST | ready_to_implement | P1·2 | 8 | Purple style pack - a purple sub-brand extending the CyberSkill design-system, Be Vietnam Pro, an APCA contrast gate Lc >= 75 |
-| [FR-LUNAR-010](FR-LUNAR-010-app-shell-pwa-capacitor.md) | MUST | ready_to_implement | P1·2 | 10 | App shell - Next.js/React PWA + Capacitor iOS wrapper, import amlich-core, on-device storage, routing |
-| [FR-LUNAR-011](FR-LUNAR-011-day-quality-hoangdao-truc-28sao.md) | MUST | ready_to_implement | P2·4 | 12 | Day quality - Hoang dao/Hac dao, 12 Truc, 28 stars, Hoang dao hours, computed from can-chi + tiet khi |
-| [FR-LUNAR-012](FR-LUNAR-012-good-day-picker.md) | MUST | ready_to_implement | P2·4 | 7 | Good-day picker - choose the type of work (signing a contract, first use of a machine, launch, grand opening), list the Hoang dao days in a range |
-| [FR-LUNAR-013](FR-LUNAR-013-ios-widget-watch-glance.md) | SHOULD | ready_to_implement | P2·5 | 12 | iOS glanceable surfaces - WidgetKit widget + Apple Watch complication, native Swift in ios/App |
-| [FR-LUNAR-014](FR-LUNAR-014-shareable-purple-cards.md) | SHOULD | ready_to_implement | P2·5 | 6 | Shareable cards - purple-palette cards exported as images ("Today is the Ram of the first lunar month"), share to social networks |
-| [FR-LUNAR-015](FR-LUNAR-015-ai-genie-claude-proxy.md) | MUST | ready_to_implement | P2·4 | 14 | AI Genie - serverless Claude proxy (/api/genie), Claude Haiku 4.5, prompt caching, rate-limit, key only on the server |
-| [FR-LUNAR-016](FR-LUNAR-016-zalo-mini-app-client.md) | MUST | ready_to_implement | P3·6 | 14 | Zalo Mini App client - React + zmp-ui + zmp-sdk/apis, import amlich-core, zmp Storage, consent getUserInfo/getPhoneNumber |
-| [FR-LUNAR-017](FR-LUNAR-017-zns-reminders-zalo-oa.md) | MUST | ready_to_implement | P3·6 | 10 | ZNS reminders - send reminders via Zalo OA, approved template, 06:00-22:00 window, <= 7 days before/after, OA token auto-refresh |
-| [FR-LUNAR-018](FR-LUNAR-018-family-sharing-cloud-sync.md) | SHOULD | ready_to_implement | P3·7 | 12 | Family sharing + cloud sync - Supabase/Postgres with RLS, sharedWith, multi-device sync |
-| [FR-LUNAR-019](FR-LUNAR-019-pdpl-compliance-consent.md) | MUST | ready_to_implement | P3·7 | 9 | PDPL compliance - Vietnamese privacy policy, granular consent, on-device by default, no cross-border transfer until DPIA |
-| [FR-LUNAR-020](FR-LUNAR-020-freemium-monetization.md) | SHOULD | ready_to_implement | P3·7 | 7 | Freemium monetization - basic reminders free, premium for AI Genie / good-day / family, entitlement gating server-side |
-| [FR-LUNAR-021](FR-LUNAR-021-proactive-ai-genie-2.md) | MUST | ready_to_implement | P4·8 | 15 | Proactive AI (Genie 2.0) - automatic cron check and smart ZNS push for major occasions |
-| [FR-LUNAR-022](FR-LUNAR-022-o2o-commerce-marketplace.md) | SHOULD | ready_to_implement | P4·8 | 10 | O2O Commerce - affiliate links and a UI suggesting offering items/services via Zalo |
-| [FR-LUNAR-023](FR-LUNAR-023-apple-ecosystem-integration.md) | MUST | ready_to_implement | P4·9 | 15 | Apple Ecosystem - Siri App Intents, Live Activities / Dynamic Island countdown |
-| [FR-LUNAR-024](FR-LUNAR-024-android-expansion-glance.md) | MUST | ready_to_implement | P4·8 | 20 | Android Expansion - Capacitor Android platform, Kotlin Glance Widget |
-| [FR-LUNAR-025](FR-LUNAR-025-collaborative-decision-boards.md) | SHOULD | ready_to_implement | P4·9 | 15 | Collaborative Decision Boards - vote on good days via a Zalo/Supabase Realtime link |
+| [FR-LUNAR-001](FR-LUNAR-001-amlich-core-conversion-engine/spec.md) | MUST | ready_to_implement | P0·1 | 16 | Core lunar engine - port the Ho Ngoc Duc algorithm to TypeScript, convertSolar2Lunar / convertLunar2Solar in Vietnamese time, offline, zero-dependency |
+| [FR-LUNAR-002](FR-LUNAR-002-canchi-zodiac-tietkhi/spec.md) | MUST | ready_to_implement | P0·1 | 10.5 | Can-chi, Vietnamese zodiac (Meo/Trau), 24 tiet khi + 12 Trung khi |
+| [FR-LUNAR-003](FR-LUNAR-003-validation-golden-fixtures/spec.md) | MUST | ready_to_implement | P0·1 | 14 | Golden validation harness - cross-check the Ho Ngoc Duc calendar 100% for 1900-2199, edge years 1985/2007/2030/2053, round-trip |
+| [FR-LUNAR-004](FR-LUNAR-004-reminder-model-recurrence-engine/spec.md) | MUST | ready_to_implement | P1·2 | 12 | Reminder data model + recurrence engine - store the lunar date, auto-generate the solar date each year, leap-month fallback, timezone lock |
+| [FR-LUNAR-005](FR-LUNAR-005-local-notifications-rolling-64/spec.md) | MUST | ready_to_implement | P1·2 | 10 | Local notification scheduler - rolling-64 on iOS via @capacitor/local-notifications, deep-link userInfo |
+| [FR-LUNAR-006](FR-LUNAR-006-reminder-management/spec.md) | MUST | ready_to_implement | P1·3 | 10 | Reminder management - Ram/Mung Mot toggled separately, enter death anniversaries, custom reminders, lead-time + reminder hour, upcoming list |
+| [FR-LUNAR-007](FR-LUNAR-007-month-calendar-grid/spec.md) | MUST | ready_to_implement | P1·3 | 9 | Month calendar grid - large solar date + small lunar date in the corner + can-chi + tiet khi + festival dot, tap to view detail |
+| [FR-LUNAR-008](FR-LUNAR-008-festival-ritual-content/spec.md) | MUST | ready_to_implement | P1·3 | 7 | Festival + ritual content - 13 lunar occasions (meaning, offering tray, checklist), a folk-custom reference label |
+| [FR-LUNAR-009](FR-LUNAR-009-purple-theme-apca-design-system/spec.md) | MUST | ready_to_implement | P1·2 | 8 | Purple style pack - a purple sub-brand extending the CyberSkill design-system, Be Vietnam Pro, an APCA contrast gate Lc >= 75 |
+| [FR-LUNAR-010](FR-LUNAR-010-app-shell-pwa-capacitor/spec.md) | MUST | ready_to_implement | P1·2 | 10 | App shell - Next.js/React PWA + Capacitor iOS wrapper, import amlich-core, on-device storage, routing |
+| [FR-LUNAR-011](FR-LUNAR-011-day-quality-hoangdao-truc-28sao/spec.md) | MUST | ready_to_implement | P2·4 | 12 | Day quality - Hoang dao/Hac dao, 12 Truc, 28 stars, Hoang dao hours, computed from can-chi + tiet khi |
+| [FR-LUNAR-012](FR-LUNAR-012-good-day-picker/spec.md) | MUST | ready_to_implement | P2·4 | 7 | Good-day picker - choose the type of work (signing a contract, first use of a machine, launch, grand opening), list the Hoang dao days in a range |
+| [FR-LUNAR-013](FR-LUNAR-013-ios-widget-watch-glance/spec.md) | SHOULD | ready_to_implement | P2·5 | 12 | iOS glanceable surfaces - WidgetKit widget + Apple Watch complication, native Swift in ios/App |
+| [FR-LUNAR-014](FR-LUNAR-014-shareable-purple-cards/spec.md) | SHOULD | ready_to_implement | P2·5 | 6 | Shareable cards - purple-palette cards exported as images ("Today is the Ram of the first lunar month"), share to social networks |
+| [FR-LUNAR-015](FR-LUNAR-015-ai-genie-claude-proxy/spec.md) | MUST | ready_to_implement | P2·4 | 14 | AI Genie - serverless Claude proxy (/api/genie), Claude Haiku 4.5, prompt caching, rate-limit, key only on the server |
+| [FR-LUNAR-016](FR-LUNAR-016-zalo-mini-app-client/spec.md) | MUST | ready_to_implement | P3·6 | 14 | Zalo Mini App client - React + zmp-ui + zmp-sdk/apis, import amlich-core, zmp Storage, consent getUserInfo/getPhoneNumber |
+| [FR-LUNAR-017](FR-LUNAR-017-zns-reminders-zalo-oa/spec.md) | MUST | ready_to_implement | P3·6 | 10 | ZNS reminders - send reminders via Zalo OA, approved template, 06:00-22:00 window, <= 7 days before/after, OA token auto-refresh |
+| [FR-LUNAR-018](FR-LUNAR-018-family-sharing-cloud-sync/spec.md) | SHOULD | ready_to_implement | P3·7 | 12 | Family sharing + cloud sync - Supabase/Postgres with RLS, sharedWith, multi-device sync |
+| [FR-LUNAR-019](FR-LUNAR-019-pdpl-compliance-consent/spec.md) | MUST | ready_to_implement | P3·7 | 9 | PDPL compliance - Vietnamese privacy policy, granular consent, on-device by default, no cross-border transfer until DPIA |
+| [FR-LUNAR-020](FR-LUNAR-020-freemium-monetization/spec.md) | SHOULD | ready_to_implement | P3·7 | 7 | Freemium monetization - basic reminders free, premium for AI Genie / good-day / family, entitlement gating server-side |
+| [FR-LUNAR-021](FR-LUNAR-021-proactive-ai-genie-2/spec.md) | MUST | ready_to_implement | P4·8 | 15 | Proactive AI (Genie 2.0) - automatic cron check and smart ZNS push for major occasions |
+| [FR-LUNAR-022](FR-LUNAR-022-o2o-commerce-marketplace/spec.md) | SHOULD | ready_to_implement | P4·8 | 10 | O2O Commerce - affiliate links and a UI suggesting offering items/services via Zalo |
+| [FR-LUNAR-023](FR-LUNAR-023-apple-ecosystem-integration/spec.md) | MUST | ready_to_implement | P4·9 | 15 | Apple Ecosystem - Siri App Intents, Live Activities / Dynamic Island countdown |
+| [FR-LUNAR-024](FR-LUNAR-024-android-expansion-glance/spec.md) | MUST | ready_to_implement | P4·8 | 20 | Android Expansion - Capacitor Android platform, Kotlin Glance Widget |
+| [FR-LUNAR-025](FR-LUNAR-025-collaborative-decision-boards/spec.md) | SHOULD | ready_to_implement | P4·9 | 15 | Collaborative Decision Boards - vote on good days via a Zalo/Supabase Realtime link |
 
 ## Build order (topological)
 

@@ -1,7 +1,15 @@
-# FR-LUNAR-024: Android Expansion
+---
+id: FR-LUNAR-027
+title: "Apple Ecosystem Deep Integration"
+module: lunar
+class: product
+status: draft
+---
+
+# FR-LUNAR-027: Apple Ecosystem Deep Integration
 
 ## 1. Description
-Capacitor Android platform and native Kotlin Glance widget for Android home screens.
+Siri App Intents and Live Activities (Dynamic Island) for major lunar countdowns.
 
 ## 2. Dependencies
 - FR-LUNAR-010 (App Shell)

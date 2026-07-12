@@ -1,7 +1,15 @@
-# FR-LUNAR-023: Apple Ecosystem Deep Integration
+---
+id: FR-LUNAR-028
+title: "Android Expansion"
+module: lunar
+class: product
+status: draft
+---
+
+# FR-LUNAR-028: Android Expansion
 
 ## 1. Description
-Siri App Intents and Live Activities (Dynamic Island) for major lunar countdowns.
+Capacitor Android platform and native Kotlin Glance widget for Android home screens.
 
 ## 2. Dependencies
 - FR-LUNAR-010 (App Shell)

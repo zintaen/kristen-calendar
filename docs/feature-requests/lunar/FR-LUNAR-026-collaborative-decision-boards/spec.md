@@ -1,3 +1,11 @@
+---
+id: FR-LUNAR-026
+title: "Collaborative Decision Boards"
+module: lunar
+class: product
+status: draft
+---
+
 # FR-LUNAR-025: Collaborative Decision Boards
 
 ## 1. Description

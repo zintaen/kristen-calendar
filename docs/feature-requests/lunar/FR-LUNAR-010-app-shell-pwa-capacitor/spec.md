@@ -21,7 +21,7 @@ source_pages:
 source_decisions:
   - DEC-LUNAR-100 (Next.js/React + Tailwind for web/PWA; Capacitor wraps that same web build as the iOS native wrapper; maximize code-sharing with the web team; no React Native in Phase 1)
   - DEC-LUNAR-101 (on-device storage uses localStorage or IndexedDB on the web, and @capacitor/preferences on iOS via a Capacitor plugin; no backend in Phase 1; data is stored only on the device)
-  - DEC-LUNAR-102 (routing uses the Next.js App Router; the main routes: "/" (home/today), "/calendar" (month grid), "/reminders" (reminder list), "/settings", "/festival/[id]" (occasion detail page))
+  - "DEC-LUNAR-102 (routing uses the Next.js App Router; the main routes: \"/\" (home/today), \"/calendar\" (month grid), \"/reminders\" (reminder list), \"/settings\", \"/festival/[id]\" (occasion detail page))"
   - DEC-LUNAR-103 (Capacitor is the connection glue for @capacitor/local-notifications; the web build is the source of truth; the Capacitor wrapper is a thin shell containing no business logic)
   - DEC-LUNAR-104 (the PWA manifest and service worker are mandatory for offline and "Add to Home Screen" on Android; iOS does not yet support full PWA push, so Capacitor is the main channel on iPhone)
 language: typescript 5.x

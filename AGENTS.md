@@ -148,7 +148,7 @@ Read-only operations MAY skip steps 3–4 if they accept stale-up-to-last- HEAD 
 
 ## §7.7  Dreaming (added by P19 — approved 2026-05-19 per §0.2)
 
-§7.7.1  Dreaming is the out-of-band batch reflection process specified in [`FR-MEMORY-115`](docs/feature-requests/memory/FR-MEMORY-115-cyberos-dream.md). The dream-runner and dream-applier are distinct identities; they MUST NOT execute in-band with any agent session that mutates memory. Sessions and dream runs may overlap; the runner takes a snapshot of HEAD at start and operates against that snapshot.
+§7.7.1  Dreaming is the out-of-band batch reflection process specified in [`FR-MEMORY-115`](docs/feature-requests/memory/FR-MEMORY-115-cyberos-dream/spec.md). The dream-runner and dream-applier are distinct identities; they MUST NOT execute in-band with any agent session that mutates memory. Sessions and dream runs may overlap; the runner takes a snapshot of HEAD at start and operates against that snapshot.
 
 §7.7.2  Every audit row emitted by the dream-applier MUST carry both `extra.dream_id` (ULID matching the active `dream.start` row) and `extra.proposal_id` (matching the source `DreamProposal.proposal_id`). Walker invariant `dream-applied-row-has-provenance` enforces this.
 
@@ -231,7 +231,7 @@ At the end of any session that touched the BRAIN (i.e. wrote to `<memory-root>/`
 
 §14.3  Imports SHOULD respect `meta.sync_class`: only memories with `sync_class == "shareable"` (or, transitionally, the v1 values `publishable | shared | client-visible`) SHOULD be imported by default. Importers MAY override with explicit filter flags; doing so is the importer's responsibility, not the protocol's.
 
-§14.4  **Store-level ACL.** (Added by P20 — approved 2026-05-19 per §0.2; implementation in [`FR-MEMORY-117`](docs/feature-requests/memory/FR-MEMORY-117-per-store-acl.md).)
+§14.4  **Store-level ACL.** (Added by P20 — approved 2026-05-19 per §0.2; implementation in [`FR-MEMORY-117`](docs/feature-requests/memory/FR-MEMORY-117-per-store-acl/spec.md).)
 
 §14.4.1  Each subtree of `<memory-root>/` MAY declare a `STORE.yaml` file at its root. The file's shape is normative in `memory.schema.json#/definitions/StoreAcl`. Subtrees without a `STORE.yaml` inherit the default permissive policy (`{actor: "*", mode: "read-write"}`) — back-compat with stores predating this section.
 
@@ -284,7 +284,7 @@ The v1 four-tier `sync_class` (`local-only / publishable / shared / client-visib
 
 ## §18  Session transcript ledger (added by P22 — approved 2026-05-19 per §0.2)
 
-§18.1  Sessions are an OPTIONAL turn-level audit trail for agent-user conversations. Operators opt in per conversation via the lifecycle CLI; cyberos invocations without a session never produce transcript rows. Implementation lives in [`FR-MEMORY-119`](docs/feature-requests/memory/FR-MEMORY-119-session-transcript-ledger.md). Note: the FR's spec'd CLI verb `cyberos session` collides with the existing P11 multi-agent coordination subcommand; the implementation namespaces the transcript ledger under `cyberos transcript {start,append,end,read,list,purge-expired}` instead.
+§18.1  Sessions are an OPTIONAL turn-level audit trail for agent-user conversations. Operators opt in per conversation via the lifecycle CLI; cyberos invocations without a session never produce transcript rows. Implementation lives in [`FR-MEMORY-119`](docs/feature-requests/memory/FR-MEMORY-119-session-transcript-ledger/spec.md). Note: the FR's spec'd CLI verb `cyberos session` collides with the existing P11 multi-agent coordination subcommand; the implementation namespaces the transcript ledger under `cyberos transcript {start,append,end,read,list,purge-expired}` instead.
 
 §18.2  Session bodies live at `<memory-root>/sessions/<YYYY-MM-DD>/<id>.binlog.zst` — date-partitioned at the session's START date (sessions spanning midnight stay in the start-date directory). The framed binlog format mirrors §6.2; turn frames carry msgspec canonical-JSON payloads.
 
@@ -312,3 +312,24 @@ The v1 four-tier `sync_class` (`local-only / publishable / shared / client-visib
 ---
 
 **End of normative spec.** Everything else — Stages 1–6 history, refinement bundles A–Q, audit reports, "we learned…" prose, proposal rationale — lives in `EVOLUTION.md`. Implementation-side reference is `cyberos/README.md`. Cross-agent subset is `INTEROP.md`.
+
+---
+
+# AGENTS.md
+
+This repository runs **CyberOS**. Any coding agent working here follows these rules.
+This file is the cross-tool spine; the full one-pager is `.cyberos/AGENT-ENTRY.md`.
+
+1. Work = feature requests. Read `.cyberos/cuo/ship-feature-requests.md` and drive the
+   next eligible FR in `docs/feature-requests/BACKLOG.md` (frontmatter `status` is the
+   record of truth; one backlog for `class: product` and `class: improvement`).
+2. HITL is required. Halt at review acceptance (`reviewing -> ready_to_test`) and final
+   acceptance (`testing -> done`) for a recorded human verdict. Never set `done` yourself.
+   Doctrine: `.cyberos/cuo/EXECUTION-DISCIPLINE.md`; lifecycle: `.cyberos/cuo/STATUS-REFERENCE.md`.
+3. Gates: `bash .cyberos/cuo/gates/run-gates.sh` (reads `.cyberos/gates.env`). Green is
+   necessary, never sufficient.
+4. Memory (BRAIN): record decisions, audits, and plans into `.cyberos/memory/store/`
+   per the protocol in `.cyberos/memory/AGENTS.md`.
+5. Never push, deploy, merge, or delete without an explicit operator instruction.
+
+<!-- cyberos-agent-spine (managed by cyberos init; edit above/below this marker) -->
