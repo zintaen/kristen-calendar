@@ -5,7 +5,7 @@
   "description": "Genie Am Lich (CyberSkill) - ung dung nhac am lich Viet Nam. Monorepo, lunar math on-device theo thuat toan Ho Ngoc Duc.",
   "packageManager": "pnpm@9.0.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "scripts": {
     "build": "pnpm -r build",
