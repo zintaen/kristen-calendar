@@ -92,7 +92,7 @@ export function planSchedule(
   // 1) Fairness Pass: Ensure every reminder gets its soonest notification
   // Wait, the occurrences already expand leadTimes inside nextOccurrences.
   // A single occurrence in `nextOccurrences` is actually already expanded per lead-time?
-  // No, `Occurrence` has `leadDays`. Wait, FR-LUNAR-004 nextOccurrences returns one item per occurrence (per lead time).
+  // No, `Occurrence` has `leadDays`. Wait, TASK-LUNAR-004 nextOccurrences returns one item per occurrence (per lead time).
   
   // Let's group by reminder ID to do fairness pass
   const groupedByReminder = new Map<string, typeof upcomingOccurrences>();

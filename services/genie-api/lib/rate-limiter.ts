@@ -61,7 +61,7 @@ export class VercelKVRateLimiter implements RateLimiter {
 
   async check(hashedUserId: string): Promise<{ allowed: boolean; remaining: number; resetAt: Date }> {
     // Stub implementation for now until Vercel KV is actually configured
-    // For FR-015, we'll just use InMemoryRateLimiter or this stub.
+    // For TASK-015, we'll just use InMemoryRateLimiter or this stub.
     return { allowed: true, remaining: this.limitPerDay - 1, resetAt: new Date() };
   }
 }

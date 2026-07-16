@@ -1,6 +1,6 @@
 import { PURPLE_TOKENS } from "@cyberskill/genie-ui";
 // Ensure apca-w3 is imported to calculate contrast if needed, but not strictly required in renderer, only tests.
-// The FR says: "KHÔNG ĐƯỢC tính lại DayInfo bên trong card renderer; PHẢI nhận CardData đã tính sẵn từ layer trên"
+// The task says: "KHÔNG ĐƯỢC tính lại DayInfo bên trong card renderer; PHẢI nhận CardData đã tính sẵn từ layer trên"
 
 export interface CardData {
   lunarLabel: string;       // "Rằm tháng Giêng"

@@ -37,25 +37,25 @@ app.post("/api/genie", async (c) => {
   return response;
 });
 
-// ZNS cron endpoint (FR-LUNAR-017)
+// ZNS cron endpoint (TASK-LUNAR-017)
 app.post("/api/zns", async (c) => {
   const response = await znsPost(c.req.raw);
   return response;
 });
 
-// Proactive ZNS cron endpoint (FR-LUNAR-021)
+// Proactive ZNS cron endpoint (TASK-LUNAR-021)
 app.post("/api/proactive-zns", async (c) => {
   const { POST: proactiveZnsPost } = await import("./api/proactive-zns");
   return proactiveZnsPost(c.req.raw);
 });
 
-// Affiliate Click Log endpoint (FR-LUNAR-022)
+// Affiliate Click Log endpoint (TASK-LUNAR-022)
 app.post("/api/commerce/click", async (c) => {
   const { POST: clickPost } = await import("./api/commerce/click");
   return clickPost(c.req.raw);
 });
 
-// Cloud Sync endpoints (FR-LUNAR-018)
+// Cloud Sync endpoints (TASK-LUNAR-018)
 app.post("/api/sync/push", async (c) => handlePush(c.req.raw));
 app.get("/api/sync/pull", async (c) => handlePull(c.req.raw));
 app.patch("/api/sync/share", async (c) => handleShare(c.req.raw));
@@ -63,24 +63,24 @@ app.post("/api/sync/invite", async (c) => handleInvite(c.req.raw));
 app.post("/api/sync/invite/accept", async (c) => handleInviteAccept(c.req.raw));
 app.delete("/api/sync/account", async (c) => handleDeleteAccount(c.req.raw));
 
-// Consent endpoints (FR-LUNAR-019)
+// Consent endpoints (TASK-LUNAR-019)
 app.post("/api/consent", async (c) => handleConsentUpdate(c.req.raw));
 app.get("/api/consent", async (c) => handleConsentGet(c.req.raw));
 app.delete("/api/consent/:type", async (c) => handleConsentRevoke(c.req.raw, c.req.param("type")));
 
-// Entitlement & Payment endpoints (FR-LUNAR-020)
+// Entitlement & Payment endpoints (TASK-LUNAR-020)
 app.get("/api/entitlement", async (c) => handleGetEntitlement(c.req.raw));
 app.post("/api/entitlement/trial", async (c) => handleStartTrial(c.req.raw));
 app.post("/api/webhook/payment/appstore", async (c) => handleAppStoreWebhook(c.req.raw));
 app.post("/api/webhook/payment/zalopay", async (c) => handleZaloPayWebhook(c.req.raw));
 
-// RevenueCat Webhook (FR-LUNAR-024)
+// RevenueCat Webhook (TASK-LUNAR-024)
 app.post("/api/webhook/revenuecat", async (c) => {
   const { POST: revenueCatWebhook } = await import("./api/monetization/revenuecat");
   return revenueCatWebhook(c.req.raw);
 });
 
-// B2B API (FR-LUNAR-025)
+// B2B API (TASK-LUNAR-025)
 import { b2bApp } from "./api/b2b/index.js";
 app.route("/v1/b2b", b2bApp);
 

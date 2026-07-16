@@ -39,16 +39,16 @@ final class LunarCalcSwiftTests: XCTestCase {
     }
 
     func testCanChiNgay_Tet2025() {
-        // Day pillar (can-chi NGAY) cho 29/01/2025 theo FR-002 canChiDay:
+        // Day pillar (can-chi NGAY) cho 29/01/2025 theo TASK-002 canChiDay:
         //   can = (jdn + 9) % 10, dia chi = (jdn + 1) % 12 -> "Mau Tuat".
         // (Luu y: PRD 6.6 ghi "At Ty" la can-chi NAM, khong phai can-chi ngay.)
         let jdn = LunarCalcSwift.jdFromDate(day: 29, month: 1, year: 2025)
         let (canChi, diaChiIndex) = LunarCalcSwift.canChiNgayFromJDN(jdn)
         XCTAssertEqual(canChi, "Mau Tuat", "Ngay 29/01/2025 la ngay Mau Tuat (can-chi ngay)")
-        XCTAssertEqual(diaChiIndex, (jdn + 1) % 12, "dia chi PHAI = (jdn + 1) % 12, khop FR-002")
+        XCTAssertEqual(diaChiIndex, (jdn + 1) % 12, "dia chi PHAI = (jdn + 1) % 12, khop TASK-002")
     }
 
-    // AC #16 - dia chi/can-chi PHAI dong nhat voi FR-LUNAR-002 canChiDay qua quet nhieu ngay.
+    // AC #16 - dia chi/can-chi PHAI dong nhat voi TASK-LUNAR-002 canChiDay qua quet nhieu ngay.
     // Bat loi lay dia chi bang (jdn + 9) % 60 % 12 (lech 8 so voi core).
     func testCanChi_MatchesCore_60DaySweep() {
         let CAN = ["Giap","At","Binh","Dinh","Mau","Ky","Canh","Tan","Nham","Quy"]
@@ -57,7 +57,7 @@ final class LunarCalcSwiftTests: XCTestCase {
         for offset in 0..<60 {
             let jdn = startJdn + offset
             let (canChi, diaChiIndex) = LunarCalcSwift.canChiNgayFromJDN(jdn)
-            // gia tri ky vong tu cong thuc core (FR-002 DEC-LUNAR-020)
+            // gia tri ky vong tu cong thuc core (TASK-002 DEC-LUNAR-020)
             let expectedCan = CAN[(jdn + 9) % 10]
             let expectedChi = CHI[(jdn + 1) % 12]
             XCTAssertEqual(diaChiIndex, (jdn + 1) % 12, "dia chi lech tai jdn=\(jdn)")

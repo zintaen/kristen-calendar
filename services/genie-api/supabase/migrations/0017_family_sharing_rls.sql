@@ -1,5 +1,5 @@
 -- services/genie-api/supabase/migrations/0017_family_sharing_rls.sql
--- FR-018: RLS policies (owner CRUD, member read-only trên shared, anon không có gì)
+-- TASK-018: RLS policies (owner CRUD, member read-only trên shared, anon không có gì)
 -- Adhering to DEC-LUNAR-181
 
 ALTER TABLE reminders ENABLE ROW LEVEL SECURITY;

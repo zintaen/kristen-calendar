@@ -1,6 +1,6 @@
 # PRD + SRS - Vietnamese Lunar-Calendar Reminder App ("Genie Am Lich" by CyberSkill)
 
-> A foundation document combining the **Product Requirements Document (PRD)** + **Software Requirements Specification (SRS)**. Written for Stephen Cheng (founder of CyberSkill, Ho Chi Minh City). Goal: enough technical detail to be broken directly into feature-requests / tasks. Technical terms, library names, APIs, and code are kept in English.
+> A foundation document combining the **Product Requirements Document (PRD)** + **Software Requirements Specification (SRS)**. Written for Stephen Cheng (founder of CyberSkill, Ho Chi Minh City). Goal: enough technical detail to be broken directly into tasks / tasks. Technical terms, library names, APIs, and code are kept in English.
 
 ---
 
@@ -68,7 +68,7 @@
 
 ---
 
-### 3. User Stories / Use Cases (condensed, as the basis for the FRs)
+### 3. User Stories / Use Cases (condensed, as the basis for the tasks)
 
 - US-1: *As Chi Linh, I want to be reminded 1 day ahead when Ram is approaching so there is time to buy fruit for the offerings.*
 - US-2: *As Chi Linh, I want to enter my grandmother's death anniversary by its lunar date once, and have the app automatically remind me on the corresponding solar date each year.*
@@ -83,47 +83,47 @@
 ### 4. Functional Requirements (numbered so they can be broken into tasks)
 
 **Group A - Lunar core**
-- **FR-A01:** The system MUST convert solar <-> lunar dates on-device for every day in the range 1900-2199, in Vietnam time (UTC+7, meridian 105E).
-- **FR-A02:** It MUST correctly identify the leap month (thang nhuan) and mark it "N" / "nhuan".
-- **FR-A03:** It MUST compute the can-chi of the day, month, and year (Giap Ty ... Quy Hoi) and the year's zodiac animal per the **Vietnamese** zodiac (Cat replaces Rabbit, Buffalo replaces Ox).
-- **FR-A04:** It MUST compute the 24 tiet khi and the 12 Principal Terms (to determine the 11th month that contains Dong chi).
-- **FR-A05:** It MUST display the month calendar as a grid: each cell has the solar date (large) + the lunar date (small, in the corner) + can-chi + a tiet khi marker + holidays.
-- **FR-A06:** It MUST work fully offline (no network call to compute dates).
+- **TASK-A01:** The system MUST convert solar <-> lunar dates on-device for every day in the range 1900-2199, in Vietnam time (UTC+7, meridian 105E).
+- **TASK-A02:** It MUST correctly identify the leap month (thang nhuan) and mark it "N" / "nhuan".
+- **TASK-A03:** It MUST compute the can-chi of the day, month, and year (Giap Ty ... Quy Hoi) and the year's zodiac animal per the **Vietnamese** zodiac (Cat replaces Rabbit, Buffalo replaces Ox).
+- **TASK-A04:** It MUST compute the 24 tiet khi and the 12 Principal Terms (to determine the 11th month that contains Dong chi).
+- **TASK-A05:** It MUST display the month calendar as a grid: each cell has the solar date (large) + the lunar date (small, in the corner) + can-chi + a tiet khi marker + holidays.
+- **TASK-A06:** It MUST work fully offline (no network call to compute dates).
 
 **Group B - Reminders - the heart of the app**
-- **FR-B01:** The user MUST be able to create monthly reminders for Ram (15 lunar) and Mung Mot (1 lunar), toggled on/off individually.
-- **FR-B02:** The user MUST be able to enter a death anniversary by its **lunar date** (lunar day + month, with an optional leap-month flag), entered **once**, with the app automatically computing the recurring solar date each year.
-- **FR-B03:** The user MUST be able to create any custom lunar reminder (for example "the day of the God of Wealth, the 10th of the first lunar month").
-- **FR-B04:** Each reminder MUST have a customizable **lead-time**: on the day / 1 day before / 3 days before / 1 week before; and a specific **reminder time**.
-- **FR-B05:** The system MUST schedule local notifications ahead of time, using a **rolling window** strategy that does not exceed 64 pending on iOS (see Notification Architecture).
-- **FR-B06:** It MUST handle the time zone and DST correctly (Vietnam has no DST, but the computation must be locked to Asia/Ho_Chi_Minh to stay safe when the user travels abroad).
-- **FR-B07:** The user MUST be able to view the list of upcoming reminders (with the corresponding solar date).
-- **FR-B08:** (Commercial) The system MUST be able to send reminders via **ZNS** to Zalo users who have consented.
+- **TASK-B01:** The user MUST be able to create monthly reminders for Ram (15 lunar) and Mung Mot (1 lunar), toggled on/off individually.
+- **TASK-B02:** The user MUST be able to enter a death anniversary by its **lunar date** (lunar day + month, with an optional leap-month flag), entered **once**, with the app automatically computing the recurring solar date each year.
+- **TASK-B03:** The user MUST be able to create any custom lunar reminder (for example "the day of the God of Wealth, the 10th of the first lunar month").
+- **TASK-B04:** Each reminder MUST have a customizable **lead-time**: on the day / 1 day before / 3 days before / 1 week before; and a specific **reminder time**.
+- **TASK-B05:** The system MUST schedule local notifications ahead of time, using a **rolling window** strategy that does not exceed 64 pending on iOS (see Notification Architecture).
+- **TASK-B06:** It MUST handle the time zone and DST correctly (Vietnam has no DST, but the computation must be locked to Asia/Ho_Chi_Minh to stay safe when the user travels abroad).
+- **TASK-B07:** The user MUST be able to view the list of upcoming reminders (with the corresponding solar date).
+- **TASK-B08:** (Commercial) The system MUST be able to send reminders via **ZNS** to Zalo users who have consented.
 
 **Group C - AI Genie (Claude)**
-- **FR-C01:** The Genie MUST answer questions about Vietnamese customs/rituals (what to offer, meaning, taboos).
-- **FR-C02:** The Genie MUST suggest an **offering tray / feast tray** for each occasion + an offerings checklist.
-- **FR-C03:** The Genie MUST explain the meaning of each important lunar date.
-- **FR-C04:** The Genie MUST generate a **personalized reminder** (for example, a warm-voiced reminder "Tomorrow is grandma's death anniversary, remember to buy yellow chrysanthemums").
-- **FR-C05 (optional):** The Genie MAY read the reminder aloud (TTS).
-- **FR-C06:** Every Claude call MUST go through a **serverless proxy**; the API key MUST NOT be embedded in the client.
+- **TASK-C01:** The Genie MUST answer questions about Vietnamese customs/rituals (what to offer, meaning, taboos).
+- **TASK-C02:** The Genie MUST suggest an **offering tray / feast tray** for each occasion + an offerings checklist.
+- **TASK-C03:** The Genie MUST explain the meaning of each important lunar date.
+- **TASK-C04:** The Genie MUST generate a **personalized reminder** (for example, a warm-voiced reminder "Tomorrow is grandma's death anniversary, remember to buy yellow chrysanthemums").
+- **TASK-C05 (optional):** The Genie MAY read the reminder aloud (TTS).
+- **TASK-C06:** Every Claude call MUST go through a **serverless proxy**; the API key MUST NOT be embedded in the client.
 
 **Group D - Ritual / offering-tray suggestions (static content, no AI needed)**
-- **FR-D01:** The app MUST have a content database for the main occasions (see the table below): name, lunar date, meaning, suggested offering tray, checklist.
-- **FR-D02:** Each reminder MUST link to its corresponding content page.
+- **TASK-D01:** The app MUST have a content database for the main occasions (see the table below): name, lunar date, meaning, suggested offering tray, checklist.
+- **TASK-D02:** Each reminder MUST link to its corresponding content page.
 
 **Group E - Personalization for the actress & auspicious-day viewing**
-- **FR-E01:** The app MUST have a "Good-day picker" (auspicious-day viewing): for a type of activity (signing a contract, starting filming, launching/premiere, grand opening), list the Hoang dao days within a time range.
-- **FR-E02:** It MUST display Hoang dao/Hac dao days, Truc (the 12 Truc), the Twenty-eight Mansions (28 stars), and the day's can-chi.
-- **FR-E03:** It MUST display the Hoang dao/Hac dao hours of the day (6 Hoang dao hours / 6 Hac dao hours across the 12 canh gio).
-- **FR-E04 (optional):** Integrate the filming/work calendar (EventKit / manual entry) to suggest days.
+- **TASK-E01:** The app MUST have a "Good-day picker" (auspicious-day viewing): for a type of activity (signing a contract, starting filming, launching/premiere, grand opening), list the Hoang dao days within a time range.
+- **TASK-E02:** It MUST display Hoang dao/Hac dao days, Truc (the 12 Truc), the Twenty-eight Mansions (28 stars), and the day's can-chi.
+- **TASK-E03:** It MUST display the Hoang dao/Hac dao hours of the day (6 Hoang dao hours / 6 Hac dao hours across the 12 canh gio).
+- **TASK-E04 (optional):** Integrate the filming/work calendar (EventKit / manual entry) to suggest days.
 
 **Group F - Creative / expansion**
-- **FR-F01:** An iOS home-screen widget (WidgetKit) showing today's lunar date + can-chi + Hoang dao hours.
-- **FR-F02:** An Apple Watch complication showing the lunar date.
-- **FR-F03:** Shareable cards (purple-toned, image export) to share on social media.
-- **FR-F04:** Family sharing - multiple members receive the same death-anniversary reminder.
-- **FR-F05:** Personalized notifications (choose tone of voice, emoji, image).
+- **TASK-F01:** An iOS home-screen widget (WidgetKit) showing today's lunar date + can-chi + Hoang dao hours.
+- **TASK-F02:** An Apple Watch complication showing the lunar date.
+- **TASK-F03:** Shareable cards (purple-toned, image export) to share on social media.
+- **TASK-F04:** Family sharing - multiple members receive the same death-anniversary reminder.
+- **TASK-F05:** Personalized notifications (choose tone of voice, emoji, image).
 
 ---
 
@@ -189,7 +189,7 @@ The VN/CN divergence years of the 21st century need their own assertions: **2007
 
 ---
 
-### 7. Cultural content: the lunar occasions & offering trays (for FR-D01)
+### 7. Cultural content: the lunar occasions & offering trays (for TASK-D01)
 
 | Occasion | Lunar date | Meaning | Suggested offering tray / offerings |
 |---|---|---|---|
@@ -211,7 +211,7 @@ The VN/CN divergence years of the 21st century need their own assertions: **2007
 
 ---
 
-### 8. Auspicious-day viewing - Hoang dao / Hac dao / Truc / 28 stars (for FR-E)
+### 8. Auspicious-day viewing - Hoang dao / Hac dao / Truc / 28 stars (for TASK-E)
 
 - **Hoang dao/Hac dao days:** each day corresponds to one of 12 deities on day duty; 6 benevolent deities (Thanh Long, Minh Duong, Kim Quy, Bao Quang, Ngoc Duong, Tu Menh) -> Hoang dao (good); 6 malevolent deities (Bach Ho, Thien Hinh, Chu Tuoc, Thien Lao, Nguyen Vu, Cau Tran) -> Hac dao (bad). Determined by the **day's can-chi combined with the lunar month** (there is a fixed lookup table by the day's dia chi x the month).
 - **Hoang dao/Hac dao hours:** the 12 canh gio (each hour is 2 clock-hours per the 12 zodiac animals); 6 Hoang dao hours / 6 Hac dao hours, looked up by the day's dia chi.
@@ -321,7 +321,7 @@ DayInfo (computed, not stored) {
 - **Proxy:** client -> serverless `/api/genie` -> Claude API (hide the key, rate-limit, minimal logging per PDPL). Do NOT send identifying data about the deceased outside unless necessary and with consent.
 - **Prompt design:** the system prompt shapes the "Genie" persona (tied to CyberSkill's "Golden Genie" mascot - but it can be reskinned in purple for this product), a warm voice, correct-diacritic Vietnamese, knowledge about Ram/death anniversaries/festivals, always with the reminder line "for reference, per custom". Pass context: today's lunar date, the upcoming occasion, the reminder name.
 - **Estimated cost:** with a family asking a few dozen questions/month, the cost is < a few thousand VND/month - negligible; the main risk is abuse -> set a per-user rate-limit.
-- **Voice (FR-C05):** use Vietnamese TTS (the Web Speech API on the web; AVSpeechSynthesizer on iOS) to read aloud the reminder the Claude model generates.
+- **Voice (TASK-C05):** use Vietnamese TTS (the Web Speech API on the web; AVSpeechSynthesizer on iOS) to read aloud the reminder the Claude model generates.
 
 ---
 
@@ -342,15 +342,15 @@ DayInfo (computed, not stored) {
 
 **Phase 1 - Personal MVP (for the wife) (4-6 weeks):**
 - Web/PWA + Capacitor iOS; purple theme; Be Vietnam Pro.
-- FR-A05 the month calendar; FR-B01..B07 reminders for Ram/Mung Mot/death anniversaries/custom + local notifications (rolling 64); FR-D static occasion content.
+- TASK-A05 the month calendar; TASK-B01..B07 reminders for Ram/Mung Mot/death anniversaries/custom + local notifications (rolling 64); TASK-D static occasion content.
 - Store on-device. No backend, no AI, no ZNS.
 - **The "wife finds it useful" criterion:** used regularly for >=1 Ram/Mung Mot cycle, with no missed reminders.
 
 **Phase 2 - Advanced experience (personal) (3-4 weeks):**
-- FR-F01 the iOS widget; FR-E2/E3 can-chi + Hoang dao hours; FR-F03 shareable cards; FR-C AI Genie (Claude proxy).
+- TASK-F01 the iOS widget; TASK-E2/E3 can-chi + Hoang dao hours; TASK-F03 shareable cards; TASK-C AI Genie (Claude proxy).
 
 **Phase 3 - Commercialization (6-10 weeks):**
-- The Zalo Mini App client; OA + **ZNS**; family sharing (FR-F04); cloud sync (Supabase); **PDPL compliance** (consent, privacy policy, DPIA if needed); FR-E1 the full good-day picker; FR-F02 the Watch.
+- The Zalo Mini App client; OA + **ZNS**; family sharing (TASK-F04); cloud sync (Supabase); **PDPL compliance** (consent, privacy policy, DPIA if needed); TASK-E1 the full good-day picker; TASK-F02 the Watch.
 - Monetization model: freemium (basic reminders free; AI Genie/advanced good-day/family premium).
 
 ---
@@ -369,7 +369,7 @@ DayInfo (computed, not stored) {
 2. **Set up the web/PWA + Capacitor iOS skeleton** with the purple theme + Be Vietnam Pro, importing the core.
 
 **MVP phase (the next 4-6 weeks):**
-3. Complete FR-B (reminders + rolling 64 notifications) + the month calendar + the static occasion content. **Give it to the wife to use for real.**
+3. Complete TASK-B (reminders + rolling 64 notifications) + the month calendar + the static occasion content. **Give it to the wife to use for real.**
 4. **The go/no-go commercialization decision threshold:** if after ~8 weeks the wife uses it regularly and says "useful" -> proceed to Phase 3. If not -> refine the UX, do not rush to invest in ZNS/AI.
 
 **When deciding to commercialize:**

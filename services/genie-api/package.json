@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Serverless backend: Claude proxy (FR-LUNAR-015)",
+  "description": "Serverless backend: Claude proxy (TASK-LUNAR-015)",
   "scripts": {
     "dev": "tsx watch index.ts",
     "test": "vitest run"

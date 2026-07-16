@@ -1,5 +1,5 @@
 /**
- * FR-LUNAR-004 - khoa moc thoi gian ve Asia/Ho_Chi_Minh (DEC-LUNAR-043).
+ * TASK-LUNAR-004 - khoa moc thoi gian ve Asia/Ho_Chi_Minh (DEC-LUNAR-043).
  *
  * Moi phep tinh am lich PHAI dung gio Viet Nam (kinh tuyen 105E, tz = 7.0), khong phu thuoc
  * TZ cua thiet bi/server. todayInHCM tra SolarDate TUPLE [day, month, year] theo gio VN du

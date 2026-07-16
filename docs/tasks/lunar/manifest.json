@@ -1,0 +1,85 @@
+{
+  "manifest_version": "fr-manifest@2",
+  "skill_id": "task-author",
+  "prompt_revision": "fr_author@1.0.0",
+  "template_version": "task@1 + authoring-discipline (engineering-spec 11-section)",
+  "project": "Personal/kristen-calendar",
+  "product": "Genie Am Lich (CyberSkill)",
+  "module_code": "LUNAR",
+  "output_dir": "docs/tasks/lunar/",
+  "source_files": [
+    {
+      "path": "docs/PRD + SRS — Ứng Dụng Nhắc Âm Lịch Việt Nam (\"Genie Âm Lịch\" của CyberSkill).md",
+      "media_type": "text/markdown"
+    }
+  ],
+  "naming_pattern": "TASK-LUNAR-{NNN}-{slug}.md",
+  "created": "2026-06-27",
+  "owner": "Stephen Cheng",
+  "language_policy": "Vietnamese prose with diacritics; English for technical terms, identifiers, API, code; ASCII keyboard punctuation",
+  "plan": {
+    "status": "APPROVED",
+    "approved_decisions": {
+      "module_code": "LUNAR",
+      "scope": "all 4 phases (P0-P3) authored as full tasks at 10/10",
+      "language": "Vietnamese"
+    }
+  },
+  "totals": {
+    "frs": 20,
+    "engineering_hours": 209.5,
+    "all_audits_10_of_10": true,
+    "coherence_checked": true,
+    "dependency_cycles": 0,
+    "reciprocity_errors": 0,
+    "dangling_references": 0,
+    "priority_counts": { "MUST": 16, "SHOULD": 4 }
+  },
+  "build_stack": {
+    "core": "packages/amlich-core (TypeScript, zero-dependency, offline)",
+    "content": "packages/content (static FestivalContent)",
+    "ui": "packages/ui (purple theme pack, APCA gate, Be Vietnam Pro)",
+    "web_ios": "apps/web (Next.js/React PWA + Capacitor; ios/App native Swift widget/watch)",
+    "zalo": "zalo (React + zmp-ui + zmp-sdk)",
+    "backend": "services/genie-api (serverless TS: Claude proxy, ZNS, sync, PDPL, billing)"
+  },
+  "phases": {
+    "P0": "Core lunar engine (highest technical risk, build first): 001-003",
+    "P1": "MVP ca nhan (web/PWA + Capacitor iOS, local notifications, calendar, content, theme): 004-010",
+    "P2": "Trai nghiem nang cao (day quality, good-day picker, widget/watch, cards, AI Genie): 011-015",
+    "P3": "Thuong mai hoa (Zalo Mini App, ZNS, family sharing, PDPL, freemium): 016-020"
+  },
+  "artefacts": [
+    { "id": "TASK-LUNAR-001", "path": "TASK-LUNAR-001-amlich-core-conversion-engine.md", "status": "PASS", "audit_score": "10/10", "priority": "MUST", "phase": "P0", "slice": 1, "effort_hours": 16, "depends_on": [], "blocks": ["TASK-LUNAR-002", "TASK-LUNAR-003", "TASK-LUNAR-004", "TASK-LUNAR-007", "TASK-LUNAR-008", "TASK-LUNAR-010", "TASK-LUNAR-013"] },
+    { "id": "TASK-LUNAR-002", "path": "TASK-LUNAR-002-canchi-zodiac-tietkhi.md", "status": "PASS", "audit_score": "10/10", "priority": "MUST", "phase": "P0", "slice": 1, "effort_hours": 10.5, "depends_on": ["TASK-LUNAR-001"], "blocks": ["TASK-LUNAR-003", "TASK-LUNAR-007", "TASK-LUNAR-011", "TASK-LUNAR-013"] },
+    { "id": "TASK-LUNAR-003", "path": "TASK-LUNAR-003-validation-golden-fixtures.md", "status": "PASS", "audit_score": "10/10", "priority": "MUST", "phase": "P0", "slice": 1, "effort_hours": 14, "depends_on": ["TASK-LUNAR-001", "TASK-LUNAR-002"], "blocks": [] },
+    { "id": "TASK-LUNAR-004", "path": "TASK-LUNAR-004-reminder-model-recurrence-engine.md", "status": "PASS", "audit_score": "10/10", "priority": "MUST", "phase": "P1", "slice": 2, "effort_hours": 12, "depends_on": ["TASK-LUNAR-001"], "blocks": ["TASK-LUNAR-005", "TASK-LUNAR-006", "TASK-LUNAR-016", "TASK-LUNAR-017", "TASK-LUNAR-018"] },
+    { "id": "TASK-LUNAR-005", "path": "TASK-LUNAR-005-local-notifications-rolling-64.md", "status": "PASS", "audit_score": "10/10", "priority": "MUST", "phase": "P1", "slice": 2, "effort_hours": 10, "depends_on": ["TASK-LUNAR-004", "TASK-LUNAR-010"], "blocks": ["TASK-LUNAR-006"] },
+    { "id": "TASK-LUNAR-006", "path": "TASK-LUNAR-006-reminder-management.md", "status": "PASS", "audit_score": "10/10", "priority": "MUST", "phase": "P1", "slice": 3, "effort_hours": 10, "depends_on": ["TASK-LUNAR-004", "TASK-LUNAR-005", "TASK-LUNAR-010"], "blocks": [] },
+    { "id": "TASK-LUNAR-007", "path": "TASK-LUNAR-007-month-calendar-grid.md", "status": "PASS", "audit_score": "10/10", "priority": "MUST", "phase": "P1", "slice": 3, "effort_hours": 9, "depends_on": ["TASK-LUNAR-001", "TASK-LUNAR-002", "TASK-LUNAR-010"], "blocks": ["TASK-LUNAR-014"] },
+    { "id": "TASK-LUNAR-008", "path": "TASK-LUNAR-008-festival-ritual-content.md", "status": "PASS", "audit_score": "10/10", "priority": "MUST", "phase": "P1", "slice": 3, "effort_hours": 7, "depends_on": ["TASK-LUNAR-001"], "blocks": ["TASK-LUNAR-015", "TASK-LUNAR-016"] },
+    { "id": "TASK-LUNAR-009", "path": "TASK-LUNAR-009-purple-theme-apca-design-system.md", "status": "PASS", "audit_score": "10/10", "priority": "MUST", "phase": "P1", "slice": 2, "effort_hours": 8, "depends_on": [], "blocks": ["TASK-LUNAR-010", "TASK-LUNAR-014", "TASK-LUNAR-016"] },
+    { "id": "TASK-LUNAR-010", "path": "TASK-LUNAR-010-app-shell-pwa-capacitor.md", "status": "PASS", "audit_score": "10/10", "priority": "MUST", "phase": "P1", "slice": 2, "effort_hours": 10, "depends_on": ["TASK-LUNAR-001", "TASK-LUNAR-009"], "blocks": ["TASK-LUNAR-005", "TASK-LUNAR-006", "TASK-LUNAR-007", "TASK-LUNAR-012", "TASK-LUNAR-015"] },
+    { "id": "TASK-LUNAR-011", "path": "TASK-LUNAR-011-day-quality-hoangdao-truc-28sao.md", "status": "PASS", "audit_score": "10/10", "priority": "MUST", "phase": "P2", "slice": 4, "effort_hours": 12, "depends_on": ["TASK-LUNAR-002"], "blocks": ["TASK-LUNAR-012", "TASK-LUNAR-013"] },
+    { "id": "TASK-LUNAR-012", "path": "TASK-LUNAR-012-good-day-picker.md", "status": "PASS", "audit_score": "10/10", "priority": "MUST", "phase": "P2", "slice": 4, "effort_hours": 7, "depends_on": ["TASK-LUNAR-010", "TASK-LUNAR-011"], "blocks": [] },
+    { "id": "TASK-LUNAR-013", "path": "TASK-LUNAR-013-ios-widget-watch-glance.md", "status": "PASS", "audit_score": "10/10", "priority": "SHOULD", "phase": "P2", "slice": 5, "effort_hours": 12, "depends_on": ["TASK-LUNAR-001", "TASK-LUNAR-002", "TASK-LUNAR-011"], "blocks": [] },
+    { "id": "TASK-LUNAR-014", "path": "TASK-LUNAR-014-shareable-purple-cards.md", "status": "PASS", "audit_score": "10/10", "priority": "SHOULD", "phase": "P2", "slice": 5, "effort_hours": 6, "depends_on": ["TASK-LUNAR-007", "TASK-LUNAR-009"], "blocks": [] },
+    { "id": "TASK-LUNAR-015", "path": "TASK-LUNAR-015-ai-genie-claude-proxy.md", "status": "PASS", "audit_score": "10/10", "priority": "MUST", "phase": "P2", "slice": 4, "effort_hours": 14, "depends_on": ["TASK-LUNAR-008", "TASK-LUNAR-010"], "blocks": ["TASK-LUNAR-020"] },
+    { "id": "TASK-LUNAR-016", "path": "TASK-LUNAR-016-zalo-mini-app-client.md", "status": "PASS", "audit_score": "10/10", "priority": "MUST", "phase": "P3", "slice": 6, "effort_hours": 14, "depends_on": ["TASK-LUNAR-004", "TASK-LUNAR-008", "TASK-LUNAR-009"], "blocks": ["TASK-LUNAR-017", "TASK-LUNAR-019"] },
+    { "id": "TASK-LUNAR-017", "path": "TASK-LUNAR-017-zns-reminders-zalo-oa.md", "status": "PASS", "audit_score": "10/10", "priority": "MUST", "phase": "P3", "slice": 6, "effort_hours": 10, "depends_on": ["TASK-LUNAR-004", "TASK-LUNAR-016"], "blocks": [] },
+    { "id": "TASK-LUNAR-018", "path": "TASK-LUNAR-018-family-sharing-cloud-sync.md", "status": "PASS", "audit_score": "10/10", "priority": "SHOULD", "phase": "P3", "slice": 7, "effort_hours": 12, "depends_on": ["TASK-LUNAR-004"], "blocks": ["TASK-LUNAR-019", "TASK-LUNAR-020"] },
+    { "id": "TASK-LUNAR-019", "path": "TASK-LUNAR-019-pdpl-compliance-consent.md", "status": "PASS", "audit_score": "10/10", "priority": "MUST", "phase": "P3", "slice": 7, "effort_hours": 9, "depends_on": ["TASK-LUNAR-016", "TASK-LUNAR-018"], "blocks": [] },
+    { "id": "TASK-LUNAR-020", "path": "TASK-LUNAR-020-freemium-monetization.md", "status": "PASS", "audit_score": "10/10", "priority": "SHOULD", "phase": "P3", "slice": 7, "effort_hours": 7, "depends_on": ["TASK-LUNAR-015", "TASK-LUNAR-018"], "blocks": [] }
+  ],
+  "batch_outcome": "BATCH_COMPLETE",
+  "independent_audit": {
+    "date": "2026-06-27",
+    "report": "INDEPENDENT-AUDIT-2026-06-27.md",
+    "method": "5 independent reviewers (did not author) + parent cross-cluster symbol sweep",
+    "blockers_found_and_fixed": 2,
+    "code_level_majors_found_and_fixed": 13,
+    "root_causes": ["amlich-core tuple-vs-object contract drift (TASK-007/008/010/016/017)", "can-chi dia-chi +8 offset (TASK-011/013)"],
+    "open_items_for_founder_or_merge": ["ZNS MONTHLY recurrence scope (TASK-017)", "P3 Supabase migration 0016 collision (TASK-017 vs TASK-018)", "TASK-010 Reminder mirror should import from amlich-core"]
+  },
+  "next_skill_recommendation": "chief-technology-officer/ship-tasks per slice starting P0 slice 1 (TASK-LUNAR-001..003); independent re-audit already done 2026-06-27"
+}

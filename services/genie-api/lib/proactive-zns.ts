@@ -127,7 +127,7 @@ export async function processProactiveZnsBatch(
         console.warn(`[Proactive ZNS] Claude timeout/error for user ${user.id}, using fallback.`);
       }
 
-      // FR-LUNAR-022: Inject Affiliate Link
+      // TASK-LUNAR-022: Inject Affiliate Link
       const resolver = new AffiliateResolverImpl();
       const offers = resolver.getOffersForEvent(eventName);
       let actionLink = "https://genie.cyberos.vn"; // Fallback to homepage

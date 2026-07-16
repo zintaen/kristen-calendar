@@ -1,5 +1,5 @@
 /**
- * Day computation layer (FR-LUNAR-016).
+ * Day computation layer (TASK-LUNAR-016).
  *
  * Wraps @cyberskill/amlich-core to provide lunar date info for the Zalo Mini App.
  * All dates are locked to Asia/Ho_Chi_Minh (todayInHCM). No network calls.

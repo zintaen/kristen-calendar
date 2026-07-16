@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Genie Âm Lịch - Zalo Mini App client (FR-LUNAR-016)",
+  "description": "Genie Âm Lịch - Zalo Mini App client (TASK-LUNAR-016)",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

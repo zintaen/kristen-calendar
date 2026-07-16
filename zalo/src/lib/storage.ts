@@ -1,5 +1,5 @@
 /**
- * Zalo Mini App Storage layer (FR-LUNAR-016).
+ * Zalo Mini App Storage layer (TASK-LUNAR-016).
  *
  * Uses zmp Storage API (getStorage/setStorage) to persist settings and reminders.
  * Single key "genie_amlich_v1" to minimize API calls (DEC-LUNAR-161).

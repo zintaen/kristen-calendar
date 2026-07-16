@@ -1,4 +1,4 @@
--- Migration: FR-LUNAR-026 Collaborative Decision Boards
+-- Migration: TASK-LUNAR-026 Collaborative Decision Boards
 
 CREATE TABLE IF NOT EXISTS public.decision_boards (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

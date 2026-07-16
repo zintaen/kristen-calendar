@@ -106,7 +106,7 @@ describe("THAN_TRUC_NHAT_TABLE structure", () => {
   });
 });
 
-describe("getDayQuality - dia chi nhat quan voi canChiDay (FR-002)", () => {
+describe("getDayQuality - dia chi nhat quan voi canChiDay (TASK-002)", () => {
   test("label can-chi khop core cho fixture Tet 2025", () => {
     const jdn = jdFromDate(29, 1, 2025);
     const q = getDayQuality(new Date("2025-01-29"));

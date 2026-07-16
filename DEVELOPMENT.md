@@ -158,6 +158,6 @@ pnpm build          # production build
 ## Document map
 
 - [DEPLOYMENT.md](DEPLOYMENT.md) - production Docker deploy (Caddy + Supabase Cloud), DevOps runbook.
-- `docs/feature-requests/lunar/` - the 26 feature specs, the API CONTRACT, and SHIP-READINESS.
+- `docs/tasks/lunar/` - the 26 feature specs, the API CONTRACT, and SHIP-READINESS.
 - `docs/AUDIT-REWORK-2026-07-03.md` - the audit and fixes applied to the free-model build.
 - `AGENTS.md` (repo root) - CyberOS memory protocol for AI agents, not a build guide.

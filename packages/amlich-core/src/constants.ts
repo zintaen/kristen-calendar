@@ -2,7 +2,7 @@
  * Hang so canonical cho thuat toan am lich Ho Ngoc Duc (PRD section 6.2).
  *
  * CANH BAO (PRD 6.2): co BA epoch va HAI synodic constant gan giong nhau, KHONG duoc gop nham.
- * Moi hang so duoi day la mot dai luong rieng, co vai tro rieng. Day la tai san loi cua FR-LUNAR-001;
+ * Moi hang so duoi day la mot dai luong rieng, co vai tro rieng. Day la tai san loi cua TASK-LUNAR-001;
  * sai mot hang so la sai toan bo lich.
  *
  * Nguon: PRD + SRS section 6.2; goc Jean Meeus, Astronomical Algorithms (1998).
@@ -46,7 +46,7 @@ export const DR = Math.PI / 180;
 
 /**
  * Ranh gioi Julian/Gregorian (JD). Ngay <= 4/10/1582 (Julian) co JD <= GREGORIAN_SWITCH_JD;
- * 15/10/1582 (Gregorian) la ngay ke tiep. LUU Y FR-LUNAR-001 fix: jdToDate dung `jd >= GREGORIAN_SWITCH_JD`
+ * 15/10/1582 (Gregorian) la ngay ke tiep. LUU Y TASK-LUNAR-001 fix: jdToDate dung `jd >= GREGORIAN_SWITCH_JD`
  * cho nhanh Gregorian (khong phai `>`), de ngay switch 15/10/1582 khong roi nham nhanh Julian.
  */
 export const GREGORIAN_SWITCH_JD = 2299161;

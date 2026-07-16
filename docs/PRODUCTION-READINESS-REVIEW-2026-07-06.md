@@ -70,7 +70,7 @@ F6. IAP is hardwired to placeholders.
 `lib/monetization/IAPService.ts` uses `apiKey: "appl_XXXXX"` / `"goog_XXXXX"` and `appUserID = "local-dev-user"` for every user, so purchases cannot work and would all collapse into one RevenueCat identity. Fix: env-inject real keys at build time, log in to RevenueCat with the Supabase user id after auth, and call `Purchases.logIn` on auth changes.
 
 F7. The Zalo Mini App cannot ship and two core screens are stubs.
-`zalo/app-config.json` has no app id, so `zmp deploy` fails. `zalo/src/pages/calendar/index.tsx` renders "Tinh nang lich thang (Grid) se hien thi o day" and `reminder-form/index.tsx` has no fields and a Save button that just navigates back. Both routes are live in the nav, so users hit dead ends. The FR manifest marks FR-016 PASS 10/10, which is wrong.
+`zalo/app-config.json` has no app id, so `zmp deploy` fails. `zalo/src/pages/calendar/index.tsx` renders "Tinh nang lich thang (Grid) se hien thi o day" and `reminder-form/index.tsx` has no fields and a Save button that just navigates back. Both routes are live in the nav, so users hit dead ends. The task manifest marks TASK-016 PASS 10/10, which is wrong.
 
 F8. No error boundaries anywhere in a static-export app.
 Zero `error.tsx`, `not-found.tsx`, or `loading.tsx` under `app/`; no class error boundary. Any uncaught render error is a permanent white screen with no recovery. Add a root `error.tsx` and `not-found.tsx` at minimum, plus per-route boundaries for calendar and reminders.
@@ -155,7 +155,7 @@ Z5. Add zalo tests and typecheck to CI (see I5) - all three existing test files 
 
 ## 7. PDPL and privacy (now governed by Law 91/2025/QH15, effective 2026-01-01)
 
-Vietnam's protection regime moved from Decree 13/2023 to the Personal Data Protection Law 91/2025/QH15 on January 1, 2026, with Decree 356/2025/ND-CP as the implementing decree. The FR-019 work models consent well, but four gaps matter under the new law:
+Vietnam's protection regime moved from Decree 13/2023 to the Personal Data Protection Law 91/2025/QH15 on January 1, 2026, with Decree 356/2025/ND-CP as the implementing decree. The TASK-019 work models consent well, but four gaps matter under the new law:
 
 P1. Deletion is incomplete. `handleDeleteAccount` deletes only reminders; the users row, consent_log, zns_send_log (with cleartext phone), genie_action_log, push tokens, and entitlements all remain. Implement full erasure or documented anonymization with a defined SLA, and rename the endpoint honestly until it does what it says.
 
@@ -197,9 +197,9 @@ Q7. iOS: add at least a smoke UI test on the Capacitor shell (launch, tab throug
 
 ## 10. Documentation fixes
 
-D1. README and BUILD-RUNBOOK say the core algorithm is unimplemented stubs with a red harness; the code is fully implemented with green tests. Anyone (human or agent) following the docs would re-do finished work. Rewrite the Status section to describe reality, and add a "docs updated" gate to the FR done-flow so this cannot drift again.
-D2. `docs/feature-requests/lunar/manifest.json` marks all 20 FRs PASS 10/10 while FR-016 has stub pages (F7) and FR-020 has placeholder keys (F6). Split `spec_audit` from `implementation_status` in the manifest schema.
-D3. The PRD/SRS file is untracked (its filename contains an em dash and combining diacritics, violating the repo's own naming convention). Rename to ASCII (for example `docs/PRD-SRS-genie-am-lich.md`) and commit it - it is the declared source of every FR and is currently missing from clones.
+D1. README and BUILD-RUNBOOK say the core algorithm is unimplemented stubs with a red harness; the code is fully implemented with green tests. Anyone (human or agent) following the docs would re-do finished work. Rewrite the Status section to describe reality, and add a "docs updated" gate to the task done-flow so this cannot drift again.
+D2. `docs/tasks/lunar/manifest.json` marks all 20 tasks PASS 10/10 while TASK-016 has stub pages (F7) and TASK-020 has placeholder keys (F6). Split `spec_audit` from `implementation_status` in the manifest schema.
+D3. The PRD/SRS file is untracked (its filename contains an em dash and combining diacritics, violating the repo's own naming convention). Rename to ASCII (for example `docs/PRD-SRS-genie-am-lich.md`) and commit it - it is the declared source of every task and is currently missing from clones.
 D4. Add `playwright-report/` to .gitignore and remove the committed report; add an `apps/web/.env.example` documenting all NEXT_PUBLIC vars.
 D5. DEPLOYMENT.md: record that key rotation from S1 was completed (date + who), and document the Apple root cert placement, RevenueCat webhook secret, and Zalo app id steps.
 
@@ -214,7 +214,7 @@ Exit criteria for launch: all S and F items closed, CI green across all workspac
 
 ## 12. Strengths worth keeping
 
-The shared-core architecture works as designed: web, API, and zalo all consume @cyberskill/amlich-core with zero duplicated lunar math. The VN-timezone discipline (todayInHCM, DEC-LUNAR-043) is documented and mostly enforced, with tests that survive TZ tampering. RLS posture on sensitive tables is correct (WITH CHECK (FALSE) forcing service-role writes). App Store JWS verification fails closed at every stage with regression tests, and Zalo Pay HMAC uses a timing-safe compare with a test guarding a previously removed backdoor. The 64-slot notification planner with fairness allocation matches its spec and is well tested. Consent UX (equal-weight buttons, policy re-versioning) is unusually careful. TypeScript is genuinely strict monorepo-wide. Docker networking exposes only Caddy. Decision-traceability comments (DEC-LUNAR-xxx, FR-LUNAR-xxx) give this codebase better institutional memory than most teams manage.
+The shared-core architecture works as designed: web, API, and zalo all consume @cyberskill/amlich-core with zero duplicated lunar math. The VN-timezone discipline (todayInHCM, DEC-LUNAR-043) is documented and mostly enforced, with tests that survive TZ tampering. RLS posture on sensitive tables is correct (WITH CHECK (FALSE) forcing service-role writes). App Store JWS verification fails closed at every stage with regression tests, and Zalo Pay HMAC uses a timing-safe compare with a test guarding a previously removed backdoor. The 64-slot notification planner with fairness allocation matches its spec and is well tested. Consent UX (equal-weight buttons, policy re-versioning) is unusually careful. TypeScript is genuinely strict monorepo-wide. Docker networking exposes only Caddy. Decision-traceability comments (DEC-LUNAR-xxx, TASK-LUNAR-xxx) give this codebase better institutional memory than most teams manage.
 
 ## Appendix: external references
 

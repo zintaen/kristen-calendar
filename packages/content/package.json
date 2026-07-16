@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "FestivalContent tinh - 13 dip am lich. Xem FR-LUNAR-008.",
+  "description": "FestivalContent tinh - 13 dip am lich. Xem TASK-LUNAR-008.",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {

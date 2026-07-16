@@ -1,9 +1,9 @@
 /**
- * FR-LUNAR-004 surface - reminder validation, normalization, cache staleness.
+ * TASK-LUNAR-004 surface - reminder validation, normalization, cache staleness.
  *
- * Reminder type itself lives in types.ts (FR-004 la owner); day chi la cac ham thuan tinh toan,
+ * Reminder type itself lives in types.ts (TASK-004 la owner); day chi la cac ham thuan tinh toan,
  * zero-dependency, khong I/O (NFR-Offline). Consumer import type Reminder tu "@cyberskill/amlich-core",
- * KHONG redeclare (tranh drift schema xuong FR-005/006/016/017/018).
+ * KHONG redeclare (tranh drift schema xuong TASK-005/006/016/017/018).
  */
 import type { Reminder, ReminderChannel, LeapFallback } from "./types.js";
 
@@ -19,14 +19,14 @@ export type {
   LunarDate,
 } from "./types.js";
 
-/** Loi validate mot Reminder (FR-LUNAR-004 §1 #12). */
+/** Loi validate mot Reminder (TASK-LUNAR-004 §1 #12). */
 export interface ValidationError {
   readonly field: string;
   readonly code: string;
   readonly message: string;
 }
 
-/** Cache ngay duong da tinh san cho mot Reminder (FR-LUNAR-004 §3, DEC-LUNAR-044). */
+/** Cache ngay duong da tinh san cho mot Reminder (TASK-LUNAR-004 §3, DEC-LUNAR-044). */
 export interface OccurrenceCache {
   readonly reminderId: string;
   readonly gregorianDate: string; // "YYYY-MM-DD"
@@ -36,7 +36,7 @@ export interface OccurrenceCache {
 }
 
 /**
- * Tra danh sach loi (rong = hop le). FR-LUNAR-004 §1 #12, AC #14.
+ * Tra danh sach loi (rong = hop le). TASK-LUNAR-004 §1 #12, AC #14.
  * lunarDay 1..30, lunarMonth 1..12, RAM phai lunarDay==15, MUNG_MOT phai lunarDay==1,
  * ONCE phai co lunarYear, leadTimes khong am, channels khong rong.
  */
@@ -75,7 +75,7 @@ function normalizeLeadTimes(input: readonly number[] | undefined): number[] {
 }
 
 /**
- * Dat mac dinh on dinh (FR-LUNAR-004 §1 #13, AC #15):
+ * Dat mac dinh on dinh (TASK-LUNAR-004 §1 #13, AC #15):
  * notifyTime "07:00", leadTimes [1], channels ["LOCAL"], enabled true, leapFallback "REGULAR",
  * isLeapMonth false, sort+dedupe leadTimes. lunarYear -> null cho ANNUAL/MONTHLY neu khong cung.
  */

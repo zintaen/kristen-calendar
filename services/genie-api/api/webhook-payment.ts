@@ -86,7 +86,7 @@ export async function processPaymentConfirmation(
 }
 
 /**
- * App Store Server Notifications V2 (FR-020).
+ * App Store Server Notifications V2 (TASK-020).
  *
  * Verifies Apple's signed JWS (ES256, x5c chain rooted at an Apple root CA) with the official
  * `@apple/app-store-server-library` BEFORE granting anything. Fail-closed at every step: a bad
@@ -179,7 +179,7 @@ export async function handleAppStoreWebhook(request: Request): Promise<Response>
 }
 
 /**
- * Zalo Pay callback (FR-020). Verifies the HMAC-SHA256 MAC over `data` with ZALO_PAY_KEY2 BEFORE
+ * Zalo Pay callback (TASK-020). Verifies the HMAC-SHA256 MAC over `data` with ZALO_PAY_KEY2 BEFORE
  * granting anything. Fails closed if the key is missing in production.
  */
 export async function handleZaloPayWebhook(request: Request): Promise<Response> {

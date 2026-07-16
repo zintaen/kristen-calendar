@@ -62,7 +62,7 @@ describe("recurrence engine", () => {
     expect(occ[0]!.pendingUserChoice).toBe(true);
   });
 
-  it("1985 leap month 2 lands in the Mar-Apr window (AC #8, cross-check FR-001)", () => {
+  it("1985 leap month 2 lands in the Mar-Apr window (AC #8, cross-check TASK-001)", () => {
     const r = gio({ lunarDay: 16, lunarMonth: 2, lunarYear: 1985, isLeapMonth: true, recurrence: "ONCE", leadTimes: [0] });
     const occ = nextOccurrences(r, { fromYear: 1985, count: 1, engineVersion: ENGINE });
     const d = occ[0]!.gregorianDate; // "1985-MM-DD"

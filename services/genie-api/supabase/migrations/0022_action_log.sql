@@ -1,5 +1,5 @@
 -- services/genie-api/supabase/migrations/0022_action_log.sql
--- FR-LUNAR-022: O2O Commerce (Ritual Marketplace)
+-- TASK-LUNAR-022: O2O Commerce (Ritual Marketplace)
 
 CREATE TABLE IF NOT EXISTS genie_action_log (
   id            BIGSERIAL PRIMARY KEY,

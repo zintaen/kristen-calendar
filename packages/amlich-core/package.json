@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Lunar calendar core (Ho Ngoc Duc) - solar<->lunar, can-chi, tiet khi, recurrence. Zero-dependency, offline, VN time (UTC+7, 105E). FR-LUNAR-001/002/003/004.",
+  "description": "Lunar calendar core (Ho Ngoc Duc) - solar<->lunar, can-chi, tiet khi, recurrence. Zero-dependency, offline, VN time (UTC+7, 105E). TASK-LUNAR-001/002/003/004.",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {

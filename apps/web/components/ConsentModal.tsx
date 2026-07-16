@@ -161,7 +161,7 @@ const modalStyles = {
     gap: '16px',
     marginTop: '24px'
   },
-  // Ensure both buttons have equal visual weight (size) as required by PDPL FR
+  // Ensure both buttons have equal visual weight (size) as required by PDPL task
   buttonPrimary: {
     flex: 1,
     padding: '12px',

@@ -1,5 +1,5 @@
 /**
- * FR-LUNAR-004 - recurrence engine. Sinh Occurrence (ngay duong) tu Reminder (ngay am),
+ * TASK-LUNAR-004 - recurrence engine. Sinh Occurrence (ngay duong) tu Reminder (ngay am),
  * goi convertLunar2Solar doc lap cho tung nam am (DEC-LUNAR-041, KHONG noi suy), ap fallback
  * thang nhuan (DEC-LUNAR-042), clamp ngay thieu, va khoa moi phep tinh ve Asia/Ho_Chi_Minh.
  *
@@ -28,7 +28,7 @@ function iso(d: number, m: number, y: number): string {
 /**
  * So thang nhuan (1..12) cua "span" chua thang am `lunarMonth` trong `lunarYear`, hoac null neu
  * span do khong co thang nhuan. Sao chep dung logic nhanh cua convertLunar2Solar (month<11 dung
- * span [year-1, year]; month>=11 dung span [year, year+1]) de nhat quan tuyet doi voi FR-LUNAR-001.
+ * span [year-1, year]; month>=11 dung span [year, year+1]) de nhat quan tuyet doi voi TASK-LUNAR-001.
  */
 function leapMonthForSpan(lunarMonth: number, lunarYear: number): number | null {
   const a11 = lunarMonth < 11 ? getLunarMonth11(lunarYear - 1, VN_TZ) : getLunarMonth11(lunarYear, VN_TZ);
@@ -181,7 +181,7 @@ export function nextOccurrences(r: Reminder, opt: RecurrenceOptions): readonly O
   return out;
 }
 
-/** Gop occurrence cua nhieu Reminder, sort tang dan theo fireAtLocal (chuoi ISO). FR-LUNAR-005 cat 64 dau. */
+/** Gop occurrence cua nhieu Reminder, sort tang dan theo fireAtLocal (chuoi ISO). TASK-LUNAR-005 cat 64 dau. */
 export function mergeAndSort(all: readonly Occurrence[]): readonly Occurrence[] {
   return [...all].sort((a, b) => (a.fireAtLocal < b.fireAtLocal ? -1 : a.fireAtLocal > b.fireAtLocal ? 1 : 0));
 }

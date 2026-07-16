@@ -2,7 +2,7 @@
   "name": "genie-web",
   "version": "0.0.0",
   "private": true,
-  "description": "Next.js/React PWA + Capacitor iOS host. FR-LUNAR-010.",
+  "description": "Next.js/React PWA + Capacitor iOS host. TASK-LUNAR-010.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

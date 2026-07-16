@@ -2,7 +2,7 @@ import { buildMonthGrid, computeReminderDatesForMonth } from "../lib/calendarDat
 import type { Reminder } from "../lib/storage";
 import { performance } from "perf_hooks";
 
-describe("buildMonthGrid (FR-LUNAR-007)", () => {
+describe("buildMonthGrid (TASK-LUNAR-007)", () => {
   test("Thang 1/2025: ngay 29 co ngay am 1/1/2025 Tet At Ty", () => {
     const grid = buildMonthGrid(2025, 1, new Set(), new Set(), new Date("2025-01-15"));
     const cell = grid.cells.find(c => c?.solarDay === 29 && c.solarMonth === 1);
@@ -44,7 +44,7 @@ describe("buildMonthGrid (FR-LUNAR-007)", () => {
   });
 });
 
-describe("computeReminderDatesForMonth (FR-LUNAR-007)", () => {
+describe("computeReminderDatesForMonth (TASK-LUNAR-007)", () => {
   it("matches RAM reminder on lunar 15th regardless of month", () => {
     const r: Reminder = {
       id: "ram", type: "RAM", title: "Ram",

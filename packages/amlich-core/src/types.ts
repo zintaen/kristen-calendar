@@ -35,28 +35,28 @@ export interface TietKhi {
   readonly isTrungKhi: boolean;
 }
 
-/** Tuy chon cho nextOccurrences (FR-LUNAR-004). */
+/** Tuy chon cho nextOccurrences (TASK-LUNAR-004). */
 export interface RecurrenceOptions {
   readonly fromYear: number;
   /** So lan xuat hien am lich (truoc khi fan-out theo leadTimes). */
   readonly count: number;
-  /** Phien ban engine de cache key on dinh (OccurrenceCache). Bat buoc (FR-LUNAR-004). */
+  /** Phien ban engine de cache key on dinh (OccurrenceCache). Bat buoc (TASK-LUNAR-004). */
   readonly engineVersion: string;
 }
 
-/** Chinh sach khi gio roi vao thang nhuan ma nam dich khong co thang nhuan do (FR-LUNAR-004). */
+/** Chinh sach khi gio roi vao thang nhuan ma nam dich khong co thang nhuan do (TASK-LUNAR-004). */
 export type LeapFallback = "REGULAR" | "SKIP" | "ASK";
 
-/** Kenh nhac (FR-LUNAR-004 section 10). */
+/** Kenh nhac (TASK-LUNAR-004 section 10). */
 export type ReminderChannel = "LOCAL" | "ZNS" | "PUSH";
 
-/** Loai nhac (FR-LUNAR-004 section 10). */
+/** Loai nhac (TASK-LUNAR-004 section 10). */
 export type ReminderType = "RAM" | "MUNG_MOT" | "GIO" | "CUSTOM" | "FESTIVAL";
 
-/** Tan suat (FR-LUNAR-004 section 10). */
+/** Tan suat (TASK-LUNAR-004 section 10). */
 export type Recurrence = "MONTHLY" | "ANNUAL" | "ONCE";
 
-/** Tuy bien thong bao ca nhan hoa (FR-LUNAR-006, gop FR-F05). Tinh tu template, khong AI o Phase 1. */
+/** Tuy bien thong bao ca nhan hoa (TASK-LUNAR-006, gop TASK-F05). Tinh tu template, khong AI o Phase 1. */
 export interface NotificationStyle {
   readonly tone?: "warm" | "neutral" | "formal";
   readonly emoji?: string;
@@ -64,8 +64,8 @@ export interface NotificationStyle {
 }
 
 /**
- * Reminder - mo hinh du lieu nhac (FR-LUNAR-004 la OWNER cua type nay).
- * Moi client/service khac (FR-005/006/010/016/017/018) PHAI import type nay, KHONG redeclare (tranh drift).
+ * Reminder - mo hinh du lieu nhac (TASK-LUNAR-004 la OWNER cua type nay).
+ * Moi client/service khac (TASK-005/006/010/016/017/018) PHAI import type nay, KHONG redeclare (tranh drift).
  */
 export interface Reminder {
   readonly id: string;
@@ -91,7 +91,7 @@ export interface Reminder {
 }
 
 /**
- * Mot lan xuat hien da tinh ra ngay duong (FR-LUNAR-004 section 3).
+ * Mot lan xuat hien da tinh ra ngay duong (TASK-LUNAR-004 section 3).
  * gregorianDate la chuoi "YYYY-MM-DD" (KHONG phai SolarDate tuple) vi fireAtLocal mang gio ban chinh xac.
  */
 export interface Occurrence {

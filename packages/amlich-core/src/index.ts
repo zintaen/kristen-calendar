@@ -2,7 +2,7 @@
  * @cyberskill/amlich-core - barrel export.
  *
  * Loi am lich Viet Nam (Ho Ngoc Duc): solar<->lunar, can-chi, tiet khi, recurrence.
- * Zero-dependency, offline, gio Viet Nam (UTC+7, 105E). FR-LUNAR-001/002/003/004.
+ * Zero-dependency, offline, gio Viet Nam (UTC+7, 105E). TASK-LUNAR-001/002/003/004.
  *
  * Trang thai: cac ham thuat toan da implement va qua golden harness (round-trip 1900-2199 = 0 mismatch,
  * doi chieu astronomy-engine, gold rows, Dong chi in month 11). Constants (PRD 6.2) va types day du.

@@ -14,27 +14,27 @@ Grouped by severity.
 
 ### Critical (core functionality broken)
 
-1. FR-004 reminder.ts - the three functions validateReminder, normalizeReminder, and isCacheStale were still stubs that threw ("not implemented"). The entire FR-004 surface did not work. Implemented in full per FR-LUNAR-004 sections 3 and 4.
+1. TASK-004 reminder.ts - the three functions validateReminder, normalizeReminder, and isCacheStale were still stubs that threw ("not implemented"). The entire TASK-004 surface did not work. Implemented in full per TASK-LUNAR-004 sections 3 and 4.
 
-2. FR-004 recurrence.ts - leap-month fallback was wrong. convertLunar2Solar returns a valid regular date when you pass leap=1 into a year that has no such leap month, so isInvalidSolar never caught it and fellBack was never set. A death anniversary recorded in a leap month would silently fall on the wrong month with no flag. Added leapMonthForSpan to detect correctly whether the target year has the requested leap month, then apply the REGULAR/SKIP/ASK policy.
+2. TASK-004 recurrence.ts - leap-month fallback was wrong. convertLunar2Solar returns a valid regular date when you pass leap=1 into a year that has no such leap month, so isInvalidSolar never caught it and fellBack was never set. A death anniversary recorded in a leap month would silently fall on the wrong month with no flag. Added leapMonthForSpan to detect correctly whether the target year has the requested leap month, then apply the REGULAR/SKIP/ASK policy.
 
-3. FR-017 zns-scheduler.ts - candidateLunarYears derived "today" from now.getFullYear()/getMonth()/getDate() (local time). The cron runs on serverless with TZ=UTC, so around Vietnam midnight it reads the UTC date (off by one day) and scans the wrong lunar month, sending ZNS reminders on the wrong day. Locked to todayInHCM(now).
+3. TASK-017 zns-scheduler.ts - candidateLunarYears derived "today" from now.getFullYear()/getMonth()/getDate() (local time). The cron runs on serverless with TZ=UTC, so around Vietnam midnight it reads the UTC date (off by one day) and scans the wrong lunar month, sending ZNS reminders on the wrong day. Locked to todayInHCM(now).
 
-4. FR-015 genie.ts - two bugs: (a) the model was hardcoded to "claude-3-5-haiku-latest" while founder decision 6 selects Claude Haiku 4.5; changed to "claude-haiku-4-5". (b) The auth step used the module-level getSupabaseClient(jwt) instead of the injectable deps.supabaseClient that the rest of the handler uses, so userId never resolved in tests and the 429 quota and 400 validation branches were unreachable (all returned 502). Unified to the injectable client.
+4. TASK-015 genie.ts - two bugs: (a) the model was hardcoded to "claude-3-5-haiku-latest" while founder decision 6 selects Claude Haiku 4.5; changed to "claude-haiku-4-5". (b) The auth step used the module-level getSupabaseClient(jwt) instead of the injectable deps.supabaseClient that the rest of the handler uses, so userId never resolved in tests and the 429 quota and 400 validation branches were unreachable (all returned 502). Unified to the injectable client.
 
 ### Major (timezone and hygiene, off-by-one-day abroad)
 
-5. FR-011 dayquality.ts - getDayQuality read solarDate.getDate()/getMonth()/getFullYear() in the device timezone. A user abroad (the primary persona is an actor who travels for shoots) would see the day quality (can-chi, sao, truc) shifted by one day. Switched to UTC reads (deterministic, matches the "YYYY-MM-DD" fixtures, DEC-LUNAR-043). Fixed getMonthDayQualities as well.
+5. TASK-011 dayquality.ts - getDayQuality read solarDate.getDate()/getMonth()/getFullYear() in the device timezone. A user abroad (the primary persona is an actor who travels for shoots) would see the day quality (can-chi, sao, truc) shifted by one day. Switched to UTC reads (deterministic, matches the "YYYY-MM-DD" fixtures, DEC-LUNAR-043). Fixed getMonthDayQualities as well.
 
-6. FR-016 zalo/src/lib/day-computer.ts - the lead-time date was computed with new Date(ms).getDate()/getMonth()/getFullYear() (local), so it shifts by one day on a device outside Vietnam. Switched to JD arithmetic (jdToDate(eventJd - lead)).
+6. TASK-016 zalo/src/lib/day-computer.ts - the lead-time date was computed with new Date(ms).getDate()/getMonth()/getFullYear() (local), so it shifts by one day on a device outside Vietnam. Switched to JD arithmetic (jdToDate(eventJd - lead)).
 
 7. dayquality.ts import hygiene - it imported through the barrel ./index (extensionless), creating a fragile circular dependency. Switched to direct per-module imports with the .js extension.
 
 ### Missing files and documentation
 
-8. FR-004 tz.ts - the CONTRACT lists src/tz.ts but the file did not exist (todayInHCM had been placed inside recurrence.ts). Created tz.ts with the exact CONTRACT signature.
+8. TASK-004 tz.ts - the CONTRACT lists src/tz.ts but the file did not exist (todayInHCM had been placed inside recurrence.ts). Created tz.ts with the exact CONTRACT signature.
 
-9. test/recurrence.test.ts - FR-004 section 5 fully specifies a test file that was never created. Created it per section 5 (20 tests covering all 17 acceptance criteria), plus one dedicated regression test for the lead-time timezone bug.
+9. test/recurrence.test.ts - TASK-004 section 5 fully specifies a test file that was never created. Created it per section 5 (20 tests covering all 17 acceptance criteria), plus one dedicated regression test for the lead-time timezone bug.
 
 10. index.ts - the docstring still said "the algorithm functions are stubs" (stale); updated it and added the tz export.
 
@@ -108,11 +108,11 @@ If step 3 still fails in the vi.mock suites, those are real test logic (not part
 
 ## Note on languages
 
-The documents in this rework are in English per request. The pre-existing FR corpus, README, and BACKLOG under docs/ are in Vietnamese, which was a deliberate earlier decision. The source-code comments (including the ones added in this pass) are in Vietnamese to match the existing codebase convention. If you want the whole doc corpus and/or code comments converted to English, say so and I will convert them as a separate pass.
+The documents in this rework are in English per request. The pre-existing task corpus, README, and BACKLOG under docs/ are in Vietnamese, which was a deliberate earlier decision. The source-code comments (including the ones added in this pass) are in Vietnamese to match the existing codebase convention. If you want the whole doc corpus and/or code comments converted to English, say so and I will convert them as a separate pass.
 
 ## Native iOS pass (widget + Siri) - the crown-jewel divergence
 
-This pass audited the one genuinely high-risk area the earlier passes could not reach: the native Swift lunar port that drives the FR-013 home-screen widget and the FR-023 Siri intents. It is a re-implementation of the lunar math, separate from amlich-core, so it can silently disagree with the app.
+This pass audited the one genuinely high-risk area the earlier passes could not reach: the native Swift lunar port that drives the TASK-013 home-screen widget and the TASK-023 Siri intents. It is a re-implementation of the lunar math, separate from amlich-core, so it can silently disagree with the app.
 
 Method: amlich-core cannot be compiled on the Linux sandbox and there is no Swift toolchain here, so the Swift was transliterated to JavaScript byte-for-byte (integer-truncation semantics included) and diffed day-for-day against the validated core over the full commercial range. This is the strongest verification possible without a Mac.
 
@@ -157,7 +157,7 @@ The Ho Ngoc Duc method can land a month-start on the wrong civil day when the ne
 
 Result: only 6 month-starts in 300 years differ from the ephemeris, and every one is a new moon within about 2 minutes of midnight (the closest 0.1 min). Two are in 1900-2100 (10/12/2072 and 18/10/2085), both over 47 years out; the other four are in 2100-2199, which decision 3 already accepts within a day. Everywhere else the engine matches the ephemeris to the civil day. The full list, plus 71 fragile boundaries that agree today but sit within 15 minutes of midnight, is in `docs/lunar-suspect-dates-1900-2199.md` for spot-checking against the official calculator.
 
-## App Store receipt verification (FR-020)
+## App Store receipt verification (TASK-020)
 
 The App Store webhook previously acknowledged notifications without granting (correct fail-closed placeholder) but had a TODO where verification belongs, and its payload interface was the wrong shape for App Store Server Notifications V2. Rewrote `handleAppStoreWebhook` to verify Apple's signed JWS with the official `@apple/app-store-server-library` (ES256, x5c chain rooted at an Apple root CA) before granting, and to act on the V2 `signedPayload` Apple actually sends.
 

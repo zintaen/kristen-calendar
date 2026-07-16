@@ -1,5 +1,5 @@
 -- services/genie-api/supabase/migrations/0016_family_sharing_schema.sql
--- FR-018: Family Sharing and Cloud Sync
+-- TASK-018: Family Sharing and Cloud Sync
 -- Creates tables and triggers for sync, adhering to DEC-LUNAR-182 and DEC-LUNAR-183
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

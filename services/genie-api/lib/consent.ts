@@ -1,9 +1,9 @@
 export const CONSENT_POLICY_VERSION = "1.0.0";
 
 export interface ConsentFlags {
-  cloudSync: boolean;       // FR-018 Supabase sync
-  genieAI: boolean;         // FR-015 Claude proxy
-  znsReminder: boolean;     // FR-017 ZNS
+  cloudSync: boolean;       // TASK-018 Supabase sync
+  genieAI: boolean;         // TASK-015 Claude proxy
+  znsReminder: boolean;     // TASK-017 ZNS
   analyticsUsage: boolean;  // thu thap du lieu su dung tong hop
   consentedAt: string | null;       // ISO 8601, null neu chua consent
   policyVersion: string | null;     // semver cua chinh sach tai thoi diem consent

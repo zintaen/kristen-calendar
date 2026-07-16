@@ -1,5 +1,5 @@
 /**
- * Zalo auth helpers (FR-LUNAR-016).
+ * Zalo auth helpers (TASK-LUNAR-016).
  *
  * getUserInfo and getPhoneNumber MUST only be called after explicit consent
  * via ConsentSheet (DEC-LUNAR-163). getPhoneNumber returns a TOKEN, not a

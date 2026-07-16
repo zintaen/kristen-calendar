@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Purple style pack + Be Vietnam Pro + cong APCA Lc>=75. Xem FR-LUNAR-009.",
+  "description": "Purple style pack + Be Vietnam Pro + cong APCA Lc>=75. Xem TASK-LUNAR-009.",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {

@@ -103,7 +103,7 @@ export function computeReminderDatesForMonth(
   const dates = new Set<string>();
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
   
-  // NOTE: A more accurate check would use recurrence engine from FR-004
+  // NOTE: A more accurate check would use recurrence engine from TASK-004
   // For MVP UI building we will do a basic scan if the UI needs it.
   // The tests expect basic mapping for RAM (15 AL).
   for (let d = 1; d <= daysInMonth; d++) {

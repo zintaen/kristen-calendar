@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { jdFromDate, canChiDay, canChiLabel, zodiacOf } from "../src/index.js";
 
-describe("canChiDay - cong thuc canonical (FR-LUNAR-002)", () => {
-  it("chiIndex = (jdn + 1) % 12 (la dia chi ma FR-011 day-quality PHAI dung, KHONG phai (jdn+9)%12)", () => {
+describe("canChiDay - cong thuc canonical (TASK-LUNAR-002)", () => {
+  it("chiIndex = (jdn + 1) % 12 (la dia chi ma TASK-011 day-quality PHAI dung, KHONG phai (jdn+9)%12)", () => {
     const base = jdFromDate(2, 2, 1984);
     for (let jd = base; jd < base + 60; jd++) {
       const expectedChi = (((jd + 1) % 12) + 12) % 12;

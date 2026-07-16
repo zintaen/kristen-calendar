@@ -99,7 +99,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
 ZNS_TEMPLATE_ID=
 CRON_SECRET=<long random string>
 
-# Payments (FR-020). Leave blank until you sell subscriptions; both webhooks fail closed when unset.
+# Payments (TASK-020). Leave blank until you sell subscriptions; both webhooks fail closed when unset.
 ZALO_PAY_KEY2=<Zalo Pay key2>
 APPLE_BUNDLE_ID=world.cyberskill.genieamlich
 APPLE_APP_APPLE_ID=<numeric App Store app id>
@@ -117,7 +117,7 @@ Two prerequisites before the first build:
 
 - Lockfile: the API image installs with `pnpm install --frozen-lockfile`, so `pnpm-lock.yaml`
   must already match `package.json`. After any dependency change (for example the App Store
-  verification library added for FR-020), run `pnpm install` once at the repo root and commit the
+  verification library added for TASK-020), run `pnpm install` once at the repo root and commit the
   updated `pnpm-lock.yaml`, or the Docker build fails with a frozen-lockfile mismatch.
 - Apple root certificate (only if you accept App Store payments): download Apple Root CA - G3 to
   `services/genie-api/certs/apple/` on the host (see that folder's README). The compose file mounts
@@ -179,7 +179,7 @@ The Zalo client is built and submitted through Zalo Studio, not this server:
 cd zalo && pnpm build       # then deploy via pnpm deploy:zalo / Zalo Studio
 ```
 
-ZNS reminders (FR-017) run from the `api` service on a schedule. They need a registered Zalo OA, an
+ZNS reminders (TASK-017) run from the `api` service on a schedule. They need a registered Zalo OA, an
 approved ZNS template (set `ZNS_TEMPLATE_ID`), and `CRON_SECRET`. Start via a ZNS distributor
 (for example VietGuys) to shorten OA onboarding, per the founder decision.
 

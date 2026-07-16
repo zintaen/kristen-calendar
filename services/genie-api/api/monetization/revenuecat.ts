@@ -29,7 +29,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // Update user_entitlements
-    // FR-LUNAR-020 created this table with user_id, tier, valid_until, source
+    // TASK-LUNAR-020 created this table with user_id, tier, valid_until, source
     const { error: entitlementError } = await supabase
       .from('user_entitlements')
       .upsert({
@@ -44,7 +44,7 @@ export async function POST(request: Request): Promise<Response> {
       return Response.json({ error: "Database error" }, { status: 500 });
     }
 
-    // Log the successful transaction in genie_action_log (FR-LUNAR-024)
+    // Log the successful transaction in genie_action_log (TASK-LUNAR-024)
     if (type === 'INITIAL_PURCHASE' || type === 'RENEWAL') {
       await supabase.from("genie_action_log").insert({
         user_id: app_user_id,
